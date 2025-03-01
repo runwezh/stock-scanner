@@ -18,7 +18,7 @@ class StockAnalyzer:
         load_dotenv()
         
         # 设置 Gemini API
-        self.gemini_api_url = "https://api.xxx.xxx"
+        self.gemini_api_url = os.getenv('GEMINI_API_URL')
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         
         # 配置参数
@@ -30,8 +30,15 @@ class StockAnalyzer:
             'volume_ma_period': 20,
             'atr_period': 14
         }
+
+         # 添加市场类型枚举
+        self.MARKET_TYPES = {
+            'A': 'A股',
+            'HK': '港股',
+            'CRYPTO': '加密货币'
+        }
         
-    def get_stock_data(self, stock_code, start_date=None, end_date=None):
+    def get_stock_data(self, stock_code, market_type='A', start_date=None, end_date=None, ):
         """获取股票数据"""
         import akshare as ak
         
@@ -41,11 +48,26 @@ class StockAnalyzer:
             end_date = datetime.now().strftime('%Y%m%d')
             
         try:
-            # 使用 akshare 获取股票数据
-            df = ak.stock_zh_a_hist(symbol=stock_code, 
-                                  start_date=start_date, 
-                                  end_date=end_date,
-                                  adjust="qfq")
+            # 根据市场类型获取数据
+            if market_type == 'A':
+                df = ak.stock_zh_a_hist(
+                    symbol=stock_code,
+                    start_date=start_date,
+                    end_date=end_date,
+                    adjust="qfq"
+                )
+                # A股数据列名映射
+            elif market_type == 'HK':
+                df = ak.stock_hk_daily(
+                    symbol=stock_code,
+                    adjust="qfq"
+                )
+            elif market_type == 'CRYPTO':
+                df = ak.crypto_js_spot(
+                    symbol=stock_code
+                )
+            else:
+                raise ValueError(f"不支持的市场类型: {market_type}")
             
             # 重命名列名以匹配分析需求
             df = df.rename(columns={
@@ -225,7 +247,7 @@ class StockAnalyzer:
             }
             
             data = {
-                "model": "gemini-1.5-flash",
+                "model": os.getenv('GEMINI_API_MODEL'),
                 "messages": [{"role": "user", "content": prompt}]
             }
             
@@ -233,9 +255,12 @@ class StockAnalyzer:
                 f"{self.gemini_api_url}/v1/chat/completions",
                 headers=headers,
                 json=data,
-                timeout=10
+                timeout=30
             )
-            
+            print(headers)
+            print(data)
+            print(response.json())
+
             if response.status_code == 200:
                 return response.json()['choices'][0]['message']['content']
             else:
@@ -258,11 +283,11 @@ class StockAnalyzer:
         else:
             return '强烈建议卖出'
             
-    def analyze_stock(self, stock_code):
+    def analyze_stock(self, stock_code, market_type='A'):
         """分析单个股票"""
         try:
             # 获取股票数据
-            df = self.get_stock_data(stock_code)
+            df = self.get_stock_data(stock_code, market_type)
             
             # 计算技术指标
             df = self.calculate_indicators(df)
@@ -295,13 +320,13 @@ class StockAnalyzer:
             self.logger.error(f"分析股票时出错: {str(e)}")
             raise
             
-    def scan_market(self, stock_list, min_score=60):
+    def scan_market(self, stock_list, min_score=60, market_type='A'):
         """扫描市场，寻找符合条件的股票"""
         recommendations = []
         
         for stock_code in stock_list:
             try:
-                report = self.analyze_stock(stock_code)
+                report = self.analyze_stock(stock_code, market_type)
                 if report['score'] >= min_score:
                     recommendations.append(report)
             except Exception as e:
