@@ -17,16 +17,25 @@ class USStockService:
         try:
             # 获取美股数据
             df = ak.stock_us_spot_em()
-
             
             # 转换列名
             df = df.rename(columns={
+                "序号": "index",
                 "名称": "name",
                 "最新价": "price",
-                "涨跌额": "change",
-                "代码": "symbol",
-                "成交额": "volume",
-                "换手率": "turnover"
+                "涨跌额": "price_change",
+                "涨跌幅": "price_change_percent",
+                "开盘价": "open",
+                "最高价": "high",
+                "最低价": "low",
+                "昨收价": "pre_close",
+                "总市值": "market_value",
+                "市盈率": "pe_ratio",
+                "成交量": "volume",
+                "成交额": "turnover",
+                "振幅": "amplitude",
+                "换手率": "turnover_rate",
+                "代码": "symbol"
             })
             
             # 模糊匹配搜索
@@ -38,11 +47,9 @@ class USStockService:
             for item in results:
                 formatted_results.append({
                     'name': item['name'],
-                    'symbol': item['symbol'].replace('105.', ''),  # 移除前缀
+                    'symbol': item['symbol'],
                     'price': item['price'],
-                    'change': item['change'],
-                    'volume': item['volume'],
-                    'turnover': item['turnover']
+                    'market_value': item['market_value']
                 })
                 
             return formatted_results
