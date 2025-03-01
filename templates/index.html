@@ -10,130 +10,206 @@
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold mb-8 text-center">股票分析系统</h1>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- 单只股票分析 -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4">单只股票分析</h2>
-                <div class="mb-4">
-                    <input type="text" id="singleStock" 
-                           class="w-full p-2 border rounded"
-                           placeholder="输入股票代码（如：600000）">
-                </div>
-                <button onclick="analyzeSingleStock()"
-                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                    分析
-                </button>
-            </div>
-
+        <div class="max-w-4xl mx-auto">  <!-- 将 max-w-2xl 改为 max-w-4xl -->
             <!-- 批量分析 -->
             <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4">批量股票分析</h2>
+                <h2 class="text-xl font-semibold mb-4">股票批量分析</h2>
+                
+                <!-- 添加市场类型选择 -->
                 <div class="mb-4">
+                    <label for="marketType" class="block text-sm font-medium text-gray-700 mb-2">
+                        选择市场类型
+                    </label>
+                    <select id="marketType" 
+                            class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="A">A股</option>
+                        <option value="HK">港股</option>
+                        <!-- <option value="US">美股</option> -->
+                        <!-- <option value="CRYPTO">加密货币</option> -->
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="batchStocks" class="block text-sm font-medium text-gray-700 mb-2">
+                        输入代码
+                    </label>
                     <textarea id="batchStocks" 
                               class="w-full p-2 border rounded h-32"
-                              placeholder="输入多个股票代码，每行一个"></textarea>
+                              placeholder="输入代码，支持多个代码（用回车或逗号分隔）"></textarea>
                 </div>
-                <button onclick="analyzeBatchStocks()"
-                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                    批量分析
+                
+                <button id="analyzeBtn" onclick="analyzeStocks()"
+                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center">
+                    <span>开始分析</span>
+                    <div id="loadingSpinner" class="hidden ml-2">
+                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
                 </button>
             </div>
-        </div>
 
-        <!-- 结果展示 -->
-        <div id="results" class="mt-8 bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">分析结果</h2>
-            <div id="resultContent" class="prose"></div>
-        </div>
-    </div>
+            <!-- 结果展示 -->
+            <div id="results" class="mt-8">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">分析结果</h2>
+                <div id="resultContent" class="space-y-8"></div>
+            </div>
 
     <script>
-        async function analyzeSingleStock() {
-            const stockCode = document.getElementById('singleStock').value.trim();
-            if (!stockCode) {
-                alert('请输入股票代码');
+        let isAnalyzing = false;
+
+        async function analyzeStocks() {
+            if (isAnalyzing) return;  // 防止重复点击
+
+            const stockInput = document.getElementById('batchStocks').value.trim();
+            const marketType = document.getElementById('marketType').value;
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            if (!stockInput) {
+                alert('请输入代码');
                 return;
             }
 
+            const stockCodes = stockInput.split(/[\n,]/)
+                                      .map(code => code.trim())
+                                      .filter(code => code.length > 0);
+
             try {
-                const response = await fetch('/api/analyze', {
+                isAnalyzing = true;
+                analyzeBtn.disabled = true;
+                loadingSpinner.classList.remove('hidden');
+                analyzeBtn.querySelector('span').textContent = '分析中...';
+
+                const response = await fetch('/analyze', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ stock_code: stockCode })
+                    body: JSON.stringify({ 
+                        stock_codes: stockCodes,
+                        market_type: marketType  // 添加市场类型参数
+                    })
                 });
 
-                const result = await response.json();
-                if (response.ok) {
-                    displayResults([result]);
-                } else {
-                    alert(result.error || '分析失败');
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || '分析失败');
                 }
+
+                const results = Array.isArray(data.results) ? data.results : [data];
+                displayResults(results);
             } catch (error) {
                 alert('请求失败: ' + error.message);
-            }
-        }
-
-        async function analyzeBatchStocks() {
-            const stocksText = document.getElementById('batchStocks').value.trim();
-            if (!stocksText) {
-                alert('请输入股票代码');
-                return;
-            }
-
-            const stockList = stocksText.split('\n').map(s => s.trim()).filter(s => s);
-
-            try {
-                const response = await fetch('/api/batch-analyze', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ stock_list: stockList })
-                });
-
-                const results = await response.json();
-                if (response.ok) {
-                    displayResults(results);
-                } else {
-                    alert(results.error || '分析失败');
-                }
-            } catch (error) {
-                alert('请求失败: ' + error.message);
+                document.getElementById('resultContent').innerHTML = `
+                    <div class="p-4 bg-red-50 text-red-600 rounded">
+                        分析出错：${error.message}
+                    </div>
+                `;
+            } finally {
+                isAnalyzing = false;
+                analyzeBtn.disabled = false;
+                loadingSpinner.classList.add('hidden');
+                analyzeBtn.querySelector('span').textContent = '开始分析';
             }
         }
 
         function displayResults(results) {
             const resultContent = document.getElementById('resultContent');
-            let html = '';
+            if (!results || results.length === 0) {
+                resultContent.innerHTML = '<div class="p-6 bg-yellow-50 text-yellow-600 rounded-lg text-center">没有分析结果</div>';
+                return;
+            }
 
+            let html = '';
             results.forEach(result => {
                 html += `
-                    <div class="mb-8 p-4 border rounded">
-                        <h3 class="text-lg font-semibold mb-2">股票代码: ${result.stock_code}</h3>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <p><strong>分析日期:</strong> ${result.analysis_date}</p>
-                                <p><strong>当前价格:</strong> ¥${result.price.toFixed(2)}</p>
-                                <p><strong>价格变动:</strong> ${result.price_change.toFixed(2)}%</p>
-                            </div>
-                            <div>
-                                <p><strong>综合评分:</strong> ${result.score}分</p>
-                                <p><strong>投资建议:</strong> ${result.recommendation}</p>
-                                <p><strong>RSI指标:</strong> ${result.rsi.toFixed(2)}</p>
-                            </div>
+                    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                        <!-- 头部信息 -->
+                        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                            <h3 class="text-xl font-bold text-white">
+                                ${result.stock_code}
+                            </h3>
                         </div>
-                        <div class="mt-4">
-                            <h4 class="font-semibold mb-2">AI分析:</h4>
-                            <p class="whitespace-pre-line">${result.ai_analysis}</p>
+                        
+                        <!-- 主要指标 -->
+                        <div class="p-6">
+                            <div class="grid grid-cols-2 gap-6 mb-6">
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                        <span class="text-gray-600">分析时间</span>
+                                        <span class="font-medium">${result.analysis_date}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                        <span class="text-gray-600">当前价格</span>
+                                        <span class="font-medium">¥${result.price.toFixed(2)}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                        <span class="text-gray-600">价格变动</span>
+                                        <span class="font-medium ${result.price_change >= 0 ? 'text-red-500' : 'text-green-500'}">
+                                            ${result.price_change.toFixed(2)}%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                        <span class="text-gray-600">综合评分</span>
+                                        <span class="font-medium text-blue-600">${result.score}分</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                        <span class="text-gray-600">投资建议</span>
+                                        <span class="font-medium text-purple-600">${result.recommendation}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                        <span class="text-gray-600">RSI指标</span>
+                                        <span class="font-medium">${result.rsi.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- AI分析部分 -->
+                            <div class="mt-6">
+                                <h4 class="text-lg font-semibold text-gray-800 mb-3">AI分析</h4>
+                                <div class="prose prose-blue max-w-none bg-gray-50 p-4 rounded-lg">
+                                    ${marked.parse(result.ai_analysis)}
+                                </div>
+                            </div>
+
+                            <!-- 免责声明 -->
+                            <div class="mt-6 border-t border-gray-100 pt-4">
+                                <div class="bg-blue-50 p-4 rounded-lg">
+                                    <p class="text-sm text-blue-800 font-semibold mb-1">声明：</p>
+                                    <p class="text-sm text-blue-600">本分析仅基于技术指标和历史数据，不构成投资建议。股市有风险，投资需谨慎。</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
             });
 
             resultContent.innerHTML = html;
+
+            // 添加 Markdown 样式
+            const style = document.createElement('style');
+            style.textContent = `
+                .prose h1 { font-size: 1.5em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
+                .prose h2 { font-size: 1.3em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
+                .prose h3 { font-size: 1.1em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
+                .prose p { margin-bottom: 1em; line-height: 1.6; }
+                .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+                .prose ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
+                .prose li { margin-bottom: 0.5em; }
+                .prose strong { font-weight: 600; color: #1a56db; }
+                .prose em { font-style: italic; }
+                .prose blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; margin: 1em 0; color: #4b5563; }
+                .prose code { background-color: #f3f4f6; padding: 0.2em 0.4em; border-radius: 0.25em; font-size: 0.9em; }
+            `;
+            document.head.appendChild(style);
         }
     </script>
+    <!-- 添加 marked.js 用于解析 Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </body>
 </html>
