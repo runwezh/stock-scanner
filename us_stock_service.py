@@ -40,16 +40,16 @@ class USStockService:
             
             # 模糊匹配搜索
             mask = df['name'].str.contains(keyword, case=False, na=False)
-            results = df[mask].to_dict('records')
+            results = df[mask]
             
-            # 格式化返回结果
+            # 格式化返回结果并处理 NaN 值
             formatted_results = []
-            for item in results:
+            for _, row in results.iterrows():
                 formatted_results.append({
-                    'name': item['name'],
-                    'symbol': item['symbol'],
-                    'price': item['price'],
-                    'market_value': item['market_value']
+                    'name': row['name'] if pd.notna(row['name']) else '',
+                    'symbol': str(row['symbol']) if pd.notna(row['symbol']) else '',
+                    'price': float(row['price']) if pd.notna(row['price']) else 0.0,
+                    'market_value': float(row['market_value']) if pd.notna(row['market_value']) else 0.0
                 })
                 
             return formatted_results

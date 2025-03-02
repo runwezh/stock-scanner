@@ -47,6 +47,9 @@
                         <div id="searchResults" 
                              class="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg hidden">
                         </div>
+                        <!-- 添加错误提示 -->
+                        <div id="searchError" class="hidden absolute z-10 w-full mt-1 p-3 bg-red-50 text-red-600 rounded-md border border-red-200">
+                        </div>
                     </div>
                 </div>
 
@@ -55,11 +58,14 @@
                     async function searchUsStocks(keyword) {
                         if (!keyword) {
                             document.getElementById('searchResults').classList.add('hidden');
+                            document.getElementById('searchError').classList.add('hidden');
                             return;
                         }
 
                         // 显示 loading
                         document.getElementById('searchLoading').classList.remove('hidden');
+                        // 隐藏之前的错误信息
+                        document.getElementById('searchError').classList.add('hidden');
 
                         try {
                             const response = await fetch(`/search_us_stocks?keyword=${encodeURIComponent(keyword)}`);
@@ -72,6 +78,12 @@
                             displaySearchResults(data.results);
                         } catch (error) {
                             console.error('搜索出错:', error);
+                            // 显示错误信息
+                            const errorDiv = document.getElementById('searchError');
+                            errorDiv.textContent = `搜索出错: ${error.message}`;
+                            errorDiv.classList.remove('hidden');
+                            // 隐藏搜索结果
+                            document.getElementById('searchResults').classList.add('hidden');
                         } finally {
                             // 隐藏 loading
                             document.getElementById('searchLoading').classList.add('hidden');
@@ -189,10 +201,64 @@
 
             <!-- 结果展示 -->
             <div id="results" class="mt-8">
-                <h2 class="text-2xl font-bold mb-6 text-gray-800">分析结果</h2>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">分析结果</h2>
+                    <button onclick="copyAnalysisResults()" 
+                            class="flex items-center text-blue-600 hover:text-blue-700">
+                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                        </svg>
+                        复制分析结果
+                    </button>
+                </div>
                 <div id="resultContent" class="space-y-8"></div>
             </div>
 
+            <script>
+                function copyAnalysisResults() {
+                    const resultContent = document.getElementById('resultContent');
+                    if (!resultContent.textContent.trim()) {
+                        alert('暂无分析结果可复制');
+                        return;
+                    }
+
+                    // 提取需要复制的文本
+                    let copyText = '';
+                    const results = resultContent.querySelectorAll('.bg-white');
+                    
+                    results.forEach(result => {
+                        // 获取股票代码
+                        const stockCode = result.querySelector('h3').textContent.trim();
+                        copyText += `股票代码：${stockCode}\n`;
+                        
+                        // 获取主要指标
+                        const indicators = result.querySelectorAll('.flex.justify-between');
+                        indicators.forEach(indicator => {
+                            const label = indicator.querySelector('.text-gray-600').textContent;
+                            const value = indicator.querySelector('.font-medium').textContent;
+                            copyText += `${label}：${value}\n`;
+                        });
+                        
+                        // 获取 AI 分析内容
+                        const aiAnalysis = result.querySelector('.prose').textContent;
+                        copyText += `\nAI分析：\n${aiAnalysis}\n`;
+                        
+                        copyText += '\n----------------------------------------\n\n';
+                    });
+
+                    // 复制到剪贴板
+                    const textarea = document.createElement('textarea');
+                    textarea.value = copyText;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+
+                    // 显示提示
+                    alert('分析结果已复制到剪贴板');
+                }
+            </script>
     <script>
         let isAnalyzing = false;
 
@@ -262,6 +328,19 @@
 
             let html = '';
             results.forEach(result => {
+                // 根据市场类型设置货币符号
+                const currencySymbol = (() => {
+                    switch(document.getElementById('marketType').value) {
+                        case 'US':
+                            return '$';
+                        case 'HK':
+                            return 'HK$';
+                        case 'A':
+                        default:
+                            return '¥';
+                    }
+                })();
+
                 html += `
                     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
                         <!-- 头部信息 -->
@@ -281,7 +360,7 @@
                                     </div>
                                     <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
                                         <span class="text-gray-600">当前价格</span>
-                                        <span class="font-medium">¥${result.price.toFixed(2)}</span>
+                                        <span class="font-medium">${currencySymbol}${result.price.toFixed(2)}</span>
                                     </div>
                                     <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
                                         <span class="text-gray-600">价格变动</span>

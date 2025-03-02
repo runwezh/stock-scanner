@@ -5,9 +5,9 @@
 
 ## 功能变更
 1. 增加html页面，支持浏览器在线使用。
-2. 支持港股，增加A股港股切换
-3. 完善Dockerfile、GitHub Actions 支持docker一键部署使用
-4. 。。。
+2. 增加港股、美股支持。
+3. 完善Dockerfile、GitHub Actions 支持docker一键部署使用。
+4. 支持x86_64 和 ARM64架构镜像
 
 ## docker一键部署
 ```

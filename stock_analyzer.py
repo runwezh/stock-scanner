@@ -31,12 +31,6 @@ class StockAnalyzer:
             'atr_period': 14
         }
 
-         # 添加市场类型枚举
-        self.MARKET_TYPES = {
-            'A': 'A股',
-            'HK': '港股',
-            'CRYPTO': '加密货币'
-        }
         
     def get_stock_data(self, stock_code, market_type='A', start_date=None, end_date=None, ):
         """获取股票数据"""
@@ -69,10 +63,10 @@ class StockAnalyzer:
                     end_date=end_date,
                     adjust="qfq"
                 )
-            elif market_type == 'CRYPTO':
-                df = ak.crypto_js_spot(
-                    symbol=stock_code
-                )
+            # elif market_type == 'CRYPTO':
+            #     df = ak.crypto_js_spot(
+            #         symbol=stock_code
+            #     )
             else:
                 raise ValueError(f"不支持的市场类型: {market_type}")
             
