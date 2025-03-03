@@ -4,9 +4,11 @@ services:
   stock-analyzer:
     build: .
     ports:
-      - "50684:8080"
+      - "8888:8888"
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - API_KEY=${API_KEY}
+      - API_URL=${API_URL}
+      - API_MODEL=${API_MODEL}
     volumes:
       - .:/app
     restart: unless-stopped

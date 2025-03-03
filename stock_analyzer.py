@@ -18,8 +18,8 @@ class StockAnalyzer:
         load_dotenv()
         
         # 设置 Gemini API
-        self.gemini_api_url = os.getenv('GEMINI_API_URL')
-        self.gemini_api_key = os.getenv('GEMINI_API_KEY')
+        self.API_URL = os.getenv('API_URL')
+        self.API_KEY = os.getenv('API_KEY')
         
         # 配置参数
         self.params = {
@@ -243,17 +243,17 @@ class StockAnalyzer:
             """
             
             headers = {
-                "Authorization": f"Bearer {self.gemini_api_key}",
+                "Authorization": f"Bearer {self.API_KEY}",
                 "Content-Type": "application/json"
             }
             
             data = {
-                "model": os.getenv('GEMINI_API_MODEL'),
+                "model": os.getenv('API_MODEL'),
                 "messages": [{"role": "user", "content": prompt}]
             }
             
             response = requests.post(
-                f"{self.gemini_api_url}/v1/chat/completions",
+                f"{self.API_URL}/v1/chat/completions",
                 headers=headers,
                 json=data,
                 timeout=30

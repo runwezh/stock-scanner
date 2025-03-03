@@ -14,9 +14,9 @@
 docker run -d \
   --name stock-scanner \
   -p 8888:8888 \
-  -e GEMINI_API_KEY=替换为你的key \
-  -e GEMINI_API_URL=替换为你的api地址 \
-  -e GEMINI_API_MODEL=替换为你的模型 \
+  -e API_KEY=替换为你的key \
+  -e API_URL=替换为你的api地址 \
+  -e API_MODEL=替换为你的模型 \
   lanzhihong/stock-scanner:latest
 ```
 默认8888端口，部署完成后访问  http://127.0.0.1:8888 即可使用。

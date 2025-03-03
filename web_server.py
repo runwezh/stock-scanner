@@ -5,6 +5,7 @@ import threading
 import logging
 from logging.handlers import RotatingFileHandler
 import traceback
+import os
 
 app = Flask(__name__)
 analyzer = StockAnalyzer()
@@ -20,7 +21,9 @@ app.logger.addHandler(handler)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # 如果环境变量不存在或为空，返回 None
+    announcement = os.getenv('ANNOUNCEMENT_TEXT') or None
+    return render_template('index.html', announcement=announcement)
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
