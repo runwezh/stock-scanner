@@ -237,25 +237,40 @@ class StockAnalyzer:
             """
             
             # OpenAI API 调用
-            response = requests.post(
+            api_urls = [
                 f"{self.API_URL}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {self.API_KEY}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": os.getenv('API_MODEL', 'gpt-3.5-turbo'),
-                    "messages": [{"role": "user", "content": prompt}]
-                },
-                timeout=30
-            )
+                f"{self.API_URL}/v1/chat/completions"
+            ]
             
-            if response.status_code == 200:
-                return response.json()['choices'][0]['message']['content']
-            else:
-                print(f"API 错误: {response.status_code} - {response.text}")
-                return f"AI 分析暂时无法使用 (HTTP {response.status_code})"
-                
+            last_error = None
+            for api_url in api_urls:
+                try:
+                    response = requests.post(
+                        api_url,
+                        headers={
+                            "Authorization": f"Bearer {self.API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": os.getenv('API_MODEL', 'gpt-3.5-turbo'),
+                            "messages": [{"role": "user", "content": prompt}]
+                        },
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        return response.json()['choices'][0]['message']['content']
+                    else:
+                        last_error = f"API 错误: {response.status_code} - {response.text}"
+                        continue
+                        
+                except Exception as e:
+                    last_error = str(e)
+                    continue
+                    
+            print(f"AI 分析暂时无法使用: {last_error}")
+            return f"AI 分析暂时无法使用: {last_error}"
+            
         except Exception as e:
             print(f"AI 分析发生错误: {str(e)}")
             return f"AI 分析过程中发生错误: {str(e)}"
