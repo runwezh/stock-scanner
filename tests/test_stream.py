@@ -8,6 +8,25 @@ from dotenv import load_dotenv
 logger = get_logger()
 stream_logger = get_stream_logger()
 
+def _truncate_json_for_logging(json_obj, max_length=500):
+    """截断JSON对象用于日志记录，避免日志过大
+    
+    Args:
+        json_obj: 要截断的JSON对象
+        max_length: 最大字符长度，默认500
+        
+    Returns:
+        str: 截断后的JSON字符串
+    """
+    if isinstance(json_obj, str):
+        json_str = json_obj
+    else:
+        json_str = json.dumps(json_obj, ensure_ascii=False)
+    
+    if len(json_str) <= max_length:
+        return json_str
+    return json_str[:max_length] + f"... [截断，总长度: {len(json_str)}字符]"
+
 def test_api_stream():
     """
     测试API流式响应功能
@@ -57,7 +76,7 @@ def test_api_stream():
         "stream": True  # 明确设置stream参数为True
     }
     
-    logger.debug(f"请求载荷: {json.dumps(payload, indent=2)}")
+    logger.debug(f"请求载荷: {_truncate_json_for_logging(payload)}")
     
     try:
         logger.info(f"发起流式API请求: {api_url}")
@@ -102,7 +121,7 @@ def test_api_stream():
                         try:
                             # 解析JSON数据
                             json_data = json.loads(data_content)
-                            logger.debug(f"JSON结构: {json.dumps(json_data, indent=2)}")
+                            logger.debug(f"JSON结构: {_truncate_json_for_logging(json_data)}")
                             
                             if 'choices' in json_data:
                                 delta = json_data['choices'][0].get('delta', {})

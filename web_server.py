@@ -5,11 +5,10 @@ import threading
 import os
 import traceback
 import requests
-from logger import get_logger, get_stream_logger
+from logger import get_logger
 
 # 获取日志器
 logger = get_logger()
-stream_logger = get_stream_logger()
 
 app = Flask(__name__)
 analyzer = StockAnalyzer()
@@ -62,31 +61,33 @@ def analyze():
                 stock_code = stock_codes[0].strip()
                 logger.info(f"开始单股流式分析: {stock_code}")
                 
-                stream_logger.info(f"初始化单股分析流: {stock_code}")
                 init_message = f'{{"stream_type": "single", "stock_code": "{stock_code}"}}\n'
-                stream_logger.info(f"发送初始化消息: {init_message}")
                 yield init_message
                 
+                logger.debug(f"开始处理股票 {stock_code} 的流式响应")
+                chunk_count = 0
                 for chunk in custom_analyzer.analyze_stock(stock_code, market_type, stream=True):
-                    stream_logger.info(f"流式输出块: {chunk}")
+                    chunk_count += 1
                     yield chunk + '\n'
+                logger.info(f"股票 {stock_code} 流式分析完成，共发送 {chunk_count} 个块")
             else:
                 # 批量分析流式处理
                 logger.info(f"开始批量流式分析: {stock_codes}")
                 
-                stream_logger.info(f"初始化批量分析流: {stock_codes}")
                 init_message = f'{{"stream_type": "batch", "stock_codes": {stock_codes}}}\n'
-                stream_logger.info(f"发送初始化消息: {init_message}")
                 yield init_message
                 
+                logger.debug(f"开始处理批量股票的流式响应")
+                chunk_count = 0
                 for chunk in custom_analyzer.scan_market(
                     [code.strip() for code in stock_codes], 
                     min_score=0, 
                     market_type=market_type,
                     stream=True
                 ):
-                    stream_logger.info(f"流式输出块: {chunk}")
+                    chunk_count += 1
                     yield chunk + '\n'
+                logger.info(f"批量流式分析完成，共发送 {chunk_count} 个块")
         
         logger.info("成功创建流式响应生成器")
         return Response(stream_with_context(generate()), mimetype='application/json')
