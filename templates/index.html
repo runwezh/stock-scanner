@@ -7,28 +7,202 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
+
+    <!-- 添加公告栏 -->
+    {% if announcement %}
+    <div id="announcement-container" class="fixed top-4 right-4 max-w-md z-50 animate-fade-in-down">
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg shadow-lg">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3 pr-8">
+                    <p class="text-sm text-blue-700 whitespace-pre-line" id="announcement-text"></p>
+                    <p class="text-xs text-gray-500 mt-1" id="announcement-timer"></p>
+                </div>
+                <button onclick="closeAnnouncement()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 处理公告文本中的URL
+        const announcementText = `{{ announcement }}`;
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        document.getElementById('announcement-text').innerHTML = announcementText.replace(
+            urlRegex, 
+            '<a href="$1" target="_blank" class="text-blue-600 hover:text-blue-800 underline">$1</a>'
+        );
+
+        // 设置自动关闭时间（5秒）
+        const autoCloseTime = 5;
+        let remainingTime = autoCloseTime;
+        const timerElement = document.getElementById('announcement-timer');
+
+        // 更新倒计时显示
+        function updateTimer() {
+            timerElement.textContent = `${remainingTime}秒后自动关闭`;
+            if (remainingTime <= 0) {
+                closeAnnouncement();
+            } else {
+                remainingTime--;
+                setTimeout(updateTimer, 1000);
+            }
+        }
+
+        // 启动倒计时
+        updateTimer();
+
+        // 关闭公告的函数
+        function closeAnnouncement() {
+            const container = document.getElementById('announcement-container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(-10px)';
+            container.style.transition = 'all 0.3s ease-out';
+            setTimeout(() => {
+                container.remove();
+            }, 300);
+        }
+    </script>
+    {% endif %}
+
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold mb-8 text-center">股票分析系统</h1>
-        
-        <!-- 添加公告栏 -->
-        {% if announcement %}
+
+        <!-- 添加市场时间显示 -->
         <div class="max-w-4xl mx-auto mb-8">
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                        </svg>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- 当前时间 -->
+                    <div class="text-center">
+                        <p class="text-gray-600 mb-2">当前时间</p>
+                        <p id="currentTime" class="text-2xl font-bold text-gray-800"></p>
                     </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-blue-700">
-                            {{ announcement }}
-                        </p>
+                    
+                    <!-- A股状态 -->
+                    <div class="text-center">
+                        <p class="text-gray-600 mb-2">A股市场</p>
+                        <p id="cnMarketStatus" class="text-lg font-medium"></p>
+                        <p id="cnMarketTimer" class="text-sm text-gray-500 mt-1"></p>
+                    </div>
+
+                    <!-- 港股状态 -->
+                    <div class="text-center">
+                        <p class="text-gray-600 mb-2">港股市场</p>
+                        <p id="hkMarketStatus" class="text-lg font-medium"></p>
+                        <p id="hkMarketTimer" class="text-sm text-gray-500 mt-1"></p>
+                    </div>
+                    
+                    <!-- 美股状态 -->
+                    <div class="text-center">
+                        <p class="text-gray-600 mb-2">美股市场</p>
+                        <p id="usMarketStatus" class="text-lg font-medium"></p>
+                        <p id="usMarketTimer" class="text-sm text-gray-500 mt-1"></p>
                     </div>
                 </div>
             </div>
         </div>
-        {% endif %}
+
+        <script>
+            // 更新时间显示
+            function updateTime() {
+                const now = new Date();
+                
+                // 更新当前时间
+                document.getElementById('currentTime').textContent = 
+                    now.toLocaleTimeString('zh-CN', { hour12: false });
+                
+                // 获取中国时间
+                const cnOptions = { timeZone: 'Asia/Shanghai', hour12: false };
+                const cnTime = now.toLocaleString('zh-CN', cnOptions);
+                const cnHour = new Date(cnTime).getHours();
+                const cnMinute = new Date(cnTime).getMinutes();
+                
+                // A股市场状态
+                const cnMarketOpen = (cnHour === 9 && cnMinute >= 30) || (cnHour === 10) ||
+                                   (cnHour === 11 && cnMinute <= 30) ||
+                                   (cnHour >= 13 && cnHour < 15);
+                                   
+                updateMarketStatus('cn', cnMarketOpen, cnHour, cnMinute, 9, 30, 15, 0);
+
+                // 港股市场状态（与A股相同时区）
+                const hkMarketOpen = (cnHour === 9 && cnMinute >= 30) || 
+                                   (cnHour === 10) || (cnHour === 11) ||
+                                   (cnHour >= 13 && cnHour < 16);
+                                   
+                updateMarketStatus('hk', hkMarketOpen, cnHour, cnMinute, 9, 30, 16, 0);
+                
+                // 获取美国东部时间
+                const usOptions = { timeZone: 'America/New_York', hour12: false };
+                const usTime = now.toLocaleString('zh-CN', usOptions);
+                const usHour = new Date(usTime).getHours();
+                const usMinute = new Date(usTime).getMinutes();
+                
+                // 美股市场状态
+                const usMarketOpen = (usHour >= 9 && usHour < 16) || 
+                                   (usHour === 16 && usMinute === 0);
+                                   
+                updateMarketStatus('us', usMarketOpen, usHour, usMinute, 9, 30, 16, 0);
+            }
+
+            // 更新市场状态的通用函数
+            function updateMarketStatus(market, isOpen, currentHour, currentMinute, openHour, openMinute, closeHour, closeMinute) {
+                const element = document.getElementById(`${market}MarketStatus`);
+                const timer = document.getElementById(`${market}MarketTimer`);
+                
+                if (isOpen) {
+                    // ... 现有的开市逻辑保持不变 ...
+                } else {
+                    element.textContent = '已休市';
+                    element.className = 'text-lg font-medium text-gray-600';
+                    
+                    // 计算距离下一个开盘时间
+                    const now = new Date();
+                    const nextOpen = new Date(now);
+                    
+                    if (market === 'us') {
+                        // 获取美东时间的下一个开盘时间
+                        const usTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+                        const usHour = usTime.getHours();
+                        
+                        // 如果当前美东时间已过收盘时间，设置为下一个交易日
+                        if (usHour >= closeHour) {
+                            nextOpen.setDate(nextOpen.getDate() + 1);
+                        }
+                        
+                        // 设置为美东时间的开盘时间
+                        nextOpen.setHours(openHour + 12, openMinute, 0); // 加12小时转换为北京时间
+                    } else {
+                        // 其他市场的逻辑保持不变
+                        if (currentHour >= closeHour) {
+                            nextOpen.setDate(nextOpen.getDate() + 1);
+                        }
+                        nextOpen.setHours(openHour, openMinute, 0);
+                    }
+                    
+                    const timeToOpen = nextOpen - now;
+                    const hours = Math.floor(timeToOpen / 3600000);
+                    const minutes = Math.floor((timeToOpen % 3600000) / 60000);
+                    
+                    // 确保显示的时间始终为正数
+                    if (hours >= 0 && minutes >= 0) {
+                        timer.textContent = `距离开盘还有 ${hours}小时${minutes}分钟`;
+                    } else {
+                        timer.textContent = '计算开盘时间中...';
+                    }
+                }
+            }
+
+            // 每秒更新一次时间
+            setInterval(updateTime, 1000);
+            updateTime(); // 立即执行一次
+        </script>
         
         <div class="max-w-4xl mx-auto">  
             <!-- 批量分析 -->
@@ -54,7 +228,9 @@
                                 <input type="text" id="apiUrl" 
                                        class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                        placeholder="例如: https://api.openai.com" 
-                                       value="{{ default_api_url }}">
+                                       value="{{ default_api_url }}"
+                                       oninput="updateFormattedUrl(this.value)">
+                                <p id="formattedUrl" class="mt-1 text-sm text-gray-500 break-all"></p>
                             </div>
                             <div>
                                 <label for="apiModel" class="block text-sm font-medium text-gray-700 mb-1">API 模型</label>
@@ -115,10 +291,10 @@
                 <div id="usStockSearch" class="mb-4 hidden">
                     <div class="relative">
                         <input type="text" 
-                               id="searchInput"
-                               class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="输入美股名称搜索（中文和英文都试下）"
-                               oninput="debounceSearch(event)">
+                            id="searchInput"
+                            class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="输入美股名称搜索（中文和英文都试下）"
+                            oninput="handleSearchInput(event)">
                         <!-- 添加搜索 loading 图标 -->
                         <div id="searchLoading" class="absolute right-3 top-2.5 hidden">
                             <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -138,7 +314,19 @@
 
                 <!-- 修改搜索相关函数 -->
                 <script>
-                    async function searchUsStocks(keyword) {
+                    // 创建防抖函数
+                    function debounce(func, wait) {
+                        let timeout;
+                        return function (...args) {
+                            clearTimeout(timeout);
+                            timeout = setTimeout(() => {
+                                func.apply(this, args);
+                            }, wait);
+                        };
+                    }
+
+                    // 使用防抖包装搜索函数
+                    const debouncedSearch = debounce(async (keyword) => {
                         if (!keyword) {
                             document.getElementById('searchResults').classList.add('hidden');
                             document.getElementById('searchError').classList.add('hidden');
@@ -161,16 +349,18 @@
                             displaySearchResults(data.results);
                         } catch (error) {
                             console.error('搜索出错:', error);
-                            // 显示错误信息
                             const errorDiv = document.getElementById('searchError');
                             errorDiv.textContent = `搜索出错: ${error.message}`;
                             errorDiv.classList.remove('hidden');
-                            // 隐藏搜索结果
                             document.getElementById('searchResults').classList.add('hidden');
                         } finally {
-                            // 隐藏 loading
                             document.getElementById('searchLoading').classList.add('hidden');
                         }
+                    }, 500); // 设置500ms的防抖延迟
+
+                    // 修改输入事件处理函数
+                    function handleSearchInput(event) {
+                        debouncedSearch(event.target.value);
                     }
                 </script>
                 <div class="mb-4">
@@ -962,3 +1152,35 @@
     </script>
 </body>
 </html>
+
+<script>
+    function updateFormattedUrl(url) {
+        const formattedUrlElement = document.getElementById('formattedUrl');
+        if (!url) {
+            formattedUrlElement.textContent = '';
+            return;
+        }
+
+        let formattedUrl;
+        if (url.endsWith('/')) {
+            formattedUrl = `${url}chat/completions`;
+        } else if (url.endsWith('#')) {
+            formattedUrl = url.replace("#", "");
+        } else {
+            formattedUrl = `${url}/v1/chat/completions`;
+        }
+
+        formattedUrlElement.innerHTML = `
+            <span class="font-medium">/结尾忽略v1版本，#结尾强制使用输入地址:</span><br>
+            <span class="text-blue-600">${formattedUrl}</span>
+        `;
+    }
+
+    // 页面加载时初始化显示
+    document.addEventListener('DOMContentLoaded', function() {
+        const apiUrl = document.getElementById('apiUrl');
+        if (apiUrl.value) {
+            updateFormattedUrl(apiUrl.value);
+        }
+    });
+</script>

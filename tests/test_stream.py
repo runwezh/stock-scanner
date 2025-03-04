@@ -3,6 +3,7 @@ import requests
 import json
 from logger import get_logger, get_stream_logger
 from dotenv import load_dotenv
+from utils.api_utils import APIUtils
 
 # 获取日志器
 logger = get_logger()
@@ -51,14 +52,7 @@ def test_api_stream():
         return
     
     # 标准化API URL
-    if not (api_url.endswith('/chat/completions') or api_url.endswith('/v1/chat/completions')):
-        if api_url.endswith('/v1'):
-            api_url = f"{api_url}/chat/completions"
-        elif api_url.endswith('/'):
-            api_url = f"{api_url}v1/chat/completions"
-        else:
-            api_url = f"{api_url}/v1/chat/completions"
-    
+    api_url = APIUtils.format_api_url(api_url)
     logger.debug(f"标准化后的API URL: {api_url}")
     
     # 构建简单的测试提示
