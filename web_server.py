@@ -163,20 +163,20 @@ def test_api_connection():
         
         # 检查响应
         if response.status_code == 200:
-            logger.info(f"API连接测试成功: {response.status_code}")
-            return jsonify({'success': True, 'message': '连接成功'})
+            logger.info(f"API 连接测试成功: {response.status_code}")
+            return jsonify({'success': True, 'message': 'API 连接测试成功'})
         else:
             error_message = response.json().get('error', {}).get('message', '未知错误')
             logger.warning(f"API连接测试失败: {response.status_code} - {error_message}")
-            return jsonify({'success': False, 'message': f'连接失败: {error_message}', 'status_code': response.status_code}), 400
+            return jsonify({'success': False, 'message': f'API 连接测试失败: {error_message}', 'status_code': response.status_code}), 400
             
     except requests.exceptions.RequestException as e:
-        logger.error(f"API连接请求错误: {str(e)}")
+        logger.error(f"API 连接请求错误: {str(e)}")
         return jsonify({'success': False, 'message': f'请求错误: {str(e)}'}), 400
     except Exception as e:
-        logger.error(f"测试API连接时出错: {str(e)}")
+        logger.error(f"测试 API 连接时出错: {str(e)}")
         logger.exception(e)
-        return jsonify({'success': False, 'message': f'测试连接时出错: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': f'API 测试连接时出错: {str(e)}'}), 500
 
 if __name__ == '__main__':
     logger.info("股票分析系统启动")
