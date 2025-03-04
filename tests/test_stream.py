@@ -85,7 +85,7 @@ def test_api_stream():
             api_url,
             headers=headers,
             json=payload,
-            timeout=60,
+            timeout=int(os.getenv('API_TIMEOUT', 60)),
             stream=True
         )
         

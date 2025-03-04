@@ -64,12 +64,22 @@
                                        value="{{ default_api_model }}">
                             </div>
                         </div>
-                        <div>
-                            <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-                            <input type="password" id="apiKey" 
-                                   class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   placeholder="输入您的API Key">
-                            <p class="mt-1 text-sm text-gray-500">如不填写，将使用系统默认配置</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                                <input type="password" id="apiKey" 
+                                       class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="输入您的API Key">
+                                <p class="mt-1 text-sm text-gray-500">如不填写，将使用系统默认配置</p>
+                            </div>
+                            <div>
+                                <label for="apiTimeout" class="block text-sm font-medium text-gray-700 mb-1">API 超时时间 (秒)</label>
+                                <input type="number" id="apiTimeout" 
+                                       class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="例如: 60" 
+                                       value="{{ default_api_timeout }}" min="1" max="300">
+                                <p class="mt-1 text-sm text-gray-500">请求超时时间，默认60秒</p>
+                            </div>
                         </div>
                         <div class="flex justify-between">
                             <div class="flex items-center">
@@ -349,6 +359,7 @@
             const apiUrl = document.getElementById('apiUrl').value.trim();
             const apiKey = document.getElementById('apiKey').value.trim();
             const apiModel = document.getElementById('apiModel').value.trim();
+            const apiTimeout = document.getElementById('apiTimeout').value.trim();
             
             if (!stockInput) {
                 alert('请输入代码');
@@ -385,7 +396,8 @@
                         market_type: marketType,
                         api_url: apiUrl,
                         api_key: apiKey,
-                        api_model: apiModel
+                        api_model: apiModel,
+                        api_timeout: apiTimeout
                     })
                 });
 
@@ -718,6 +730,7 @@
             const apiUrl = document.getElementById('apiUrl');
             const apiKey = document.getElementById('apiKey');
             const apiModel = document.getElementById('apiModel');
+            const apiTimeout = document.getElementById('apiTimeout');
             const saveApiConfig = document.getElementById('saveApiConfig');
             const resetApiConfig = document.getElementById('resetApiConfig');
             const testApiConfig = document.getElementById('testApiConfig');
@@ -743,6 +756,7 @@
                 apiUrl.value = '{{ default_api_url }}';
                 apiKey.value = '';
                 apiModel.value = '{{ default_api_model }}';
+                apiTimeout.value = '{{ default_api_timeout }}';
                 saveApiConfig.checked = false;
                 
                 // 清除localStorage中的配置
@@ -756,6 +770,7 @@
                 const url = apiUrl.value.trim();
                 const key = apiKey.value.trim();
                 const model = apiModel.value.trim();
+                const timeout = apiTimeout.value.trim();
                 
                 if (!url) {
                     alert('请输入API URL');
@@ -779,7 +794,8 @@
                         body: JSON.stringify({
                             api_url: url,
                             api_key: key,
-                            api_model: model
+                            api_model: model,
+                            api_timeout: timeout
                         })
                     });
                     
@@ -804,7 +820,7 @@
             });
             
             // 监听输入变化，自动保存配置
-            [apiUrl, apiKey, apiModel].forEach(input => {
+            [apiUrl, apiKey, apiModel, apiTimeout].forEach(input => {
                 input.addEventListener('change', function() {
                     if (saveApiConfig.checked) {
                         saveApiConfigToLocalStorage();
@@ -828,6 +844,7 @@
                 url: document.getElementById('apiUrl').value.trim(),
                 model: document.getElementById('apiModel').value.trim(),
                 key: document.getElementById('apiKey').value.trim(),
+                timeout: document.getElementById('apiTimeout').value.trim(),
                 saveEnabled: true
             };
             
@@ -845,6 +862,7 @@
                     if (config.url) document.getElementById('apiUrl').value = config.url;
                     if (config.model) document.getElementById('apiModel').value = config.model;
                     if (config.key) document.getElementById('apiKey').value = config.key;
+                    if (config.timeout) document.getElementById('apiTimeout').value = config.timeout;
                     
                     document.getElementById('saveApiConfig').checked = config.saveEnabled || false;
                 } catch (error) {

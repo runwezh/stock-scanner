@@ -12,7 +12,7 @@ from logger import get_logger
 logger = get_logger()
 
 class StockAnalyzer:
-    def __init__(self, initial_cash=1000000, custom_api_url=None, custom_api_key=None, custom_api_model=None):
+    def __init__(self, initial_cash=1000000, custom_api_url=None, custom_api_key=None, custom_api_model=None, custom_api_timeout=None):
         
         # 加载环境变量
         load_dotenv()
@@ -21,8 +21,9 @@ class StockAnalyzer:
         self.API_URL = custom_api_url or os.getenv('API_URL')
         self.API_KEY = custom_api_key or os.getenv('API_KEY')
         self.API_MODEL = custom_api_model or os.getenv('API_MODEL', 'gpt-3.5-turbo')
+        self.API_TIMEOUT = int(custom_api_timeout or os.getenv('API_TIMEOUT', 60))
         
-        logger.debug(f"初始化StockAnalyzer: API_URL={self.API_URL}, API_MODEL={self.API_MODEL}, API_KEY={'已提供' if self.API_KEY else '未提供'}")
+        logger.debug(f"初始化StockAnalyzer: API_URL={self.API_URL}, API_MODEL={self.API_MODEL}, API_KEY={'已提供' if self.API_KEY else '未提供'}, API_TIMEOUT={self.API_TIMEOUT}")
         
         # 配置参数
         self.params = {
@@ -294,7 +295,7 @@ class StockAnalyzer:
                         api_url,
                         headers=headers,
                         json=payload,
-                        timeout=60,  # 增加超时时间
+                        timeout=self.API_TIMEOUT,  # 增加超时时间
                         stream=True
                     )
                     
@@ -328,7 +329,7 @@ class StockAnalyzer:
                         api_url,
                         headers=headers,
                         json=payload,
-                        timeout=60
+                        timeout=self.API_TIMEOUT
                     )
                     
                     logger.debug(f"API非流式响应状态码: {response.status_code}")

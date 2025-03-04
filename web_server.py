@@ -20,11 +20,13 @@ def index():
     # 获取默认API配置信息
     default_api_url = os.getenv('API_URL', '')
     default_api_model = os.getenv('API_MODEL', 'gpt-3.5-turbo')
+    default_api_timeout = os.getenv('API_TIMEOUT', '60')
     # 不传递API_KEY到前端，出于安全考虑
     return render_template('index.html', 
                           announcement=announcement,
                           default_api_url=default_api_url,
-                          default_api_model=default_api_model)
+                          default_api_model=default_api_model,
+                          default_api_timeout=default_api_timeout)
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -40,14 +42,16 @@ def analyze():
         custom_api_url = data.get('api_url')
         custom_api_key = data.get('api_key')
         custom_api_model = data.get('api_model')
+        custom_api_timeout = data.get('api_timeout')
         
-        logger.debug(f"自定义API配置: URL={custom_api_url}, 模型={custom_api_model}, API Key={'已提供' if custom_api_key else '未提供'}")
+        logger.debug(f"自定义API配置: URL={custom_api_url}, 模型={custom_api_model}, API Key={'已提供' if custom_api_key else '未提供'}, Timeout={custom_api_timeout}")
         
         # 创建新的分析器实例，使用自定义配置
         custom_analyzer = StockAnalyzer(
             custom_api_url=custom_api_url,
             custom_api_key=custom_api_key,
-            custom_api_model=custom_api_model
+            custom_api_model=custom_api_model,
+            custom_api_timeout=custom_api_timeout
         )
         
         if not stock_codes:
@@ -121,8 +125,9 @@ def test_api_connection():
         api_url = data.get('api_url')
         api_key = data.get('api_key')
         api_model = data.get('api_model')
+        api_timeout = data.get('api_timeout', 10)  # 默认测试连接超时为10秒
         
-        logger.debug(f"测试API连接: URL={api_url}, 模型={api_model}, API Key={'已提供' if api_key else '未提供'}")
+        logger.debug(f"测试API连接: URL={api_url}, 模型={api_model}, API Key={'已提供' if api_key else '未提供'}, Timeout={api_timeout}")
         
         if not api_url:
             logger.warning("未提供API URL")
@@ -158,7 +163,7 @@ def test_api_connection():
                 ],
                 "max_tokens": 20
             },
-            timeout=10
+            timeout=int(api_timeout)
         )
         
         # 检查响应
