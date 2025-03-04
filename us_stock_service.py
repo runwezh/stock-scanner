@@ -1,12 +1,7 @@
 import akshare as ak
 import pandas as pd
-import logging
 
 class USStockService:
-    def __init__(self):
-        logging.basicConfig(level=logging.INFO,
-                          format='%(asctime)s - %(levelname)s - %(message)s')
-        self.logger = logging.getLogger(__name__)
         
     def search_us_stocks(self, keyword):
         """
@@ -55,5 +50,4 @@ class USStockService:
             return formatted_results
             
         except Exception as e:
-            self.logger.error(f"搜索美股代码时出错: {str(e)}")
             raise Exception(f"搜索美股代码失败: {str(e)}")

@@ -5,14 +5,9 @@ import os
 import requests
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
-import logging
 
 class StockAnalyzer:
     def __init__(self, initial_cash=1000000):
-        # 设置日志
-        logging.basicConfig(level=logging.INFO,
-                          format='%(asctime)s - %(levelname)s - %(message)s')
-        self.logger = logging.getLogger(__name__)
         
         # 加载环境变量
         load_dotenv()
@@ -93,7 +88,6 @@ class StockAnalyzer:
             return df.sort_values('date')
             
         except Exception as e:
-            self.logger.error(f"获取股票数据失败: {str(e)}")
             raise Exception(f"获取股票数据失败: {str(e)}")
             
     def calculate_ema(self, series, period):
@@ -173,7 +167,7 @@ class StockAnalyzer:
             return df
             
         except Exception as e:
-            self.logger.error(f"计算技术指标时出错: {str(e)}")
+            print(f"计算技术指标时出错: {str(e)}")
             raise
             
     def calculate_score(self, df):
@@ -207,7 +201,7 @@ class StockAnalyzer:
             return score
             
         except Exception as e:
-            self.logger.error(f"计算评分时出错: {str(e)}")
+            print(f"计算评分时出错: {str(e)}")
             raise
             
     def get_ai_analysis(self, df, stock_code):
@@ -251,14 +245,20 @@ class StockAnalyzer:
                 "model": os.getenv('API_MODEL'),
                 "messages": [{"role": "user", "content": prompt}]
             }
+
+            if self.API_URL.endswith('/'):
+                api_url = f"{self.API_URL}chat/completions"
+            else:
+                api_url = f"{self.API_URL}/v1/chat/completions"
             
             response = requests.post(
-                f"{self.API_URL}/v1/chat/completions",
+                api_url,
                 headers=headers,
                 json=data,
-                timeout=30
+                timeout=60
             )
-            print(headers)
+            
+            print(api_url)
             print(data)
             print(response.json())
 
@@ -268,7 +268,7 @@ class StockAnalyzer:
                 return "AI 分析暂时无法使用"
                 
         except Exception as e:
-            self.logger.error(f"AI 分析发生错误: {str(e)}")
+            print(f"AI 分析发生错误: {str(e)}")
             return "AI 分析过程中发生错误"
             
     def get_recommendation(self, score):
@@ -318,7 +318,7 @@ class StockAnalyzer:
             return report
             
         except Exception as e:
-            self.logger.error(f"分析股票时出错: {str(e)}")
+            print(f"分析股票时出错: {str(e)}")
             raise
             
     def scan_market(self, stock_list, min_score=60, market_type='A'):
@@ -331,7 +331,7 @@ class StockAnalyzer:
                 if report['score'] >= min_score:
                     recommendations.append(report)
             except Exception as e:
-                self.logger.error(f"分析股票 {stock_code} 时出错: {str(e)}")
+                print(f"分析股票 {stock_code} 时出错: {str(e)}")
                 continue
                 
         # 按得分排序

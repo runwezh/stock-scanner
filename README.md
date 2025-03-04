@@ -18,6 +18,21 @@ docker run -d \
   -e API_URL=替换为你的api地址 \
   -e API_MODEL=替换为你的模型 \
   lanzhihong/stock-scanner:latest
+
+注意⚠️： 环境变量名变更，更新版本后需要调整！！！
+
+针对API_URL处理兼容更多的api地址
+API_URL 处理逻辑说明：
+1. 当 API_URL 以 / 结尾时直接追加 chat/completions，保留原有版本号：
+  示例：
+   输入: https://ark.cn-beijing.volces.com/api/v3/
+   输出: https://ark.cn-beijing.volces.com/api/v3/chat/completions
+
+2. 当 API_URL 不以 / 结尾时使用默认版本号 v1：
+  示例：
+   输入: https://ark.cn-beijing.volces.com/api
+   输出: https://ark.cn-beijing.volces.com/api/v1/chat/completions
+
 ```
 默认8888端口，部署完成后访问  http://127.0.0.1:8888 即可使用。
 
