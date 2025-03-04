@@ -7,14 +7,15 @@ from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 
 class StockAnalyzer:
-    def __init__(self, initial_cash=1000000):
+    def __init__(self, initial_cash=1000000, custom_api_url=None, custom_api_key=None, custom_api_model=None):
         
         # 加载环境变量
         load_dotenv()
         
-        # 设置 Gemini API
-        self.API_URL = os.getenv('API_URL')
-        self.API_KEY = os.getenv('API_KEY')
+        # 设置 API 配置，优先使用自定义配置，否则使用环境变量
+        self.API_URL = custom_api_url or os.getenv('API_URL')
+        self.API_KEY = custom_api_key or os.getenv('API_KEY')
+        self.API_MODEL = custom_api_model or os.getenv('API_MODEL', 'gpt-3.5-turbo')
         
         # 配置参数
         self.params = {
@@ -252,7 +253,7 @@ class StockAnalyzer:
                             "Content-Type": "application/json"
                         },
                         json={
-                            "model": os.getenv('API_MODEL', 'gpt-3.5-turbo'),
+                            "model": self.API_MODEL,
                             "messages": [{"role": "user", "content": prompt}]
                         },
                         timeout=30

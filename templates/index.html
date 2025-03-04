@@ -30,10 +30,57 @@
         </div>
         {% endif %}
         
-        <div class="max-w-4xl mx-auto">  <!-- 将 max-w-2xl 改为 max-w-4xl -->
+        <div class="max-w-4xl mx-auto">  
             <!-- 批量分析 -->
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4">股票批量分析</h2>
+                
+                <!-- API配置部分 -->
+                <div class="mb-6 border-b pb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-700">API配置</h3>
+                        <button id="toggleApiConfig" class="text-blue-600 hover:text-blue-800 text-sm flex items-center">
+                            <span id="toggleApiConfigText">显示配置</span>
+                            <svg id="toggleApiConfigIcon" class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div id="apiConfigPanel" class="hidden space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="apiUrl" class="block text-sm font-medium text-gray-700 mb-1">API URL</label>
+                                <input type="text" id="apiUrl" 
+                                       class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="例如: https://api.openai.com" 
+                                       value="{{ default_api_url }}">
+                            </div>
+                            <div>
+                                <label for="apiModel" class="block text-sm font-medium text-gray-700 mb-1">API 模型</label>
+                                <input type="text" id="apiModel" 
+                                       class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="例如: gpt-3.5-turbo" 
+                                       value="{{ default_api_model }}">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                            <input type="password" id="apiKey" 
+                                   class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="输入您的API Key">
+                            <p class="mt-1 text-sm text-gray-500">如不填写，将使用系统默认配置</p>
+                        </div>
+                        <div class="flex justify-end">
+                            <button id="resetApiConfig" class="text-gray-600 hover:text-gray-800 text-sm mr-3">
+                                重置为默认
+                            </button>
+                            <button id="testApiConfig" class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 text-sm">
+                                测试连接
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- 添加市场类型选择 -->
                 <div class="mb-4">
@@ -290,6 +337,11 @@
             const analyzeBtn = document.getElementById('analyzeBtn');
             const loadingSpinner = document.getElementById('loadingSpinner');
             
+            // 获取API配置
+            const apiUrl = document.getElementById('apiUrl').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const apiModel = document.getElementById('apiModel').value.trim();
+            
             if (!stockInput) {
                 alert('请输入代码');
                 return;
@@ -312,7 +364,10 @@
                     },
                     body: JSON.stringify({ 
                         stock_codes: stockCodes,
-                        market_type: marketType  // 添加市场类型参数
+                        market_type: marketType,  // 添加市场类型参数
+                        api_url: apiUrl,
+                        api_key: apiKey,
+                        api_model: apiModel
                     })
                 });
 
@@ -447,5 +502,78 @@
     </script>
     <!-- 添加 marked.js 用于解析 Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- API配置相关脚本 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // API配置面板切换
+            const toggleBtn = document.getElementById('toggleApiConfig');
+            const configPanel = document.getElementById('apiConfigPanel');
+            const toggleText = document.getElementById('toggleApiConfigText');
+            const toggleIcon = document.getElementById('toggleApiConfigIcon');
+            
+            toggleBtn.addEventListener('click', function() {
+                const isHidden = configPanel.classList.contains('hidden');
+                configPanel.classList.toggle('hidden', !isHidden);
+                toggleText.textContent = isHidden ? '隐藏配置' : '显示配置';
+                toggleIcon.style.transform = isHidden ? 'rotate(180deg)' : '';
+            });
+            
+            // 重置API配置
+            document.getElementById('resetApiConfig').addEventListener('click', function() {
+                document.getElementById('apiUrl').value = '{{ default_api_url }}';
+                document.getElementById('apiModel').value = '{{ default_api_model }}';
+                document.getElementById('apiKey').value = '';
+            });
+            
+            // 测试API连接
+            document.getElementById('testApiConfig').addEventListener('click', async function() {
+                const apiUrl = document.getElementById('apiUrl').value.trim();
+                const apiKey = document.getElementById('apiKey').value.trim();
+                const apiModel = document.getElementById('apiModel').value.trim();
+                
+                if (!apiUrl) {
+                    alert('请输入API URL');
+                    return;
+                }
+                
+                if (!apiKey) {
+                    alert('请输入API Key');
+                    return;
+                }
+                
+                this.textContent = '测试中...';
+                this.disabled = true;
+                
+                try {
+                    // 使用后端代理进行API测试
+                    const response = await fetch('/test_api_connection', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            api_url: apiUrl,
+                            api_key: apiKey,
+                            api_model: apiModel
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        alert('API连接成功！');
+                    } else {
+                        alert(`API连接失败: ${data.message || '未知错误'}`);
+                    }
+                } catch (error) {
+                    alert(`API连接测试失败: ${error.message}`);
+                } finally {
+                    this.textContent = '测试连接';
+                    this.disabled = false;
+                }
+            });
+        });
+    </script>
 </body>
 </html>
