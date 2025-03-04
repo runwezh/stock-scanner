@@ -5,14 +5,9 @@ import os
 import requests
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
-import logging
 
 class StockAnalyzer:
     def __init__(self, initial_cash=1000000):
-        # 设置日志
-        logging.basicConfig(level=logging.INFO,
-                          format='%(asctime)s - %(levelname)s - %(message)s')
-        self.logger = logging.getLogger(__name__)
         
         # 加载环境变量
         load_dotenv()
@@ -93,7 +88,6 @@ class StockAnalyzer:
             return df.sort_values('date')
             
         except Exception as e:
-            self.logger.error(f"获取股票数据失败: {str(e)}")
             raise Exception(f"获取股票数据失败: {str(e)}")
             
     def calculate_ema(self, series, period):
@@ -173,7 +167,7 @@ class StockAnalyzer:
             return df
             
         except Exception as e:
-            self.logger.error(f"计算技术指标时出错: {str(e)}")
+            print(f"计算技术指标时出错: {str(e)}")
             raise
             
     def calculate_score(self, df):
@@ -207,7 +201,7 @@ class StockAnalyzer:
             return score
             
         except Exception as e:
-            self.logger.error(f"计算评分时出错: {str(e)}")
+            print(f"计算评分时出错: {str(e)}")
             raise
             
     def get_ai_analysis(self, df, stock_code):
@@ -259,11 +253,11 @@ class StockAnalyzer:
             if response.status_code == 200:
                 return response.json()['choices'][0]['message']['content']
             else:
-                self.logger.error(f"API 错误: {response.status_code} - {response.text}")
+                print(f"API 错误: {response.status_code} - {response.text}")
                 return f"AI 分析暂时无法使用 (HTTP {response.status_code})"
                 
         except Exception as e:
-            self.logger.error(f"AI 分析发生错误: {str(e)}")
+            print(f"AI 分析发生错误: {str(e)}")
             return f"AI 分析过程中发生错误: {str(e)}"
             
     def get_recommendation(self, score):
@@ -313,7 +307,7 @@ class StockAnalyzer:
             return report
             
         except Exception as e:
-            self.logger.error(f"分析股票时出错: {str(e)}")
+            print(f"分析股票时出错: {str(e)}")
             raise
             
     def scan_market(self, stock_list, min_score=60, market_type='A'):
@@ -326,7 +320,7 @@ class StockAnalyzer:
                 if report['score'] >= min_score:
                     recommendations.append(report)
             except Exception as e:
-                self.logger.error(f"分析股票 {stock_code} 时出错: {str(e)}")
+                print(f"分析股票 {stock_code} 时出错: {str(e)}")
                 continue
                 
         # 按得分排序
