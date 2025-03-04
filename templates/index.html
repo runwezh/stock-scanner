@@ -328,6 +328,7 @@
             </script>
     <script>
         let isAnalyzing = false;
+        let stockAnalysisData = {}; // 存储股票分析数据的对象
 
         async function analyzeStocks() {
             if (isAnalyzing) return;  // 防止重复点击
@@ -336,6 +337,7 @@
             const marketType = document.getElementById('marketType').value;
             const analyzeBtn = document.getElementById('analyzeBtn');
             const loadingSpinner = document.getElementById('loadingSpinner');
+            const resultContent = document.getElementById('resultContent');
             
             // 获取API配置
             const apiUrl = document.getElementById('apiUrl').value.trim();
@@ -357,6 +359,16 @@
                 loadingSpinner.classList.remove('hidden');
                 analyzeBtn.querySelector('span').textContent = '分析中...';
 
+                // 清空现有结果并初始化分析数据
+                resultContent.innerHTML = '';
+                stockAnalysisData = {};
+
+                // 创建结果容器
+                const resultsContainer = document.createElement('div');
+                resultsContainer.className = 'space-y-6';
+                resultContent.appendChild(resultsContainer);
+
+                // 使用fetch流式API
                 const response = await fetch('/analyze', {
                     method: 'POST',
                     headers: {
@@ -364,24 +376,60 @@
                     },
                     body: JSON.stringify({ 
                         stock_codes: stockCodes,
-                        market_type: marketType,  // 添加市场类型参数
+                        market_type: marketType,
                         api_url: apiUrl,
                         api_key: apiKey,
                         api_model: apiModel
                     })
                 });
 
-                const data = await response.json();
-                
                 if (!response.ok) {
-                    throw new Error(data.error || '分析失败');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '分析失败');
                 }
 
-                const results = Array.isArray(data.results) ? data.results : [data];
-                displayResults(results);
+                // 设置流式处理
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                // 持续读取数据流
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    // 解码接收到的数据并添加到缓冲区
+                    buffer += decoder.decode(value, { stream: true });
+                    
+                    // 处理完整的行
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || ''; // 最后一行可能不完整，保留到下一次处理
+                    
+                    for (const line of lines) {
+                        if (line.trim() === '') continue;
+                        
+                        try {
+                            const chunk = JSON.parse(line);
+                            handleStreamChunk(chunk, resultsContainer, marketType);
+                        } catch (e) {
+                            console.error('解析流数据出错:', e, line);
+                        }
+                    }
+                }
+                
+                // 处理可能遗留在缓冲区的最后一行
+                if (buffer.trim()) {
+                    try {
+                        const chunk = JSON.parse(buffer);
+                        handleStreamChunk(chunk, resultsContainer, marketType);
+                    } catch (e) {
+                        console.error('解析最后一行数据出错:', e, buffer);
+                    }
+                }
+
             } catch (error) {
-                alert('请求失败: ' + error.message);
-                document.getElementById('resultContent').innerHTML = `
+                console.error('请求失败:', error);
+                resultContent.innerHTML = `
                     <div class="p-4 bg-red-50 text-red-600 rounded">
                         分析出错：${error.message}
                     </div>
@@ -394,111 +442,261 @@
             }
         }
 
-        function displayResults(results) {
-            const resultContent = document.getElementById('resultContent');
-            if (!results || results.length === 0) {
-                resultContent.innerHTML = '<div class="p-6 bg-yellow-50 text-yellow-600 rounded-lg text-center">没有分析结果</div>';
+        // 处理流式数据的函数
+        function handleStreamChunk(chunk, container, marketType) {
+            // 处理初始化信息
+            if (chunk.stream_type) {
+                console.log('开始流式分析:', chunk);
                 return;
             }
+            
+            // 获取股票代码
+            const stockCode = chunk.stock_code;
+            
+            // 如果是错误信息
+            if (chunk.error) {
+                // 添加或更新显示错误的卡片
+                let errorCard = document.getElementById(`error-${stockCode}`);
+                if (!errorCard) {
+                    errorCard = document.createElement('div');
+                    errorCard.id = `error-${stockCode}`;
+                    errorCard.className = 'bg-red-50 p-4 rounded-lg text-red-600';
+                    errorCard.innerHTML = `分析股票 ${stockCode} 出错: ${chunk.error}`;
+                    container.appendChild(errorCard);
+                } else {
+                    errorCard.innerHTML = `分析股票 ${stockCode} 出错: ${chunk.error}`;
+                }
+                return;
+            }
+            
+            // 如果是基本报告结构
+            if (!chunk.ai_analysis_chunk) {
+                // 存储基本报告数据
+                stockAnalysisData[stockCode] = {
+                    ...chunk,
+                    ai_analysis: ''
+                };
+                
+                // 添加或更新股票卡片
+                createStockCard(stockCode, container, marketType);
+                return;
+            }
+            
+            // 如果是AI分析片段
+            if (chunk.ai_analysis_chunk) {
+                // 确保该股票的数据存在
+                if (!stockAnalysisData[stockCode]) {
+                    stockAnalysisData[stockCode] = {
+                        stock_code: stockCode,
+                        ai_analysis: ''
+                    };
+                }
+                
+                // 累加AI分析内容
+                stockAnalysisData[stockCode].ai_analysis += chunk.ai_analysis_chunk;
+                
+                // 更新AI分析显示
+                updateAIAnalysisDisplay(stockCode);
+            }
+        }
 
-            let html = '';
-            results.forEach(result => {
-                // 根据市场类型设置货币符号
-                const currencySymbol = (() => {
-                    switch(document.getElementById('marketType').value) {
-                        case 'US':
-                            return '$';
-                        case 'HK':
-                            return 'HK$';
-                        case 'A':
-                        default:
-                            return '¥';
-                    }
-                })();
+        // 创建股票卡片
+        function createStockCard(stockCode, container, marketType) {
+            const result = stockAnalysisData[stockCode];
+            if (!result) return;
+            
+            // 根据市场类型设置货币符号
+            const currencySymbol = (() => {
+                switch(marketType) {
+                    case 'US':
+                        return '$';
+                    case 'HK':
+                        return 'HK$';
+                    case 'A':
+                    default:
+                        return '¥';
+                }
+            })();
 
-                html += `
-                    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-                        <!-- 头部信息 -->
-                        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-                            <h3 class="text-xl font-bold text-white">
-                                ${result.stock_code}
-                            </h3>
+            // 检查是否已存在该股票的卡片
+            let stockCard = document.getElementById(`stock-card-${stockCode}`);
+            
+            if (!stockCard) {
+                stockCard = document.createElement('div');
+                stockCard.id = `stock-card-${stockCode}`;
+                stockCard.className = 'bg-white rounded-lg shadow-lg overflow-hidden';
+                container.appendChild(stockCard);
+            }
+            
+            stockCard.innerHTML = `
+                <!-- 头部信息 -->
+                <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                    <h3 class="text-xl font-bold text-white">
+                        ${result.stock_code}
+                    </h3>
+                </div>
+                
+                <!-- 主要指标 -->
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-6 mb-6">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                <span class="text-gray-600">分析时间</span>
+                                <span class="font-medium">${result.analysis_date}</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                <span class="text-gray-600">当前价格</span>
+                                <span class="font-medium">${currencySymbol}${result.price.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                <span class="text-gray-600">价格变动</span>
+                                <span class="font-medium ${result.price_change >= 0 ? 'text-red-500' : 'text-green-500'}">
+                                    ${result.price_change.toFixed(2)}%
+                                </span>
+                            </div>
                         </div>
-                        
-                        <!-- 主要指标 -->
-                        <div class="p-6">
-                            <div class="grid grid-cols-2 gap-6 mb-6">
-                                <div class="space-y-3">
-                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                        <span class="text-gray-600">分析时间</span>
-                                        <span class="font-medium">${result.analysis_date}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                        <span class="text-gray-600">当前价格</span>
-                                        <span class="font-medium">${currencySymbol}${result.price.toFixed(2)}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                        <span class="text-gray-600">价格变动</span>
-                                        <span class="font-medium ${result.price_change >= 0 ? 'text-red-500' : 'text-green-500'}">
-                                            ${result.price_change.toFixed(2)}%
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                        <span class="text-gray-600">综合评分</span>
-                                        <span class="font-medium text-blue-600">${result.score}分</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                        <span class="text-gray-600">投资建议</span>
-                                        <span class="font-medium text-purple-600">${result.recommendation}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                                        <span class="text-gray-600">RSI指标</span>
-                                        <span class="font-medium">${result.rsi.toFixed(2)}</span>
-                                    </div>
-                                </div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                <span class="text-gray-600">综合评分</span>
+                                <span class="font-medium text-blue-600">${result.score}分</span>
                             </div>
-
-                            <!-- AI分析部分 -->
-                            <div class="mt-6">
-                                <h4 class="text-lg font-semibold text-gray-800 mb-3">AI分析</h4>
-                                <div class="prose prose-blue max-w-none bg-gray-50 p-4 rounded-lg">
-                                    ${marked.parse(result.ai_analysis)}
-                                </div>
+                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                <span class="text-gray-600">投资建议</span>
+                                <span class="font-medium text-purple-600">${result.recommendation}</span>
                             </div>
-
-                            <!-- 免责声明 -->
-                            <div class="mt-6 border-t border-gray-100 pt-4">
-                                <div class="bg-blue-50 p-4 rounded-lg">
-                                    <p class="text-sm text-blue-800 font-semibold mb-1">声明：</p>
-                                    <p class="text-sm text-blue-600">本分析仅基于技术指标和历史数据，不构成投资建议。股市有风险，投资需谨慎。</p>
-                                </div>
+                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                <span class="text-gray-600">RSI指标</span>
+                                <span class="font-medium">${result.rsi.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
-                `;
-            });
 
-            resultContent.innerHTML = html;
+                    <!-- AI分析部分 -->
+                    <div class="mt-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3">AI分析</h4>
+                        <div id="ai-analysis-${stockCode}" class="prose prose-blue max-w-none bg-gray-50 p-4 rounded-lg relative">
+                            <!-- 加载动画 -->
+                            <div class="ai-analysis-loading flex flex-col items-center justify-center py-8">
+                                <div class="typing-animation mb-3">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                                <p class="text-gray-500 text-sm">AI正在思考分析中...</p>
+                            </div>
+                            <!-- 实际内容容器 -->
+                            <div class="ai-analysis-content hidden"></div>
+                        </div>
+                    </div>
 
-            // 添加 Markdown 样式
-            const style = document.createElement('style');
-            style.textContent = `
-                .prose h1 { font-size: 1.5em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
-                .prose h2 { font-size: 1.3em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
-                .prose h3 { font-size: 1.1em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
-                .prose p { margin-bottom: 1em; line-height: 1.6; }
-                .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
-                .prose ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
-                .prose li { margin-bottom: 0.5em; }
-                .prose strong { font-weight: 600; color: #1a56db; }
-                .prose em { font-style: italic; }
-                .prose blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; margin: 1em 0; color: #4b5563; }
-                .prose code { background-color: #f3f4f6; padding: 0.2em 0.4em; border-radius: 0.25em; font-size: 0.9em; }
+                    <!-- 免责声明 -->
+                    <div class="mt-6 border-t border-gray-100 pt-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm text-blue-800 font-semibold mb-1">声明：</p>
+                            <p class="text-sm text-blue-600">本分析仅基于技术指标和历史数据，不构成投资建议。股市有风险，投资需谨慎。</p>
+                        </div>
+                    </div>
+                </div>
             `;
-            document.head.appendChild(style);
         }
+
+        // 更新AI分析显示
+        function updateAIAnalysisDisplay(stockCode) {
+            const analysisElement = document.getElementById(`ai-analysis-${stockCode}`);
+            if (analysisElement && stockAnalysisData[stockCode]) {
+                const loadingElement = analysisElement.querySelector('.ai-analysis-loading');
+                const contentElement = analysisElement.querySelector('.ai-analysis-content');
+                
+                // 如果有AI分析内容
+                if (stockAnalysisData[stockCode].ai_analysis) {
+                    // 解析Markdown
+                    const parsedContent = marked.parse(stockAnalysisData[stockCode].ai_analysis);
+                    
+                    // 检查是否是第一次添加内容
+                    const isFirstUpdate = contentElement.classList.contains('hidden');
+                    
+                    // 如果是第一次更新，显示内容区域并隐藏加载动画
+                    if (isFirstUpdate) {
+                        contentElement.innerHTML = parsedContent;
+                        contentElement.classList.remove('hidden');
+                        contentElement.classList.add('fade-in');
+                        
+                        // 延迟隐藏加载动画，使过渡更平滑
+                        setTimeout(() => {
+                            loadingElement.style.display = 'none';
+                        }, 300);
+                    } else {
+                        // 获取当前内容长度，用于确定新增内容
+                        const currentLength = contentElement.textContent.length;
+                        
+                        // 更新内容
+                        contentElement.innerHTML = parsedContent;
+                        
+                        // 尝试高亮新增的文本（通过比较长度）
+                        const allTextNodes = getAllTextNodes(contentElement);
+                        let totalLength = 0;
+                        
+                        for (const node of allTextNodes) {
+                            totalLength += node.textContent.length;
+                            if (totalLength > currentLength) {
+                                // 这个节点包含新内容，将其包装在高亮span中
+                                const newTextSpan = document.createElement('span');
+                                newTextSpan.className = 'new-text';
+                                node.parentNode.insertBefore(newTextSpan, node);
+                                newTextSpan.appendChild(node);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 辅助函数：获取元素内的所有文本节点
+        function getAllTextNodes(element) {
+            const textNodes = [];
+            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+            
+            let node;
+            while (node = walker.nextNode()) {
+                textNodes.push(node);
+            }
+            
+            return textNodes;
+        }
+        
+        // 旧的displayResults函数保留用于兼容
+        function displayResults(results) {
+            const resultContent = document.getElementById('resultContent');
+            
+            // 清空现有结果
+            resultContent.innerHTML = '';
+            stockAnalysisData = {};
+            
+            // 创建结果容器
+            const resultsContainer = document.createElement('div');
+            resultsContainer.className = 'space-y-6';
+            resultContent.appendChild(resultsContainer);
+            
+            if (!results || results.length === 0) {
+                resultsContainer.innerHTML = '<div class="p-6 bg-yellow-50 text-yellow-600 rounded-lg text-center">没有分析结果</div>';
+                return;
+            }
+            
+            // 获取市场类型
+            const marketType = document.getElementById('marketType').value;
+            
+            // 处理每个结果
+            results.forEach(result => {
+                stockAnalysisData[result.stock_code] = result;
+                createStockCard(result.stock_code, resultsContainer, marketType);
+                updateAIAnalysisDisplay(result.stock_code);
+            });
+            
+            // 添加 Markdown 样式
+            addMarkdownStyles();
+        }
+
     </script>
     <!-- 添加 marked.js 用于解析 Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -573,6 +771,95 @@
                     this.disabled = false;
                 }
             });
+        });
+    </script>
+    <script>
+        // 添加 Markdown 样式
+        function addMarkdownStyles() {
+            // 检查是否已经添加了样式
+            if (!document.getElementById('markdown-styles')) {
+                const style = document.createElement('style');
+                style.id = 'markdown-styles';
+                style.textContent = `
+                    .prose h1 { font-size: 1.5em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
+                    .prose h2 { font-size: 1.3em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
+                    .prose h3 { font-size: 1.1em; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
+                    .prose p { margin-bottom: 1em; line-height: 1.6; }
+                    .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+                    .prose ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
+                    .prose li { margin-bottom: 0.5em; }
+                    .prose strong { font-weight: 600; color: #1a56db; }
+                    .prose em { font-style: italic; }
+                    .prose blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; margin: 1em 0; color: #4b5563; }
+                    .prose code { background-color: #f3f4f6; padding: 0.2em 0.4em; border-radius: 0.25em; font-size: 0.9em; }
+                    
+                    /* 打字机动画样式 */
+                    .typing-animation {
+                        display: flex;
+                        align-items: center;
+                    }
+                    
+                    .typing-animation span {
+                        height: 10px;
+                        width: 10px;
+                        margin: 0 2px;
+                        background-color: #3b82f6;
+                        border-radius: 50%;
+                        display: inline-block;
+                        animation: typing 1.5s infinite ease-in-out;
+                    }
+                    
+                    .typing-animation span:nth-child(1) {
+                        animation-delay: 0s;
+                    }
+                    
+                    .typing-animation span:nth-child(2) {
+                        animation-delay: 0.3s;
+                    }
+                    
+                    .typing-animation span:nth-child(3) {
+                        animation-delay: 0.6s;
+                    }
+                    
+                    @keyframes typing {
+                        0% { transform: scale(1); opacity: 0.7; }
+                        50% { transform: scale(1.5); opacity: 1; }
+                        100% { transform: scale(1); opacity: 0.7; }
+                    }
+                    
+                    /* 内容淡入效果 */
+                    .ai-analysis-content {
+                        transition: opacity 0.3s ease;
+                    }
+                    
+                    .ai-analysis-content.fade-in {
+                        opacity: 0;
+                        animation: fadeIn 0.5s forwards;
+                    }
+                    
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    
+                    /* 高亮新增文本效果 */
+                    .new-text {
+                        background-color: rgba(59, 130, 246, 0.1);
+                        animation: highlightFade 2s forwards;
+                    }
+                    
+                    @keyframes highlightFade {
+                        from { background-color: rgba(59, 130, 246, 0.1); }
+                        to { background-color: transparent; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // 页面加载时添加样式
+        document.addEventListener('DOMContentLoaded', function() {
+            addMarkdownStyles();
         });
     </script>
 </body>
