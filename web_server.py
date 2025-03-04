@@ -37,11 +37,21 @@ def analyze():
             
         results = []
         for stock_code in stock_codes:
-            result = analyzer.analyze_stock(stock_code.strip(), market_type)
-            results.append(result)
+            try:
+                result = analyzer.analyze_stock(stock_code.strip(), market_type)
+                results.append(result)
+            except Exception as e:
+                app.logger.error(f"分析股票 {stock_code} 失败: {str(e)}")
+                app.logger.error(f"详细错误: {traceback.format_exc()}")
+                results.append({
+                    'code': stock_code,
+                    'error': f"分析失败: {str(e)}"
+                })
             
         return jsonify({'results': results})
     except Exception as e:
+        app.logger.error(f"处理请求失败: {str(e)}")
+        app.logger.error(f"详细错误: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/search_us_stocks', methods=['GET'])
