@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple, Generator
 from dotenv import load_dotenv
 import json
 from logger import get_logger
+from utils.api_utils import APIUtils
 
 # 获取日志器
 logger = get_logger()
@@ -259,12 +260,8 @@ class StockAnalyzer:
                 logger.error(error_msg)
                 return error_msg if not stream else (yield json.dumps({"error": error_msg}))
             
-            # 标准化API URL  使用Cherry Studio相同逻辑处理
-            if self.API_URL.endswith('/'):
-                api_url = f"{self.API_URL}chat/completions"
-            else:
-                api_url = f"{self.API_URL}/v1/chat/completions"
-            
+            # 标准化API URL
+            api_url = APIUtils.format_api_url(self.API_URL)
             
             logger.debug(f"标准化后的API URL: {api_url}")
             

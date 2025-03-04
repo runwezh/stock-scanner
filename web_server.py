@@ -6,6 +6,11 @@ import os
 import traceback
 import requests
 from logger import get_logger
+from utils.api_utils import APIUtils
+# 加载环境变量
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # 获取日志器
 logger = get_logger()
@@ -138,13 +143,7 @@ def test_api_connection():
             return jsonify({'error': '请提供API Key'}), 400
             
         # 构建API URL
-        if api_url.endswith('/'):
-            test_url = f"{api_url}chat/completions"
-        else:
-            test_url = f"{api_url}/v1/chat/completions"
-            
-
-                
+        test_url = APIUtils.format_api_url(api_url)
         logger.debug(f"完整API测试URL: {test_url}")
         
         # 发送测试请求
