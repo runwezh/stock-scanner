@@ -259,15 +259,12 @@ class StockAnalyzer:
                 logger.error(error_msg)
                 return error_msg if not stream else (yield json.dumps({"error": error_msg}))
             
-            # 标准化API URL
-            api_url = self.API_URL
-            if not (api_url.endswith('/chat/completions') or api_url.endswith('/v1/chat/completions')):
-                if api_url.endswith('/v1'):
-                    api_url = f"{api_url}/chat/completions"
-                elif api_url.endswith('/'):
-                    api_url = f"{api_url}v1/chat/completions"
-                else:
-                    api_url = f"{api_url}/v1/chat/completions"
+            # 标准化API URL  使用Cherry Studio相同逻辑处理
+            if self.API_URL.endswith('/'):
+                api_url = f"{self.API_URL}chat/completions"
+            else:
+                api_url = f"{self.API_URL}/v1/chat/completions"
+            
             
             logger.debug(f"标准化后的API URL: {api_url}")
             
