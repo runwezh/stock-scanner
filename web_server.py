@@ -138,14 +138,12 @@ def test_api_connection():
             return jsonify({'error': '请提供API Key'}), 400
             
         # 构建API URL
-        test_url = api_url
-        if not (api_url.endswith('/chat/completions') or api_url.endswith('/v1/chat/completions')):
-            if api_url.endswith('/v1'):
-                test_url = f"{api_url}/chat/completions"
-            elif api_url.endswith('/'):
-                test_url = f"{api_url}chat/completions"
-            else:
-                test_url = f"{api_url}/v1/chat/completions"
+        if api_url.endswith('/'):
+            test_url = f"{api_url}chat/completions"
+        else:
+            test_url = f"{api_url}/v1/chat/completions"
+            
+
                 
         logger.debug(f"完整API测试URL: {test_url}")
         

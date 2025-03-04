@@ -1,4 +1,5 @@
---index-url https://pypi.tuna.tsinghua.edu.cn/simple
+# 本地打包使用国内镜像源加速下载， 默认不使用，影响github actions 
+# --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 基础科学计算和数据处理库
 numpy==2.1.2

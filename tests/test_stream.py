@@ -50,14 +50,10 @@ def test_api_stream():
         logger.error("API Key未配置，无法进行测试")
         return
     
-    # 标准化API URL
-    if not (api_url.endswith('/chat/completions') or api_url.endswith('/v1/chat/completions')):
-        if api_url.endswith('/v1'):
-            api_url = f"{api_url}/chat/completions"
-        elif api_url.endswith('/'):
-            api_url = f"{api_url}v1/chat/completions"
-        else:
-            api_url = f"{api_url}/v1/chat/completions"
+    if api_url.endswith('/'):
+        api_url = f"{api_url}chat/completions"
+    else:
+        api_url = f"{api_url}/v1/chat/completions"
     
     logger.debug(f"标准化后的API URL: {api_url}")
     
