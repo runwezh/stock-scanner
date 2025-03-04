@@ -63,28 +63,37 @@
                                        placeholder="例如: gpt-3.5-turbo" 
                                        value="{{ default_api_model }}">
                             </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label for="apiTimeout" class="block text-sm font-medium text-gray-700 mb-1">API 超时时间</label>
-                                <input type="text" id="apiTimeout" 
+                                <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                                <input type="password" id="apiKey" 
+                                       class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="输入您的API Key">
+                                <p class="mt-1 text-sm text-gray-500">如不填写，将使用系统默认配置</p>
+                            </div>
+                            <div>
+                                <label for="apiTimeout" class="block text-sm font-medium text-gray-700 mb-1">API 超时时间 (秒)</label>
+                                <input type="number" id="apiTimeout" 
                                        class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                        placeholder="例如: 60" 
-                                       value="{{ default_api_timeout }}">
+                                       value="{{ default_api_timeout }}" min="1" max="300">
+                                <p class="mt-1 text-sm text-gray-500">请求超时时间，默认60秒</p>
                             </div>
                         </div>
-                        <div>
-                            <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-                            <input type="password" id="apiKey" 
-                                   class="w-full p-2 border rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                   placeholder="输入您的API Key">
-                            <p class="mt-1 text-sm text-gray-500">如不填写，将使用系统默认配置</p>
-                        </div>
-                        <div class="flex justify-end">
-                            <button id="resetApiConfig" class="text-gray-600 hover:text-gray-800 text-sm mr-3">
-                                重置为默认
-                            </button>
-                            <button id="testApiConfig" class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 text-sm">
-                                测试连接
-                            </button>
+                        <div class="flex justify-between">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="saveApiConfig" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <label for="saveApiConfig" class="ml-2 block text-sm text-gray-700">保存配置到本地</label>
+                            </div>
+                            <div>
+                                <button id="resetApiConfig" class="text-gray-600 hover:text-gray-800 text-sm mr-3">
+                                    重置为默认
+                                </button>
+                                <button id="testApiConfig" class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 text-sm">
+                                    测试连接
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -350,6 +359,7 @@
             const apiUrl = document.getElementById('apiUrl').value.trim();
             const apiKey = document.getElementById('apiKey').value.trim();
             const apiModel = document.getElementById('apiModel').value.trim();
+            const apiTimeout = document.getElementById('apiTimeout').value.trim();
             
             if (!stockInput) {
                 alert('请输入代码');
@@ -386,7 +396,7 @@
                         market_type: marketType,
                         api_url: apiUrl,
                         api_key: apiKey,
-                        api_model: apiModel
+                        api_model: apiModel,
                         api_timeout: apiTimeout
                     })
                 });
@@ -438,7 +448,7 @@
             } catch (error) {
                 console.error('请求失败:', error);
                 resultContent.innerHTML = `
-                    <div class="p-4 bg-red-50 text-red-600 rounded">
+                    <div class="p-6 bg-yellow-50 text-yellow-600 rounded-lg text-center">
                         分析出错：${error.message}
                     </div>
                 `;
@@ -713,73 +723,153 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // API配置面板切换
-            const toggleBtn = document.getElementById('toggleApiConfig');
-            const configPanel = document.getElementById('apiConfigPanel');
-            const toggleText = document.getElementById('toggleApiConfigText');
-            const toggleIcon = document.getElementById('toggleApiConfigIcon');
+            const toggleApiConfig = document.getElementById('toggleApiConfig');
+            const apiConfigPanel = document.getElementById('apiConfigPanel');
+            const toggleApiConfigText = document.getElementById('toggleApiConfigText');
+            const toggleApiConfigIcon = document.getElementById('toggleApiConfigIcon');
+            const apiUrl = document.getElementById('apiUrl');
+            const apiKey = document.getElementById('apiKey');
+            const apiModel = document.getElementById('apiModel');
+            const apiTimeout = document.getElementById('apiTimeout');
+            const saveApiConfig = document.getElementById('saveApiConfig');
+            const resetApiConfig = document.getElementById('resetApiConfig');
+            const testApiConfig = document.getElementById('testApiConfig');
             
-            toggleBtn.addEventListener('click', function() {
-                const isHidden = configPanel.classList.contains('hidden');
-                configPanel.classList.toggle('hidden', !isHidden);
-                toggleText.textContent = isHidden ? '隐藏配置' : '显示配置';
-                toggleIcon.style.transform = isHidden ? 'rotate(180deg)' : '';
+            // 从localStorage加载保存的配置
+            loadApiConfig();
+            
+            // 切换API配置面板显示/隐藏
+            toggleApiConfig.addEventListener('click', function() {
+                apiConfigPanel.classList.toggle('hidden');
+                
+                if (apiConfigPanel.classList.contains('hidden')) {
+                    toggleApiConfigText.textContent = '显示配置';
+                    toggleApiConfigIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>';
+                } else {
+                    toggleApiConfigText.textContent = '隐藏配置';
+                    toggleApiConfigIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>';
+                }
             });
             
             // 重置API配置
-            document.getElementById('resetApiConfig').addEventListener('click', function() {
-                document.getElementById('apiUrl').value = '{{ default_api_url }}';
-                document.getElementById('apiModel').value = '{{ default_api_model }}';
-                document.getElementById('apiKey').value = '';
+            resetApiConfig.addEventListener('click', function() {
+                apiUrl.value = '{{ default_api_url }}';
+                apiKey.value = '';
+                apiModel.value = '{{ default_api_model }}';
+                apiTimeout.value = '{{ default_api_timeout }}';
+                saveApiConfig.checked = false;
+                
+                // 清除localStorage中的配置
+                localStorage.removeItem('apiConfig');
+                
+                alert('已重置为默认配置');
             });
             
             // 测试API连接
-            document.getElementById('testApiConfig').addEventListener('click', async function() {
-                const apiUrl = document.getElementById('apiUrl').value.trim();
-                const apiKey = document.getElementById('apiKey').value.trim();
-                const apiModel = document.getElementById('apiModel').value.trim();
+            testApiConfig.addEventListener('click', async function() {
+                const url = apiUrl.value.trim();
+                const key = apiKey.value.trim();
+                const model = apiModel.value.trim();
+                const timeout = apiTimeout.value.trim();
                 
-                if (!apiUrl) {
+                if (!url) {
                     alert('请输入API URL');
                     return;
                 }
                 
-                if (!apiKey) {
+                if (!key) {
                     alert('请输入API Key');
                     return;
                 }
                 
-                this.textContent = '测试中...';
-                this.disabled = true;
-                
                 try {
-                    // 使用后端代理进行API测试
+                    testApiConfig.disabled = true;
+                    testApiConfig.textContent = '测试中...';
+                    
                     const response = await fetch('/test_api_connection', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            api_url: apiUrl,
-                            api_key: apiKey,
-                            api_model: apiModel
+                            api_url: url,
+                            api_key: key,
+                            api_model: model,
+                            api_timeout: timeout
                         })
                     });
                     
-                    const data = await response.json();
+                    const result = await response.json();
                     
-                    if (response.ok && data.success) {
-                        alert('API连接成功！');
+                    if (result.success) {
+                        alert(result.message);
+                        
+                        // 如果勾选了保存配置，则保存到localStorage
+                        if (saveApiConfig.checked) {
+                            saveApiConfigToLocalStorage();
+                        }
                     } else {
-                        alert(`API连接失败: ${data.message || '未知错误'}`);
+                        alert(result.message);
                     }
                 } catch (error) {
-                    alert(`API连接测试失败: ${error.message}`);
+                    alert(error.message);
                 } finally {
-                    this.textContent = '测试连接';
-                    this.disabled = false;
+                    testApiConfig.disabled = false;
+                    testApiConfig.textContent = '测试连接';
+                }
+            });
+            
+            // 监听输入变化，自动保存配置
+            [apiUrl, apiKey, apiModel, apiTimeout].forEach(input => {
+                input.addEventListener('change', function() {
+                    if (saveApiConfig.checked) {
+                        saveApiConfigToLocalStorage();
+                    }
+                });
+            });
+            
+            // 监听保存配置复选框变化
+            saveApiConfig.addEventListener('change', function() {
+                if (this.checked) {
+                    saveApiConfigToLocalStorage();
+                } else {
+                    localStorage.removeItem('apiConfig');
                 }
             });
         });
+        
+        // 保存API配置到localStorage
+        function saveApiConfigToLocalStorage() {
+            const apiConfig = {
+                url: document.getElementById('apiUrl').value.trim(),
+                model: document.getElementById('apiModel').value.trim(),
+                key: document.getElementById('apiKey').value.trim(),
+                timeout: document.getElementById('apiTimeout').value.trim(),
+                saveEnabled: true
+            };
+            
+            localStorage.setItem('apiConfig', JSON.stringify(apiConfig));
+        }
+        
+        // 从localStorage加载API配置
+        function loadApiConfig() {
+            const savedConfig = localStorage.getItem('apiConfig');
+            
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    
+                    if (config.url) document.getElementById('apiUrl').value = config.url;
+                    if (config.model) document.getElementById('apiModel').value = config.model;
+                    if (config.key) document.getElementById('apiKey').value = config.key;
+                    if (config.timeout) document.getElementById('apiTimeout').value = config.timeout;
+                    
+                    document.getElementById('saveApiConfig').checked = config.saveEnabled || false;
+                } catch (error) {
+                    console.error('加载API配置时出错:', error);
+                }
+            }
+        }
     </script>
     <script>
         // 添加 Markdown 样式

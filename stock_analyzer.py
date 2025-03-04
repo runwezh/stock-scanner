@@ -6,14 +6,13 @@ import requests
 from typing import Dict, List, Optional, Tuple, Generator
 from dotenv import load_dotenv
 import json
-from logger import get_logger, get_stream_logger
+from logger import get_logger
 
 # 获取日志器
 logger = get_logger()
-stream_logger = get_stream_logger()
 
 class StockAnalyzer:
-    def __init__(self, initial_cash=1000000, custom_api_url=None, custom_api_key=None, custom_api_model=None, custom_api_timeout=60):
+    def __init__(self, initial_cash=1000000, custom_api_url=None, custom_api_key=None, custom_api_model=None, custom_api_timeout=None):
         
         # 加载环境变量
         load_dotenv()
@@ -21,10 +20,10 @@ class StockAnalyzer:
         # 设置 API 配置，优先使用自定义配置，否则使用环境变量
         self.API_URL = custom_api_url or os.getenv('API_URL')
         self.API_KEY = custom_api_key or os.getenv('API_KEY')
-        self.API_TIMEOUT = custom_api_timeout or int(os.getenv('API_TIMEOUT', '60'))  
         self.API_MODEL = custom_api_model or os.getenv('API_MODEL', 'gpt-3.5-turbo')
+        self.API_TIMEOUT = int(custom_api_timeout or os.getenv('API_TIMEOUT', 60))
         
-        logger.debug(f"初始化StockAnalyzer: API_URL={self.API_URL}, API_MODEL={self.API_MODEL}, API_KEY={'已提供' if self.API_KEY else '未提供'}")
+        logger.debug(f"初始化StockAnalyzer: API_URL={self.API_URL}, API_MODEL={self.API_MODEL}, API_KEY={'已提供' if self.API_KEY else '未提供'}, API_TIMEOUT={self.API_TIMEOUT}")
         
         # 配置参数
         self.params = {
@@ -247,7 +246,7 @@ class StockAnalyzer:
             请基于技术指标和市场动态进行分析，给出具体数据支持。
             """
             
-            logger.debug(f"生成的AI分析提示词: {prompt[:100]}...")
+            logger.debug(f"生成的AI分析提示词: {self._truncate_json_for_logging(prompt, 100)}...")
             
             # 检查API配置
             if not self.API_URL:
@@ -261,19 +260,14 @@ class StockAnalyzer:
                 return error_msg if not stream else (yield json.dumps({"error": error_msg}))
             
             # 标准化API URL
-            if self.API_URL.endswith('/'):
-                api_url = f"{self.API_URL}chat/completions"
-            else:
-                api_url = f"{self.API_URL}/v1/chat/completions"
-            # 标准化API URL 
-            # api_url = self.API_URL
-            # if not (api_url.endswith('/chat/completions') or api_url.endswith('/v1/chat/completions')):
-            #     if api_url.endswith('/v1'):
-            #         api_url = f"{api_url}/chat/completions"
-            #     elif api_url.endswith('/'):
-            #         api_url = f"{api_url}v1/chat/completions"
-            #     else:
-            #         api_url = f"{api_url}/v1/chat/completions"
+            api_url = self.API_URL
+            if not (api_url.endswith('/chat/completions') or api_url.endswith('/v1/chat/completions')):
+                if api_url.endswith('/v1'):
+                    api_url = f"{api_url}/chat/completions"
+                elif api_url.endswith('/'):
+                    api_url = f"{api_url}v1/chat/completions"
+                else:
+                    api_url = f"{api_url}/v1/chat/completions"
             
             logger.debug(f"标准化后的API URL: {api_url}")
             
@@ -295,13 +289,13 @@ class StockAnalyzer:
                 
                 try:
                     logger.debug(f"发起流式API请求: {api_url}")
-                    logger.debug(f"请求载荷: {json.dumps(payload, indent=2)}")
+                    logger.debug(f"请求载荷: {self._truncate_json_for_logging(payload)}")
                     
                     response = requests.post(
                         api_url,
                         headers=headers,
                         json=payload,
-                        timeout=60,  # 增加超时时间
+                        timeout=self.API_TIMEOUT,  # 增加超时时间
                         stream=True
                     )
                     
@@ -313,7 +307,7 @@ class StockAnalyzer:
                     else:
                         try:
                             error_response = response.json()
-                            error_text = json.dumps(error_response, indent=2)
+                            error_text = self._truncate_json_for_logging(error_response)
                         except:
                             error_text = response.text[:500] if response.text else "无响应内容"
                             
@@ -335,7 +329,7 @@ class StockAnalyzer:
                         api_url,
                         headers=headers,
                         json=payload,
-                        timeout=60
+                        timeout=self.API_TIMEOUT
                     )
                     
                     logger.debug(f"API非流式响应状态码: {response.status_code}")
@@ -349,7 +343,7 @@ class StockAnalyzer:
                     else:
                         try:
                             error_response = response.json()
-                            error_text = json.dumps(error_response, indent=2)
+                            error_text = self._truncate_json_for_logging(error_response)
                         except:
                             error_text = response.text[:500] if response.text else "无响应内容"
                             
@@ -371,10 +365,25 @@ class StockAnalyzer:
             if stream:
                 logger.debug("在流式模式下返回异常信息")
                 error_json = json.dumps({"stock_code": stock_code, "error": error_msg})
-                stream_logger.info(f"流式异常输出: {error_json}")
+                logger.info(f"流式异常输出: {error_json}")
                 yield error_json
             else:
                 return error_msg
+    
+    def _truncate_json_for_logging(self, json_obj, max_length=500):
+        """截断JSON对象用于日志记录，避免日志过大
+        
+        Args:
+            json_obj: 要截断的JSON对象
+            max_length: 最大字符长度，默认500
+            
+        Returns:
+            str: 截断后的JSON字符串
+        """
+        json_str = json.dumps(json_obj, ensure_ascii=False)
+        if len(json_str) <= max_length:
+            return json_str
+        return json_str[:max_length] + f"... [截断，总长度: {len(json_str)}字符]"
     
     def _process_ai_stream(self, response, stock_code) -> Generator[str, None, None]:
         """处理AI流式响应"""
@@ -386,7 +395,6 @@ class StockAnalyzer:
             for line in response.iter_lines():
                 if line:
                     line = line.decode('utf-8')
-                    stream_logger.info(f"原始流式行: {line}")
                     
                     # 跳过保持连接的空行
                     if line.strip() == '':
@@ -396,7 +404,6 @@ class StockAnalyzer:
                     # 数据行通常以"data: "开头
                     if line.startswith('data: '):
                         data_content = line[6:]  # 移除 "data: " 前缀
-                        stream_logger.info(f"数据内容: {data_content}")
                         
                         # 检查是否为流的结束
                         if data_content.strip() == '[DONE]':
@@ -405,7 +412,6 @@ class StockAnalyzer:
                             
                         try:
                             json_data = json.loads(data_content)
-                            logger.debug(f"解析的JSON数据: {json.dumps(json_data)[:100]}...")
                             
                             if 'choices' in json_data:
                                 delta = json_data['choices'][0].get('delta', {})
@@ -414,15 +420,12 @@ class StockAnalyzer:
                                 if content:
                                     chunk_count += 1
                                     buffer += content
-                                    logger.debug(f"收到内容片段 #{chunk_count}: {content}")
-                                    stream_logger.info(f"发送内容片段: {content}")
-                                    
+
                                     # 创建包含AI分析片段的JSON
                                     chunk_json = json.dumps({
                                         "stock_code": stock_code,
                                         "ai_analysis_chunk": content
                                     })
-                                    stream_logger.info(f"流式输出JSON: {chunk_json}")
                                     yield chunk_json
                         except json.JSONDecodeError as e:
                             logger.error(f"JSON解析错误: {str(e)}, 行内容: {data_content}")
@@ -494,7 +497,7 @@ class StockAnalyzer:
                 'volume_status': 'HIGH' if latest['Volume_Ratio'] > 1.5 else 'NORMAL',
                 'recommendation': self.get_recommendation(score)
             }
-            logger.debug(f"生成股票 {stock_code} 基础报告: {json.dumps(report)[:100]}...")
+            logger.debug(f"生成股票 {stock_code} 基础报告: {self._truncate_json_for_logging(report, 100)}...")
             
             if stream:
                 logger.info(f"以流式模式返回股票 {stock_code} 分析结果")
@@ -502,8 +505,8 @@ class StockAnalyzer:
                 base_report = dict(report)
                 base_report['ai_analysis'] = ''
                 base_report_json = json.dumps(base_report)
-                logger.debug(f"基础报告JSON: {base_report_json[:100]}...")
-                stream_logger.info(f"发送基础报告: {base_report_json}")
+                logger.debug(f"基础报告JSON: {self._truncate_json_for_logging(base_report_json, 100)}...")
+                logger.info(f"发送基础报告: {base_report_json}")
                 yield base_report_json
                 
                 # 然后流式返回AI分析部分
@@ -511,7 +514,6 @@ class StockAnalyzer:
                 ai_chunks_count = 0
                 for ai_chunk in self.get_ai_analysis(df, stock_code, stream=True):
                     ai_chunks_count += 1
-                    stream_logger.info(f"股票 {stock_code} 流式块 #{ai_chunks_count}: {ai_chunk}")
                     yield ai_chunk
                 logger.info(f"股票 {stock_code} 流式AI分析完成，共发送 {ai_chunks_count} 个块")
             else:
@@ -528,7 +530,7 @@ class StockAnalyzer:
             
             if stream:
                 error_json = json.dumps({'stock_code': stock_code, 'error': error_msg})
-                stream_logger.info(f"流式错误输出: {error_json}")
+                logger.info(f"流式错误输出: {error_json}")
                 yield error_json
             else:
                 raise
@@ -570,7 +572,6 @@ class StockAnalyzer:
                     chunk_count = 0
                     for chunk in self.analyze_stock(stock_code, market_type, stream=True):
                         chunk_count += 1
-                        stream_logger.info(f"股票 {stock_code} 流式块 #{chunk_count}: {chunk}")
                         yield chunk
                     logger.debug(f"股票 {stock_code} 流式分析完成，共 {chunk_count} 个块")
                 except Exception as e:
@@ -578,6 +579,6 @@ class StockAnalyzer:
                     logger.error(error_msg)
                     logger.exception(e)
                     error_json = json.dumps({'stock_code': stock_code, 'error': error_msg})
-                    stream_logger.info(f"流式错误输出: {error_json}")
+                    logger.info(f"流式错误输出: {error_json}")
                     yield error_json
             logger.info(f"流式扫描完成，处理了 {stock_count} 只股票")
