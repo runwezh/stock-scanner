@@ -211,7 +211,7 @@ class StockAnalyzer:
             raise
             
     def get_ai_analysis(self, df, stock_code):
-        """使用 Gemini 进行 AI 分析"""
+        """使用 OpenAI 进行 AI 分析"""
         try:
             recent_data = df.tail(14).to_dict('records')
             
@@ -242,34 +242,29 @@ class StockAnalyzer:
             请基于技术指标和市场动态进行分析，给出具体数据支持。
             """
             
-            headers = {
-                "Authorization": f"Bearer {self.API_KEY}",
-                "Content-Type": "application/json"
-            }
-            
-            data = {
-                "model": os.getenv('API_MODEL'),
-                "messages": [{"role": "user", "content": prompt}]
-            }
-            
+            # OpenAI API 调用
             response = requests.post(
-                f"{self.API_URL}/v1/chat/completions",
-                headers=headers,
-                json=data,
+                f"{self.API_URL}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": os.getenv('API_MODEL', 'gpt-3.5-turbo'),
+                    "messages": [{"role": "user", "content": prompt}]
+                },
                 timeout=30
             )
-            print(headers)
-            print(data)
-            print(response.json())
-
+            
             if response.status_code == 200:
                 return response.json()['choices'][0]['message']['content']
             else:
-                return "AI 分析暂时无法使用"
+                self.logger.error(f"API 错误: {response.status_code} - {response.text}")
+                return f"AI 分析暂时无法使用 (HTTP {response.status_code})"
                 
         except Exception as e:
             self.logger.error(f"AI 分析发生错误: {str(e)}")
-            return "AI 分析过程中发生错误"
+            return f"AI 分析过程中发生错误: {str(e)}"
             
     def get_recommendation(self, score):
         """根据得分给出建议"""
