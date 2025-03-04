@@ -12,9 +12,10 @@ class StockAnalyzer:
         # 加载环境变量
         load_dotenv()
         
-        # 设置 Gemini API
+        # 设置 API
         self.API_URL = os.getenv('API_URL')
         self.API_KEY = os.getenv('API_KEY')
+        self.API_TIMEOUT = int(os.getenv('API_TIMEOUT', '60'))  
         
         # 配置参数
         self.params = {
@@ -255,7 +256,7 @@ class StockAnalyzer:
                 api_url,
                 headers=headers,
                 json=data,
-                timeout=60
+                timeout=self.API_TIMEOUT
             )
             
             print(api_url)
