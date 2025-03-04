@@ -29,8 +29,8 @@ def analyze():
                 result = analyzer.analyze_stock(stock_code.strip(), market_type)
                 results.append(result)
             except Exception as e:
-                app.logger.error(f"分析股票 {stock_code} 失败: {str(e)}")
-                app.logger.error(f"详细错误: {traceback.format_exc()}")
+                print(f"分析股票 {stock_code} 失败: {str(e)}")
+                print(f"详细错误: {traceback.format_exc()}")
                 results.append({
                     'code': stock_code,
                     'error': f"分析失败: {str(e)}"
