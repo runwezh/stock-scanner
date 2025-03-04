@@ -1,10 +1,12 @@
+--index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
 # 基础科学计算和数据处理库
 numpy==2.1.2
 pandas==2.2.2
 scipy==1.15.1
 
 # 数据获取和分析库
-akshare
+akshare==1.16.22
 tqdm==4.67.1
 
 

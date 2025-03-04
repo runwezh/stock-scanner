@@ -1,4 +1,4 @@
-# 使用 Python 3.9 作为基础镜像
+# 使用 Python 3.10 作为基础镜像
 FROM python:3.10-slim
 
 # 设置工作目录
@@ -15,7 +15,6 @@ COPY . /app/
 
 # 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install akshare --upgrade -i https://pypi.org/simple
 
 # 设置环境变量
 ENV PYTHONPATH=/app
