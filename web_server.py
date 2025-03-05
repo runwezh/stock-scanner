@@ -88,7 +88,7 @@ def analyze():
                 
                 logger.debug(f"开始处理批量股票的流式响应")
                 chunk_count = 0
-                for chunk in custom_analyzer.scan_market(
+                for chunk in custom_analyzer.scan_stocks(
                     [code.strip() for code in stock_codes], 
                     min_score=0, 
                     market_type=market_type,
