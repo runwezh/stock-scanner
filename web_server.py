@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 from stock_analyzer import StockAnalyzer
 from us_stock_service import USStockService
+from fund_service import FundService  # 新增导入
 import threading
 import os
 import traceback
@@ -18,6 +19,7 @@ logger = get_logger()
 app = Flask(__name__)
 analyzer = StockAnalyzer()
 us_stock_service = USStockService()
+fund_service = FundService()  # 新增服务实例
 
 @app.route('/')
 def index():
@@ -102,7 +104,7 @@ def analyze():
         return Response(stream_with_context(generate()), mimetype='application/json')
             
     except Exception as e:
-        error_msg = f"分析股票时出错: {str(e)}"
+        error_msg = f"分析时出错: {str(e)}"
         logger.error(error_msg)
         logger.exception(e)
         return jsonify({'error': error_msg}), 500
@@ -119,6 +121,22 @@ def search_us_stocks():
         
     except Exception as e:
         print(f"搜索美股代码时出错: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# 添加基金搜索路由
+@app.route('/search_funds', methods=['GET'])
+def search_funds():
+    try:
+        keyword = request.args.get('keyword', '')
+        market_type = request.args.get('market_type', '')
+        if not keyword:
+            return jsonify({'error': '请输入搜索关键词'}), 400
+            
+        results = fund_service.search_funds(keyword, market_type)
+        return jsonify({'results': results})
+        
+    except Exception as e:
+        logger.error(f"搜索基金代码时出错: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/test_api_connection', methods=['POST'])
