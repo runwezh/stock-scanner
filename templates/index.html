@@ -62,6 +62,9 @@
         // 关闭公告的函数
         function closeAnnouncement() {
             const container = document.getElementById('announcement-container');
+            if(!container){
+                return;
+            }
             container.style.opacity = '0';
             container.style.transform = 'translateY(-10px)';
             container.style.transition = 'all 0.3s ease-out';
@@ -111,7 +114,7 @@
 
         <script>
             // 更新时间显示
-            function updateTime() {
+            function updateMarketTime() {
                 const now = new Date();
                 
                 // 更新当前时间
@@ -157,7 +160,21 @@
                 const timer = document.getElementById(`${market}MarketTimer`);
                 
                 if (isOpen) {
-                    // ... 现有的开市逻辑保持不变 ...
+                    element.textContent = '交易中';
+                    element.className = 'text-lg font-medium text-green-600';
+                    
+                    // 计算距离收盘时间
+                    const now = new Date();
+                    const closeTime = new Date(now);
+                    closeTime.setHours(closeHour, closeMinute, 0);
+                    
+                    const timeToClose = closeTime - now;
+                    const hours = Math.floor(timeToClose / 3600000);
+                    const minutes = Math.floor((timeToClose % 3600000) / 60000);
+                    
+                    if (hours >= 0 && minutes >= 0) {
+                        timer.textContent = `距离收盘还有 ${hours}小时${minutes}分钟`;
+                    }
                 } else {
                     element.textContent = '已休市';
                     element.className = 'text-lg font-medium text-gray-600';
@@ -200,8 +217,8 @@
             }
 
             // 每秒更新一次时间
-            setInterval(updateTime, 1000);
-            updateTime(); // 立即执行一次
+            setInterval(updateMarketTime, 1000);
+            updateMarketTime(); // 立即执行一次
         </script>
         
         <div class="max-w-4xl mx-auto">  
@@ -814,9 +831,9 @@
                                 <span class="text-gray-600">投资建议</span>
                                 <span class="font-medium text-purple-600">${result.recommendation}</span>
                             </div>
-                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                             <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
                                 <span class="text-gray-600">RSI指标</span>
-                                <span class="font-medium">${result.rsi.toFixed(2)}</span>
+                                <span class="font-medium">${result.rsi !== null ? result.rsi.toFixed(2) : '暂无数据'}</span>
                             </div>
                         </div>
                     </div>
