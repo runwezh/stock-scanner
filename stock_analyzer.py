@@ -478,6 +478,11 @@ class StockAnalyzer:
             latest = df.iloc[-1]
             prev = df.iloc[-2]
             
+            # 处理 RSI 的 NaN 值
+            rsi_value = latest['RSI']
+            if pd.isna(rsi_value):
+                rsi_value = None  
+            
             # 生成报告（保持原有格式）
             report = {
                 'stock_code': stock_code,
@@ -486,7 +491,7 @@ class StockAnalyzer:
                 'price': latest['close'],
                 'price_change': (latest['close'] - prev['close']) / prev['close'] * 100,
                 'ma_trend': 'UP' if latest['MA5'] > latest['MA20'] else 'DOWN',
-                'rsi': latest['RSI'],
+                'rsi': rsi_value,  # 使用处理后的 RSI 值
                 'macd_signal': 'BUY' if latest['MACD'] > latest['Signal'] else 'SELL',
                 'volume_status': 'HIGH' if latest['Volume_Ratio'] > 1.5 else 'NORMAL',
                 'recommendation': self.get_recommendation(score)
