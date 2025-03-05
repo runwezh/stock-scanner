@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context, send_from_directory
 from stock_analyzer import StockAnalyzer
 from us_stock_service import USStockService
 from fund_service import FundService  # 新增导入
@@ -16,24 +16,44 @@ load_dotenv()
 # 获取日志器
 logger = get_logger()
 
-app = Flask(__name__)
+app = Flask(__name__, 
+            static_folder='frontend/dist', 
+            static_url_path='/')
+
 analyzer = StockAnalyzer()
 us_stock_service = USStockService()
 fund_service = FundService()  # 新增服务实例
 
 @app.route('/')
 def index():
-    announcement = os.getenv('ANNOUNCEMENT_TEXT') or None
-    # 获取默认API配置信息
-    default_api_url = os.getenv('API_URL', '')
-    default_api_model = os.getenv('API_MODEL', 'gpt-3.5-turbo')
-    default_api_timeout = os.getenv('API_TIMEOUT', '60')
-    # 不传递API_KEY到前端，出于安全考虑
-    return render_template('index.html', 
-                          announcement=announcement,
-                          default_api_url=default_api_url,
-                          default_api_model=default_api_model,
-                          default_api_timeout=default_api_timeout)
+    # 检查是否使用前端构建版本
+    frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'dist')
+    if os.path.exists(frontend_dist):
+        return send_from_directory(frontend_dist, 'index.html')
+    else:
+        # 传统模板渲染，用于兼容旧版本
+        announcement = os.getenv('ANNOUNCEMENT_TEXT') or None
+        # 获取默认API配置信息
+        default_api_url = os.getenv('API_URL', '')
+        default_api_model = os.getenv('API_MODEL', 'gpt-3.5-turbo')
+        default_api_timeout = os.getenv('API_TIMEOUT', '60')
+        # 不传递API_KEY到前端，出于安全考虑
+        return render_template('index.html', 
+                            announcement=announcement,
+                            default_api_url=default_api_url,
+                            default_api_model=default_api_model,
+                            default_api_timeout=default_api_timeout)
+
+@app.route('/config')
+def get_config():
+    """返回系统配置信息"""
+    config = {
+        'announcement': os.getenv('ANNOUNCEMENT_TEXT') or '',
+        'default_api_url': os.getenv('API_URL', ''),
+        'default_api_model': os.getenv('API_MODEL', 'gpt-3.5-turbo'),
+        'default_api_timeout': os.getenv('API_TIMEOUT', '60')
+    }
+    return jsonify(config)
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -200,4 +220,4 @@ def test_api_connection():
 
 if __name__ == '__main__':
     logger.info("股票分析系统启动")
-    app.run(host='0.0.0.0', port=8888, debug=True)
+    app.run(host='127.0.0.1', port=8888, debug=True)

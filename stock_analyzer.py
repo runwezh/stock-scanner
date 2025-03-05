@@ -476,7 +476,7 @@ class StockAnalyzer:
     
     def _process_ai_stream(self, response, stock_code) -> Generator[str, None, None]:
         """处理AI流式响应"""
-        logger.info(f"开始处理 {stock_code} 的AI流式响应")
+        logger.info(f"开始处理股票 {stock_code} 的AI流式响应\n")
         buffer = ""
         chunk_count = 0
         
