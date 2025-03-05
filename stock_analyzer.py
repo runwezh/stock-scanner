@@ -47,8 +47,25 @@ class StockAnalyzer:
             end_date = datetime.now().strftime('%Y%m%d')
             
         try:
-            # 根据市场类型获取数据
+            # 验证股票代码格式
             if market_type == 'A':
+                # 上海证券交易所股票代码以6开头
+                # 深圳证券交易所股票代码以0或3开头
+                # 科创板股票代码以688开头
+                # 北京证券交易所股票代码以8开头
+                valid_prefixes = ['0', '3', '6', '688', '8']
+                valid_format = False
+                
+                for prefix in valid_prefixes:
+                    if stock_code.startswith(prefix):
+                        valid_format = True
+                        break
+                
+                if not valid_format:
+                    error_msg = f"无效的A股股票代码格式: {stock_code}。A股代码应以0、3、6、688或8开头"
+                    logger.error(f"[股票代码格式错误] {error_msg}")
+                    raise ValueError(error_msg)
+
                 df = ak.stock_zh_a_hist(
                     symbol=stock_code,
                     start_date=start_date,
@@ -108,8 +125,13 @@ class StockAnalyzer:
             
             return df.sort_values('date')
             
+        # except ValueError as ve:
+        #     # 捕获格式验证错误
+        #     logger.error(f"[股票代码格式错误] {str(ve)}")
+        #     raise Exception(f"股票代码格式错误: {str(ve)}")
         except Exception as e:
-            raise Exception(f"获取股票数据失败: {str(e)}")
+            logger.error(f"[获取数据失败] {str(e)}")
+            raise Exception(f"获取数据失败: {str(e)}")
             
     def calculate_ema(self, series, period):
         """计算指数移动平均线"""
@@ -192,7 +214,7 @@ class StockAnalyzer:
             raise
             
     def calculate_score(self, df):
-        """计算股票评分"""
+        """计算评分"""
         try:
             score = 0
             latest = df.iloc[-1]
@@ -325,12 +347,12 @@ class StockAnalyzer:
             # 检查API配置
             if not self.API_URL:
                 error_msg = "API URL未配置，无法进行AI分析"
-                logger.error(error_msg)
+                logger.error(f"[API配置错误] {error_msg}")
                 return error_msg if not stream else (yield json.dumps({"error": error_msg}))
                 
             if not self.API_KEY:
                 error_msg = "API Key未配置，无法进行AI分析"
-                logger.error(error_msg)
+                logger.error(f"[API配置错误] {error_msg}")
                 return error_msg if not stream else (yield json.dumps({"error": error_msg}))
             
             # 标准化API URL
@@ -379,12 +401,12 @@ class StockAnalyzer:
                             error_text = response.text[:500] if response.text else "无响应内容"
                             
                         error_msg = f"API请求失败: 状态码 {response.status_code}, 响应: {error_text}"
-                        logger.error(error_msg)
+                        logger.error(f"[API请求失败] {error_msg}")
                         yield json.dumps({"stock_code": stock_code, "error": error_msg})
                         
                 except Exception as e:
                     error_msg = f"流式API请求异常: {str(e)}"
-                    logger.error(error_msg)
+                    logger.error(f"[流式API异常] {error_msg}")
                     logger.exception(e)
                     yield json.dumps({"stock_code": stock_code, "error": error_msg})
             else:
@@ -415,18 +437,18 @@ class StockAnalyzer:
                             error_text = response.text[:500] if response.text else "无响应内容"
                             
                         error_msg = f"API请求失败: 状态码 {response.status_code}, 响应: {error_text}"
-                        logger.error(error_msg)
+                        logger.error(f"[API请求失败] {error_msg}")
                         return error_msg
                         
                 except Exception as e:
                     error_msg = f"非流式API请求异常: {str(e)}"
-                    logger.error(error_msg)
+                    logger.error(f"[非流式API异常] {error_msg}")
                     logger.exception(e)
                     return error_msg
             
         except Exception as e:
             error_msg = f"AI 分析过程中发生错误: {str(e)}"
-            logger.error(error_msg)
+            logger.error(f"[AI分析异常] {error_msg}")
             logger.exception(e)
             
             if stream:
@@ -495,7 +517,7 @@ class StockAnalyzer:
                                     })
                                     yield chunk_json
                         except json.JSONDecodeError as e:
-                            logger.error(f"JSON解析错误: {str(e)}, 行内容: {data_content}")
+                            logger.error(f"[JSON解析错误] {str(e)}, 行内容: {data_content}")
                             # 忽略无法解析的JSON
                             pass
                     else:
@@ -510,7 +532,7 @@ class StockAnalyzer:
         
         except Exception as e:
             error_msg = f"处理AI流式响应时出错: {str(e)}"
-            logger.error(error_msg)
+            logger.error(f"[流式响应异常] {error_msg}")
             logger.exception(e)
             yield json.dumps({"stock_code": stock_code, "error": error_msg})
 
@@ -530,13 +552,48 @@ class StockAnalyzer:
             return '强烈建议卖出'
     
     def analyze_stock(self, stock_code, market_type='A', stream=False):
-        """分析股票或基金"""
+        """分析单只"""
+        logger.info(f"开始分析 {stock_code}, 市场类型: {market_type}, 流式模式: {stream}")
+        
         try:
-            logger.info(f"开始分析: {stock_code}, 市场: {market_type}, 流式模式: {stream}")
+            # 获取股票数据
+            try:
+                df = self.get_stock_data(stock_code, market_type)
+            except Exception as e:
+                # 捕获股票数据获取异常
+                error_msg = str(e)
+                logger.error(f"[数据获取异常] {error_msg}")
+                
+                # 格式化错误响应
+                error_response = {
+                    'stock_code': stock_code, 
+                    'error': error_msg,
+                    'status': 'error',
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+                
+                if stream:
+                    return (yield json.dumps(error_response))
+                else:
+                    return error_response
             
-            # 获取数据
-            logger.debug(f"获取 {stock_code} 数据")
-            df = self.get_stock_data(stock_code, market_type)
+            # 检查数据是否为空
+            if df.empty:
+                error_msg = f" {stock_code} 数据为空"
+                logger.error(f"[空数据] {error_msg}")
+                
+                # 格式化错误响应
+                error_response = {
+                    'stock_code': stock_code, 
+                    'error': error_msg,
+                    'status': 'error',
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+                
+                if stream:
+                    return (yield json.dumps(error_response))
+                else:
+                    return error_response
             
             # 计算技术指标
             logger.debug(f"计算 {stock_code} 技术指标")
@@ -592,61 +649,109 @@ class StockAnalyzer:
                 return report
             
         except Exception as e:
-            error_msg = f"分析 {stock_code} 时出错: {str(e)}"
-            logger.error(error_msg)
+            error_msg = f"分析 {stock_code} 时出错: {str(e)}\n"
+            logger.error(f"[分析异常] {error_msg}")
             logger.exception(e)
             
-            if stream:
-                error_json = json.dumps({'stock_code': stock_code, 'error': error_msg})
-                logger.info(f"流式错误输出: {error_json}")
-                yield error_json
-            else:
-                raise
+            # 格式化错误响应
+            error_response = {
+                'stock_code': stock_code, 
+                'error': error_msg,
+                'status': 'error',
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
             
-    def scan_market(self, stock_list, min_score=60, market_type='A', stream=False):
-        """扫描市场，寻找符合条件的"""
-        logger.info(f"开始扫描市场，数量: {len(stock_list)}, 最低分数: {min_score}, 市场: {market_type}, 流式模式: {stream}")
+            if stream:
+                return (yield json.dumps(error_response))
+            else:
+                return error_response
+            
+    def scan_stocks(self, stock_codes, market_type='A', min_score=60, stream=False):
+        """扫描多只"""
+        logger.info(f"开始扫描 {len(stock_codes)} 只, 市场类型: {market_type}, 最低评分: {min_score}, 流式模式: {stream}")
         
         if not stream:
-            recommendations = []
+            # 非流式模式
+            recommended_stocks = []
+            stock_count = 0
+            error_count = 0
             
-            for stock_code in stock_list:
+            for stock_code in stock_codes:
+                stock_count += 1
+                logger.info(f"扫描进度: {stock_count}/{len(stock_codes)}, 当前: {stock_code}")
+                
                 try:
                     logger.debug(f"分析: {stock_code}")
                     report = self.analyze_stock(stock_code, market_type)
+                    
+                    # 检查是否有错误
+                    if isinstance(report, dict) and 'error' in report:
+                        error_count += 1
+                        logger.warning(f"[扫描错误]  {stock_code}: {report['error']}")
+                        continue
+                    
+                    # 检查评分是否达到最低要求
                     if report['score'] >= min_score:
                         logger.info(f" {stock_code} 评分 {report['score']} >= {min_score}，添加到推荐列表")
-                        recommendations.append(report)
+                        recommended_stocks.append(report)
                     else:
                         logger.debug(f" {stock_code} 评分 {report['score']} < {min_score}，不添加到推荐列表")
                 except Exception as e:
-                    logger.error(f"分析 {stock_code} 时出错: {str(e)}")
+                    error_count += 1
+                    error_msg = f"分析 {stock_code} 时出错: {str(e)}"
+                    logger.error(f"[扫描异常] {error_msg}")
                     logger.exception(e)
-                    continue
                     
-            # 按得分排序
-            recommendations.sort(key=lambda x: x['score'], reverse=True)
-            logger.info(f"扫描完成，找到 {len(recommendations)} 个推荐股票")
-            return recommendations
+                    # 添加错误信息到推荐列表，确保前端能看到错误
+                    error_response = {
+                        'stock_code': stock_code, 
+                        'error': error_msg,
+                        'status': 'error',
+                        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                    recommended_stocks.append(error_response)
+                    continue
+            
+            logger.info(f"扫描完成，共 {stock_count} 只，{error_count} 只出错，{len(recommended_stocks)} 只推荐")
+            return recommended_stocks
         else:
-            # 流式处理每个股票
-            logger.info(f"开始流式扫描 {len(stock_list)} 只股票")
+            # 流式模式
             stock_count = 0
-            for stock_code in stock_list:
+            error_count = 0
+            
+            for stock_code in stock_codes:
                 stock_count += 1
-                logger.debug(f"流式分析 {stock_code} ({stock_count}/{len(stock_list)})")
+                logger.info(f"流式扫描进度: {stock_count}/{len(stock_codes)}, 当前: {stock_code}")
+                
                 try:
-                    # 分析单只股票并获取流式结果
                     chunk_count = 0
                     for chunk in self.analyze_stock(stock_code, market_type, stream=True):
                         chunk_count += 1
+                        # 检查是否有错误信息
+                        try:
+                            chunk_data = json.loads(chunk)
+                            if 'error' in chunk_data:
+                                error_count += 1
+                                logger.warning(f"[流式扫描错误]  {stock_code}: {chunk_data['error']}")
+                        except:
+                            pass
                         yield chunk
                     logger.debug(f" {stock_code} 流式分析完成，共 {chunk_count} 个块")
                 except Exception as e:
+                    error_count += 1
                     error_msg = f"分析 {stock_code} 时出错: {str(e)}"
-                    logger.error(error_msg)
+                    logger.error(f"[流式扫描异常] {error_msg}")
                     logger.exception(e)
-                    error_json = json.dumps({'stock_code': stock_code, 'error': error_msg})
+                    
+                    # 格式化错误响应
+                    error_response = {
+                        'stock_code': stock_code, 
+                        'error': error_msg,
+                        'status': 'error',
+                        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                    error_json = json.dumps(error_response)
                     logger.info(f"流式错误输出: {error_json}")
                     yield error_json
-            logger.info(f"流式扫描完成，处理了 {stock_count} 只股票")
+            
+            logger.info(f"流式扫描完成，共处理 {stock_count} ，{error_count} 只出错")

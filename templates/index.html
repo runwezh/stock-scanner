@@ -724,14 +724,56 @@
             if (chunk.error) {
                 // 添加或更新显示错误的卡片
                 let errorCard = document.getElementById(`error-${stockCode}`);
+                
+                // 处理错误信息，提取关键部分
+                let errorMessage = chunk.error;
+                
+                // 移除多余的错误前缀
+                errorMessage = errorMessage.replace(/获取股票数据失败: /g, '');
+                
+                // 格式化错误信息
+                let formattedError = errorMessage;
+                
+                // 针对特定类型的错误提供更友好的提示
+                if (errorMessage.includes('无效的A股股票代码格式')) {
+                    formattedError = `<strong>股票代码格式错误</strong>: ${stockCode} 不是有效的A股代码<br>
+                                     <small>A股代码应以0、3、6、688或8开头</small>`;
+                } else if (errorMessage.includes('股票代码格式错误')) {
+                    formattedError = `<strong>股票代码格式错误</strong>: ${errorMessage.split(':')[1] || errorMessage}`;
+                } else if (errorMessage.includes('数据为空')) {
+                    formattedError = `<strong>数据获取失败</strong>: 未找到股票 ${stockCode} 的交易数据`;
+                }
+                
                 if (!errorCard) {
                     errorCard = document.createElement('div');
                     errorCard.id = `error-${stockCode}`;
-                    errorCard.className = 'bg-red-50 p-4 rounded-lg text-red-600';
-                    errorCard.innerHTML = `分析 ${stockCode} 出错: ${chunk.error}`;
+                    errorCard.className = 'bg-red-50 p-4 rounded-lg text-red-600 mb-4 flex items-start';
+                    
+                    // 添加警告图标
+                    errorCard.innerHTML = `
+                        <div class="mr-3 flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">股票 ${stockCode} 分析失败</p>
+                            <p class="mt-1 text-sm">${formattedError}</p>
+                        </div>
+                    `;
                     container.appendChild(errorCard);
                 } else {
-                    errorCard.innerHTML = `分析 ${stockCode} 出错: ${chunk.error}`;
+                    errorCard.innerHTML = `
+                        <div class="mr-3 flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">股票 ${stockCode} 分析失败</p>
+                            <p class="mt-1 text-sm">${formattedError}</p>
+                        </div>
+                    `;
                 }
                 return;
             }
