@@ -227,22 +227,37 @@ function handleStreamInit(data: StreamInitMessage) {
 
 // 处理流式更新消息
 function handleStreamUpdate(data: StreamAnalysisUpdate) {
-  const stockIndex = analyzedStocks.value.findIndex(s => s.code === data.stock_code);
+  const stockIndex = analyzedStocks.value.findIndex((s: StockInfo) => s.code === data.stock_code);
   
   if (stockIndex >= 0) {
     const stock = { ...analyzedStocks.value[stockIndex] };
     
     // 更新分析状态
-    stock.analysisStatus = data.status;
+    if (data.status) {
+      stock.analysisStatus = data.status;
+    }
     
     // 如果有分析结果，则更新
     if (data.analysis !== undefined) {
       stock.analysis = data.analysis;
     }
     
+    // 处理AI分析片段
+    if (data.ai_analysis_chunk !== undefined) {
+      // 如果之前没有分析内容，则初始化
+      if (!stock.analysis) {
+        stock.analysis = '';
+      }
+      // 追加新的分析片段
+      stock.analysis += data.ai_analysis_chunk;
+      // 确保分析状态为正在分析
+      stock.analysisStatus = 'analyzing';
+    }
+    
     // 如果有错误，则更新
     if (data.error !== undefined) {
       stock.error = data.error;
+      stock.analysisStatus = 'error';
     }
     
     // 更新股票名称、价格等信息
@@ -260,6 +275,41 @@ function handleStreamUpdate(data: StreamAnalysisUpdate) {
     
     if (data.market_value !== undefined) {
       stock.marketValue = data.market_value;
+    }
+    
+    // 添加新字段的处理
+    if (data.score !== undefined) {
+      stock.score = data.score;
+    }
+    
+    if (data.recommendation !== undefined) {
+      stock.recommendation = data.recommendation;
+    }
+    
+    if (data.price_change !== undefined) {
+      stock.price_change = data.price_change;
+    }
+    
+    if (data.rsi !== undefined) {
+      stock.rsi = data.rsi;
+    }
+    
+    // 添加技术指标字段的处理
+    if (data.ma_trend !== undefined) {
+      stock.ma_trend = data.ma_trend;
+    }
+    
+    if (data.macd_signal !== undefined) {
+      stock.macd_signal = data.macd_signal;
+    }
+    
+    if (data.volume_status !== undefined) {
+      stock.volume_status = data.volume_status;
+    }
+    
+    // 添加分析日期字段的处理
+    if (data.analysis_date !== undefined) {
+      stock.analysis_date = data.analysis_date;
     }
     
     // 更新数组中的股票信息
@@ -280,8 +330,8 @@ async function analyzeStocks() {
   // 解析股票代码
   const codes = stockCodes.value
     .split(/[,\s\n]+/)
-    .map(code => code.trim())
-    .filter(code => code);
+    .map((code: string) => code.trim())
+    .filter((code: string) => code);
   
   if (codes.length === 0) {
     message.warning('未找到有效的股票代码');
@@ -362,6 +412,14 @@ async function analyzeStocks() {
       processStreamData(buffer);
     }
     
+    // 将所有分析中的股票状态更新为已完成
+    analyzedStocks.value.forEach((stock, index) => {
+      if (stock.analysisStatus === 'analyzing') {
+        const updatedStock = { ...stock, analysisStatus: 'completed' };
+        analyzedStocks.value[index] = updatedStock;
+      }
+    });
+    
     message.success('分析完成');
   } catch (error: any) {
     message.error(`分析出错: ${error.message || '未知错误'}`);
@@ -381,9 +439,78 @@ async function copyAnalysisResults() {
   try {
     // 格式化分析结果
     const formattedResults = analyzedStocks.value
-      .filter(stock => stock.analysisStatus === 'completed')
-      .map(stock => {
-        return `【${stock.code} ${stock.name || ''}】\n${stock.analysis || '无分析结果'}\n`;
+      .filter((stock: StockInfo) => stock.analysisStatus === 'completed')
+      .map((stock: StockInfo) => {
+        let result = `【${stock.code} ${stock.name || ''}】\n`;
+        
+        // 添加分析日期
+        if (stock.analysis_date) {
+          try {
+            const date = new Date(stock.analysis_date);
+            if (!isNaN(date.getTime())) {
+              result += `分析日期: ${date.toISOString().split('T')[0]}\n`;
+            } else {
+              result += `分析日期: ${stock.analysis_date}\n`;
+            }
+          } catch (e) {
+            result += `分析日期: ${stock.analysis_date}\n`;
+          }
+        }
+        
+        // 添加评分和推荐信息
+        if (stock.score !== undefined) {
+          result += `评分: ${stock.score}\n`;
+        }
+        
+        if (stock.recommendation) {
+          result += `推荐: ${stock.recommendation}\n`;
+        }
+        
+        // 添加技术指标信息
+        if (stock.rsi !== undefined) {
+          result += `RSI: ${stock.rsi.toFixed(2)}\n`;
+        }
+        
+        if (stock.price_change !== undefined) {
+          const sign = stock.price_change > 0 ? '+' : '';
+          result += `价格变动: ${sign}${stock.price_change.toFixed(2)}\n`;
+        }
+        
+        if (stock.ma_trend) {
+          const trendMap: Record<string, string> = {
+            'UP': '上升',
+            'DOWN': '下降',
+            'NEUTRAL': '平稳'
+          };
+          const trend = trendMap[stock.ma_trend] || stock.ma_trend;
+          result += `均线趋势: ${trend}\n`;
+        }
+        
+        if (stock.macd_signal) {
+          const signalMap: Record<string, string> = {
+            'BUY': '买入',
+            'SELL': '卖出',
+            'HOLD': '持有',
+            'NEUTRAL': '中性'
+          };
+          const signal = signalMap[stock.macd_signal] || stock.macd_signal;
+          result += `MACD信号: ${signal}\n`;
+        }
+        
+        if (stock.volume_status) {
+          const statusMap: Record<string, string> = {
+            'HIGH': '放量',
+            'LOW': '缩量',
+            'NORMAL': '正常'
+          };
+          const status = statusMap[stock.volume_status] || stock.volume_status;
+          result += `成交量: ${status}\n`;
+        }
+        
+        // 添加分析结果
+        result += `\n${stock.analysis || '无分析结果'}\n`;
+        
+        return result;
       })
       .join('\n');
     

@@ -17,6 +17,14 @@ export interface StockInfo {
   analysis?: string;
   analysisStatus: 'waiting' | 'analyzing' | 'completed' | 'error';
   error?: string;
+  score?: number;
+  recommendation?: string;
+  price_change?: number;
+  rsi?: number;
+  ma_trend?: string;
+  macd_signal?: string;
+  volume_status?: string;
+  analysis_date?: string;
 }
 
 export interface SearchResult {
@@ -77,4 +85,13 @@ export interface StreamAnalysisUpdate {
   price?: number;
   change_percent?: number;
   market_value?: number;
+  score?: number;
+  recommendation?: string;
+  price_change?: number;
+  rsi?: number;
+  ma_trend?: string;
+  macd_signal?: string;
+  volume_status?: string;
+  analysis_date?: string;
+  ai_analysis_chunk?: string;
 }

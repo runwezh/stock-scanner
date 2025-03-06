@@ -502,7 +502,8 @@ class StockAnalyzer:
                         try:
                             json_data = json.loads(data_content)
                             
-                            if 'choices' in json_data:
+                            # 检查 choices 列表是否为空
+                            if 'choices' in json_data and json_data['choices']:
                                 delta = json_data['choices'][0].get('delta', {})
                                 content = delta.get('content', '')
                                 
