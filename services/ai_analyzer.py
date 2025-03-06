@@ -54,14 +54,19 @@ class AIAnalyzer:
         """
         try:
             logger.info(f"开始AI分析 {stock_code}, 流式模式: {stream}")
+            
+            # AI 分析内容
+            # 最近14天的股票数据记录
             recent_data = df.tail(14).to_dict('records')
             
+            # 包含trend, volatility, volume_trend, rsi_level的字典
             technical_summary = {
                 'trend': 'upward' if df.iloc[-1]['MA5'] > df.iloc[-1]['MA20'] else 'downward',
                 'volatility': f"{df.iloc[-1]['Volatility']:.2f}%",
                 'volume_trend': 'increasing' if df.iloc[-1]['Volume_Ratio'] > 1 else 'decreasing',
                 'rsi_level': df.iloc[-1]['RSI']
             }
+            print(recent_data, technical_summary)
             
             # 根据市场类型调整分析提示
             if market_type in ['ETF', 'LOF']:
@@ -210,7 +215,7 @@ class AIAnalyzer:
                         
                         # 尝试从整个内容中提取JSON
                         full_content = "".join(collected_messages)
-                        
+                        print(f"尝试从整个内容中提取JSON: {full_content}")
                         # 如果没有成功解析JSON，返回原始内容
                         if not full_content.strip().startswith("{"):
                             yield json.dumps({

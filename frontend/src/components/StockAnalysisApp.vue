@@ -162,7 +162,9 @@ const apiConfig = ref<ApiConfig>({
 const marketOptions = [
   { label: 'A股', value: 'A' },
   { label: '港股', value: 'HK' },
-  { label: '美股', value: 'US' }
+  { label: '美股', value: 'US' },
+  { label: 'ETF', value: 'ETF' },
+  { label: 'LOF', value: 'LOF' }
 ];
 
 // 更新API配置
