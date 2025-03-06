@@ -66,7 +66,6 @@ class AIAnalyzer:
                 'volume_trend': 'increasing' if df.iloc[-1]['Volume_Ratio'] > 1 else 'decreasing',
                 'rsi_level': df.iloc[-1]['RSI']
             }
-            print(recent_data, technical_summary)
             
             # 根据市场类型调整分析提示
             if market_type in ['ETF', 'LOF']:
@@ -197,7 +196,7 @@ class AIAnalyzer:
                                         if len(buffer) > 100:
                                             yield json.dumps({
                                                 "stock_code": stock_code,
-                                                "partial_content": buffer
+                                                "ai_analysis_chunk": buffer
                                             })
                                             collected_messages.append(buffer)
                                             buffer = ""
@@ -209,13 +208,13 @@ class AIAnalyzer:
                         if buffer:
                             yield json.dumps({
                                 "stock_code": stock_code,
-                                "partial_content": buffer
+                                "ai_analysis_chunk": buffer
                             })
                             collected_messages.append(buffer)
                         
                         # 尝试从整个内容中提取JSON
                         full_content = "".join(collected_messages)
-                        print(f"尝试从整个内容中提取JSON: {full_content}")
+                        
                         # 如果没有成功解析JSON，返回原始内容
                         if not full_content.strip().startswith("{"):
                             yield json.dumps({
