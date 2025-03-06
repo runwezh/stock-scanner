@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import asyncio
 import json
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any, AsyncGenerator
 from logger import get_logger
 from services.stock_data_provider import StockDataProvider
@@ -66,13 +67,64 @@ class StockAnalyzerService:
             score = self.scorer.calculate_score(df_with_indicators)
             recommendation = self.scorer.get_recommendation(score)
             
+            # 获取最新数据
+            latest_data = df_with_indicators.iloc[-1]
+            previous_data = df_with_indicators.iloc[-2] if len(df_with_indicators) > 1 else latest_data
+            
+            # 计算价格变化百分比
+            price_change = ((latest_data['Close'] - previous_data['Close']) / previous_data['Close']) * 100
+            
+            # 确定MA趋势
+            ma_short = latest_data.get('MA5', 0)
+            ma_medium = latest_data.get('MA20', 0)
+            ma_long = latest_data.get('MA60', 0)
+            
+            if ma_short > ma_medium > ma_long:
+                ma_trend = "UP"
+            elif ma_short < ma_medium < ma_long:
+                ma_trend = "DOWN"
+            else:
+                ma_trend = "FLAT"
+                
+            # 确定MACD信号
+            macd = latest_data.get('MACD', 0)
+            signal = latest_data.get('Signal', 0)
+            
+            if macd > signal:
+                macd_signal = "BUY"
+            elif macd < signal:
+                macd_signal = "SELL"
+            else:
+                macd_signal = "HOLD"
+                
+            # 确定成交量状态
+            volume = latest_data.get('Volume', 0)
+            volume_ma = latest_data.get('Volume_MA', 0)
+            
+            if volume > volume_ma * 1.5:
+                volume_status = "HIGH"
+            elif volume < volume_ma * 0.5:
+                volume_status = "LOW"
+            else:
+                volume_status = "NORMAL"
+                
+            # 当前分析日期
+            analysis_date = datetime.now().strftime('%Y-%m-%d')
+            
             # 生成基本分析结果
             basic_result = {
                 "stock_code": stock_code,
+                "market_type": market_type,
+                "analysis_date": analysis_date,
                 "score": score,
+                "price": latest_data['Close'],
+                "price_change": price_change,
+                "ma_trend": ma_trend,
+                "rsi": latest_data.get('RSI', 0),
+                "macd_signal": macd_signal,
+                "volume_status": volume_status,
                 "recommendation": recommendation,
-                "data_point_count": len(df),
-                "market_type": market_type
+                "ai_analysis": ""
             }
             
             # 输出基本分析结果
@@ -175,4 +227,4 @@ class StockAnalyzerService:
             error_msg = f"批量扫描股票时出错: {str(e)}"
             logger.error(error_msg)
             logger.exception(e)
-            yield json.dumps({"error": error_msg}) 
+            yield json.dumps({"error": error_msg})
