@@ -4,7 +4,7 @@
       <n-loading-bar-provider>
         <n-dialog-provider>
           <n-notification-provider>
-            <StockAnalysisApp />
+            <router-view />
           </n-notification-provider>
         </n-dialog-provider>
       </n-loading-bar-provider>
@@ -21,7 +21,6 @@ import {
   NDialogProvider, 
   NNotificationProvider, 
 } from 'naive-ui'
-import StockAnalysisApp from './components/StockAnalysisApp.vue'
 
 // 主题设置 (默认使用亮色主题)
 const theme = ref<any>(null) // 可以切换为 darkTheme 以启用暗色模式

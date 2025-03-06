@@ -68,7 +68,7 @@ const searchKeyword = ref('');
 const results = ref<SearchResult[]>([]);
 const loading = ref(false);
 const showResults = ref(false);
-const searchInputRef = ref<HTMLElement | null>(null);
+const searchInputRef = ref<any>(null);
 
 // 创建防抖搜索函数
 const debouncedSearch = debounce(async (keyword: string) => {
@@ -83,7 +83,9 @@ const debouncedSearch = debounce(async (keyword: string) => {
   try {
     if (props.marketType === 'US') {
       // 美股搜索
-      results.value = await apiService.searchUsStocks(keyword);
+      const searchResults = await apiService.searchUsStocks(keyword);
+      // 限制只显示前10个结果
+      results.value = searchResults.slice(0, 10);
     } else {
       // 其他市场搜索 (后端需要实现对应的接口)
       results.value = [];
@@ -128,7 +130,7 @@ function formatMarketValue(value: number): string {
 function handleClickOutside(event: MouseEvent) {
   if (
     searchInputRef.value &&
-    !searchInputRef.value.contains(event.target as Node)
+    !searchInputRef.value.$el.contains(event.target as Node)
   ) {
     showResults.value = false;
   }

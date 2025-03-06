@@ -1,17 +1,57 @@
 <template>
   <n-card class="stock-card" :bordered="false" :class="{ 'is-analyzing': isAnalyzing }">
     <div class="card-header">
-      <div class="stock-info">
-        <div class="stock-code">{{ stock.code }}</div>
-      </div>
-      <div class="stock-price-info" v-if="stock.price !== undefined">
-        <div class="stock-price">当前价格: {{ stock.price.toFixed(2) }}</div>
-        <div class="stock-change" :class="{ 
-          'up': calculatedChangePercent && calculatedChangePercent > 0,
-          'down': calculatedChangePercent && calculatedChangePercent < 0
-        }">
-          涨跌幅: {{ formatChangePercent(calculatedChangePercent) }}
+      <div class="header-main">
+        <div class="header-left">
+          <div class="stock-info">
+            <div class="stock-code">{{ stock.code }}</div>
+            <div class="stock-name" v-if="stock.name">{{ stock.name }}</div>
+          </div>
+          <div class="stock-price-info" v-if="stock.price !== undefined">
+            <div class="stock-price">
+              <span class="label">当前价格:</span>
+              <span class="value">{{ stock.price.toFixed(2) }}</span>
+            </div>
+            <div class="stock-change" :class="{ 
+              'up': calculatedChangePercent && calculatedChangePercent > 0,
+              'down': calculatedChangePercent && calculatedChangePercent < 0
+            }">
+              <span class="label">涨跌幅:</span>
+              <span class="value">{{ formatChangePercent(calculatedChangePercent) }}</span>
+            </div>
+          </div>
         </div>
+        <div class="header-right">
+          <n-button 
+            size="small" 
+            v-if="stock.analysisStatus === 'completed'"
+            @click="copyStockAnalysis"
+            class="copy-button"
+            type="primary"
+            secondary
+            round
+          >
+            <template #icon>
+              <n-icon><CopyOutline /></n-icon>
+            </template>
+            复制结果
+          </n-button>
+        </div>
+      </div>
+      <div class="analysis-status" v-if="stock.analysisStatus !== 'completed'">
+        <n-tag 
+          :type="getStatusType" 
+          size="small" 
+          round
+          :bordered="false"
+        >
+          <template #icon>
+            <n-icon>
+              <component :is="getStatusIcon" />
+            </n-icon>
+          </template>
+          {{ getStatusText }}
+        </n-tag>
       </div>
     </div>
     
@@ -49,7 +89,7 @@
             'up': stock.price_change > 0,
             'down': stock.price_change < 0
           }">{{ formatPriceChange(stock.price_change) }}</div>
-          <div class="indicator-label">价格变动</div>
+          <div class="indicator-label">涨跌额</div>
         </div>
         
         <div class="indicator-item" v-if="stock.ma_trend">
@@ -78,26 +118,15 @@
     <n-divider />
     
     <div class="card-content">
-      <template v-if="stock.analysisStatus === 'waiting'">
-        <div class="waiting-status">
-          <n-spin size="small" />
-          <span>等待分析...</span>
+      <template v-if="stock.analysisStatus === 'error'">
+        <div class="error-status">
+          <n-icon :component="AlertCircleIcon" class="error-icon" />
+          <span>{{ stock.error || '未知错误' }}</span>
         </div>
       </template>
       
       <template v-else-if="stock.analysisStatus === 'analyzing'">
-        <div class="analyzing-status">
-          <n-spin size="small" />
-          <span>正在分析...</span>
-        </div>
         <div class="analysis-result analysis-streaming" v-if="parsedAnalysis" v-html="parsedAnalysis" :key="analysisContentKey"></div>
-      </template>
-      
-      <template v-else-if="stock.analysisStatus === 'error'">
-        <div class="error-status">
-          <n-icon :component="AlertCircleIcon" class="error-icon" />
-          <span>分析出错: {{ stock.error || '未知错误' }}</span>
-        </div>
       </template>
       
       <template v-else-if="stock.analysisStatus === 'completed'">
@@ -110,10 +139,13 @@
 
 <script setup lang="ts">
 import { computed, watch, ref } from 'vue';
-import { NCard, NDivider, NSpin, NIcon, NTag } from 'naive-ui';
+import { NCard, NDivider, NSpin, NIcon, NTag, NButton, useMessage } from 'naive-ui';
 import { 
   AlertCircleOutline as AlertCircleIcon,
-  CalendarOutline
+  CalendarOutline,
+  CopyOutline,
+  HourglassOutline,
+  ReloadOutline
 } from '@vicons/ionicons5';
 import { parseMarkdown, formatMarketValue as formatMarketValueFn } from '@/utils';
 import type { StockInfo } from '@/types';
@@ -214,22 +246,24 @@ function formatChangePercent(percent: number | undefined): string {
   return `${sign}${percent.toFixed(2)}%`;
 }
 
-function formatPriceChange(change: number): string {
+function formatPriceChange(change: number | undefined | null): string {
+  if (change === undefined || change === null) return '--';
   const sign = change > 0 ? '+' : '';
   return `${sign}${change.toFixed(2)}`;
 }
 
-function formatMarketValue(value: number): string {
+function formatMarketValue(value: number | undefined | null): string {
+  if (value === undefined || value === null) return '--';
   return formatMarketValueFn(value);
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return '--';
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) {
       return dateStr;
     }
-    
     return date.toISOString().split('T')[0];
   } catch (e) {
     return dateStr;
@@ -308,6 +342,105 @@ function getChineseVolumeStatus(status: string): string {
   
   return statusMap[status] || status;
 }
+
+const message = useMessage();
+
+// 添加复制功能
+async function copyStockAnalysis() {
+  if (!props.stock.analysis) {
+    message.warning('暂无分析结果可复制');
+    return;
+  }
+
+  try {
+    let result = `【${props.stock.code} ${props.stock.name || ''}】\n`;
+    
+    // 添加分析日期
+    if (props.stock.analysis_date) {
+      result += `分析日期: ${formatDate(props.stock.analysis_date)}\n`;
+    }
+    
+    // 添加评分和推荐信息
+    if (props.stock.score !== undefined) {
+      result += `评分: ${props.stock.score}\n`;
+    }
+    
+    if (props.stock.recommendation) {
+      result += `推荐: ${props.stock.recommendation}\n`;
+    }
+    
+    // 添加技术指标信息
+    if (props.stock.rsi !== undefined) {
+      result += `RSI: ${props.stock.rsi.toFixed(2)}\n`;
+    }
+    
+    if (props.stock.price_change !== undefined) {
+      const sign = props.stock.price_change > 0 ? '+' : '';
+      result += `涨跌额: ${sign}${props.stock.price_change.toFixed(2)}\n`;
+    }
+    
+    if (props.stock.ma_trend) {
+      result += `均线趋势: ${getChineseTrend(props.stock.ma_trend)}\n`;
+    }
+    
+    if (props.stock.macd_signal) {
+      result += `MACD信号: ${getChineseSignal(props.stock.macd_signal)}\n`;
+    }
+    
+    if (props.stock.volume_status) {
+      result += `成交量: ${getChineseVolumeStatus(props.stock.volume_status)}\n`;
+    }
+    
+    // 添加分析结果
+    result += `\n${props.stock.analysis}\n`;
+    
+    await navigator.clipboard.writeText(result);
+    message.success('已复制分析结果到剪贴板');
+  } catch (error) {
+    message.error('复制失败，请手动复制');
+    console.error('复制分析结果时出错:', error);
+  }
+}
+
+// 添加状态相关的计算属性
+const getStatusType = computed(() => {
+  switch (props.stock.analysisStatus) {
+    case 'waiting':
+      return 'default';
+    case 'analyzing':
+      return 'info';
+    case 'error':
+      return 'error';
+    default:
+      return 'default';
+  }
+});
+
+const getStatusIcon = computed(() => {
+  switch (props.stock.analysisStatus) {
+    case 'waiting':
+      return HourglassOutline;
+    case 'analyzing':
+      return ReloadOutline;
+    case 'error':
+      return AlertCircleIcon;
+    default:
+      return HourglassOutline;
+  }
+});
+
+const getStatusText = computed(() => {
+  switch (props.stock.analysisStatus) {
+    case 'waiting':
+      return '等待分析';
+    case 'analyzing':
+      return '正在分析';
+    case 'error':
+      return '分析出错';
+    default:
+      return '';
+  }
+});
 </script>
 
 <style scoped>
@@ -325,41 +458,166 @@ function getChineseVolumeStatus(status: string): string {
 
 .card-header {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 8px 8px;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+  position: relative;
+  background: linear-gradient(to bottom, rgba(240, 240, 245, 0.3), transparent);
+  border-radius: 8px 8px 0 0;
+}
+
+.header-main {
+  display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 
 .stock-info {
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  min-width: 100px;
 }
 
 .stock-code {
-  font-size: 1.125rem;
-  font-weight: bold;
+  font-size: 1.35rem;
+  font-weight: 700;
   color: var(--n-text-color);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.stock-name {
+  font-size: 0.875rem;
+  color: var(--n-text-color-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  max-width: 150px;
 }
 
 .stock-price-info {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  gap: 6px;
+  padding-left: 8px;
+  border-left: 1px dashed rgba(0, 0, 0, 0.09);
 }
 
-.stock-price {
+.stock-price, .stock-change {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.stock-price .label,
+.stock-change .label {
+  font-size: 0.875rem;
+  color: var(--n-text-color-3);
+}
+
+.stock-price .value {
   font-size: 1.125rem;
-  font-weight: bold;
+  font-weight: 600;
   color: var(--n-text-color);
 }
 
-.stock-change {
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
+.stock-change .value {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.up .value {
+  color: var(--n-error-color);
+  background-color: rgba(208, 48, 80, 0.08);
+}
+
+.down .value {
+  color: var(--n-success-color);
+  background-color: rgba(24, 160, 88, 0.08);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.copy-button {
+  transition: all 0.3s ease;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.copy-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.copy-button:active {
+  transform: translateY(0);
+}
+
+.analysis-status {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.analysis-status :deep(.n-tag) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.analysis-status :deep(.n-tag .n-icon) {
+  margin-right: 4px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.copy-button:active {
+  transform: translateY(0);
+}
+
+.analysis-status {
+  display: flex;
+  align-items: center;
+}
+
+.analysis-status :deep(.n-tag) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.analysis-status :deep(.n-tag .n-icon) {
+  margin-right: 4px;
+}
+
+.up .value {
+  color: var(--n-error-color);
+}
+
+.down .value {
+  color: var(--n-success-color);
 }
 
 .stock-summary {
@@ -509,15 +767,16 @@ function getChineseVolumeStatus(status: string): string {
   flex-direction: column;
 }
 
-.waiting-status,
-.analyzing-status,
 .error-status {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--n-text-color-3);
+  color: var(--n-error-color);
   font-size: 0.875rem;
-  margin-bottom: 0.75rem;
+  margin: 0.75rem 1rem;
+  padding: 0.5rem;
+  background-color: rgba(208, 48, 80, 0.1);
+  border-radius: 4px;
 }
 
 .error-icon {
@@ -536,6 +795,9 @@ function getChineseVolumeStatus(status: string): string {
   overflow-y: auto;
   word-break: break-word;
   hyphens: auto;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   
   /* 自定义滚动条样式 */
   scrollbar-width: thin; /* Firefox */
@@ -660,6 +922,8 @@ function getChineseVolumeStatus(status: string): string {
   overflow-x: auto;
   margin: 0.75rem 0;
   border-left: 3px solid #2080f0;
+  max-width: 100%;
+  white-space: pre-wrap; /* 允许代码块自动换行 */
 }
 
 .analysis-result :deep(pre code) {
@@ -684,20 +948,23 @@ function getChineseVolumeStatus(status: string): string {
   border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  table-layout: fixed; /* 固定表格布局 */
+  max-width: 100%;
+}
+
+.analysis-result :deep(th), .analysis-result :deep(td) {
+  padding: 0.6rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .analysis-result :deep(th) {
   background-color: rgba(32, 128, 240, 0.1);
   color: #2080f0;
   font-weight: 600;
-  padding: 0.6rem;
   text-align: left;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.analysis-result :deep(td) {
-  padding: 0.6rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .analysis-result :deep(tr:nth-child(even)) {
@@ -759,5 +1026,15 @@ function getChineseVolumeStatus(status: string): string {
 .analysis-result :deep(a:hover) {
   color: #36ad6a;
   border-bottom: 1px solid #36ad6a;
+}
+
+/* 优化图片样式 */
+.analysis-result :deep(img) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.75rem auto;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 </style>

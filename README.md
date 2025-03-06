@@ -19,9 +19,11 @@ docker run -d \
   -e API_URL=替换为你的api地址 \
   -e API_MODEL=替换为你的模型 \
   -e API_TIMEOUT=60 \
+  -e LOGIN_PASSWORD=替换为你的密码 \
   lanzhihong/stock-scanner:latest
 
 API_TIMEOUT=60   202503040712版本开始 (AI分析发生错误，查看日志是否有timed out类似错误，需要增加你的API超时时间)
+LOGIN_PASSWORD 为空时，表示不需要登录，否则需要经过登录接口验证
 
 注意⚠️： 环境变量名变更，更新版本后需要调整！！！
 

@@ -56,8 +56,11 @@ class FundServiceAsync:
                     'market_value': float(row['market_value']) if pd.notna(row['market_value']) else 0.0,
                     'total_value': float(row['total_value']) if pd.notna(row['total_value']) else 0.0,
                 })
+                # 限制只返回前10个结果
+                if len(formatted_results) >= 10:
+                    break
             
-            logger.info(f"基金搜索完成，找到 {len(formatted_results)} 个匹配项")
+            logger.info(f"基金搜索完成，找到 {len(formatted_results)} 个匹配项（限制显示前10个）")
             return formatted_results
             
         except Exception as e:

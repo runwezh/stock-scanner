@@ -1,15 +1,7 @@
 <template>
   <div class="app-container">
-    <!-- 公告栏 -->
-    <AnnouncementBanner v-if="announcement" :content="announcement" :auto-close-time="5" />
-    
     <n-layout class="main-layout">
       <n-layout-content class="main-content">
-        <n-page-header title="股票分析系统">
-          <template #avatar>
-            <n-icon :component="BarChartIcon" color="#2080f0" size="28" />
-          </template>
-        </n-page-header>
         
         <!-- 市场时间显示 -->
         <MarketTimeDisplay />
@@ -24,9 +16,6 @@
         
         <!-- 主要内容 -->
         <n-card class="analysis-container">
-          <template #header>
-            <div class="card-title">股票批量分析</div>
-          </template>
           
           <n-grid :cols="24" :x-gap="16" :y-gap="16">
             <!-- 左侧配置区域 -->
@@ -152,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, h } from 'vue';
 import { 
   NLayout, 
   NLayoutContent, 
@@ -167,6 +156,7 @@ import {
   NButton,
   NEmpty,
   useMessage,
+  useNotification,
   NSpace,
   NText,
   NDataTable,
@@ -177,10 +167,10 @@ import { useClipboard } from '@vueuse/core'
 import { 
   BarChartOutline as BarChartIcon,
   DocumentTextOutline as DocumentTextIcon,
-  DownloadOutline as DownloadIcon
+  DownloadOutline as DownloadIcon,
+  NotificationsOutline as NotificationsIcon
 } from '@vicons/ionicons5';
 
-import AnnouncementBanner from './AnnouncementBanner.vue';
 import MarketTimeDisplay from './MarketTimeDisplay.vue';
 import ApiConfigPanel from './ApiConfigPanel.vue';
 import StockSearch from './StockSearch.vue';
@@ -189,14 +179,16 @@ import StockCard from './StockCard.vue';
 import { apiService } from '@/services/api';
 import type { StockInfo, ApiConfig, StreamInitMessage, StreamAnalysisUpdate } from '@/types';
 import { loadApiConfig } from '@/utils';
+import { validateMultipleStockCodes, MarketType } from '@/utils/stockValidator';
 
-// 使用Naive UI的消息组件
+// 使用Naive UI的组件API
 const message = useMessage();
+const notification = useNotification();
 const { copy } = useClipboard();
 
 // 从环境变量获取的默认配置
 const defaultApiUrl = ref('');
-const defaultApiModel = ref('gpt-3.5-turbo');
+const defaultApiModel = ref('');
 const defaultApiTimeout = ref('60');
 const announcement = ref('');
 
@@ -211,10 +203,26 @@ const displayMode = ref<'card' | 'table'>('card');
 const apiConfig = ref<ApiConfig>({
   apiUrl: '',
   apiKey: '',
-  apiModel: 'gpt-3.5-turbo',
+  apiModel: '',
   apiTimeout: '60',
   saveApiConfig: false
 });
+
+// 显示系统公告
+const showAnnouncement = (content: string) => {
+  if (!content) return;
+  
+  notification.info({
+    title: '系统公告',
+    content: () => h('div', { style: 'display: flex; align-items: center;' }, [
+      h(NIcon, { component: NotificationsIcon, style: 'margin-right: 8px; font-size: 18px;' }),
+      h('span', null, content)
+    ]),
+    duration: 0, // 设置为0表示不会自动关闭
+    keepAliveOnHover: true,
+    closable: true
+  });
+};
 
 // 市场选项
 const marketOptions = [
@@ -256,11 +264,32 @@ const stockTableColumns = ref<DataTableColumns<StockInfo>>([
     }
   },
   {
+    title: '涨跌额',
+    key: 'price_change',
+    width: 100,
+    render(row: StockInfo) {
+      if (row.price_change === undefined) return '--';
+      const sign = row.price_change > 0 ? '+' : '';
+      return `${sign}${row.price_change.toFixed(2)}`;
+    }
+  },
+  {
     title: '涨跌幅',
     key: 'changePercent',
     width: 100,
     render(row: StockInfo) {
-      if (row.changePercent === undefined) return '--';
+      if (row.changePercent === undefined) {
+        // 如果没有changePercent但有price_change和price，尝试计算
+        if (row.price_change !== undefined && row.price !== undefined) {
+          const basePrice = row.price - row.price_change;
+          if (basePrice !== 0) {
+            const calculatedPercent = (row.price_change / basePrice) * 100;
+            const sign = calculatedPercent > 0 ? '+' : '';
+            return `${sign}${calculatedPercent.toFixed(2)}%`;
+          }
+        }
+        return '--';
+      }
       const sign = row.changePercent > 0 ? '+' : '';
       return `${sign}${row.changePercent.toFixed(2)}%`;
     }
@@ -335,7 +364,9 @@ const stockTableColumns = ref<DataTableColumns<StockInfo>>([
     key: 'analysis',
     ellipsis: {
       tooltip: true
-    }
+    },
+    width: 300,
+    className: 'analysis-cell'
   }
 ]);
 
@@ -393,14 +424,14 @@ function processStreamData(text: string) {
       message.success(`分析完成，共扫描 ${data.total_scanned} 只股票，符合条件 ${data.total_matched} 只`);
       
       // 将所有分析中的股票状态更新为已完成
-      analyzedStocks.value.forEach((stock, index) => {
+      analyzedStocks.value = analyzedStocks.value.map(stock => {
         if (stock.analysisStatus === 'analyzing') {
-          const updatedStock = { 
+          return { 
             ...stock, 
             analysisStatus: 'completed' as const 
           };
-          analyzedStocks.value[index] = updatedStock;
         }
+        return stock;
       });
       
       isAnalyzing.value = false;
@@ -438,6 +469,23 @@ function handleStreamUpdate(data: StreamAnalysisUpdate) {
   if (stockIndex >= 0) {
     const stock = { ...analyzedStocks.value[stockIndex] };
     
+    // 确保所有数值类型的字段都有默认值
+    stock.price = data.price ?? stock.price ?? undefined;
+    stock.price_change = data.price_change ?? stock.price_change ?? undefined;
+    // 使用change_percent作为涨跌幅
+    stock.changePercent = data.change_percent ?? stock.changePercent ?? undefined;
+    stock.marketValue = data.market_value ?? stock.marketValue ?? undefined;
+    stock.score = data.score ?? stock.score ?? undefined;
+    stock.rsi = data.rsi ?? stock.rsi ?? undefined;
+
+    // 如果没有change_percent但有price_change和price，尝试计算changePercent
+    if (stock.changePercent === undefined && stock.price_change !== undefined && stock.price !== undefined) {
+      const basePrice = stock.price - stock.price_change;
+      if (basePrice !== 0) {
+        stock.changePercent = (stock.price_change / basePrice) * 100;
+      }
+    }
+    
     // 更新分析状态
     if (data.status) {
       stock.analysisStatus = data.status;
@@ -450,13 +498,7 @@ function handleStreamUpdate(data: StreamAnalysisUpdate) {
     
     // 处理AI分析片段
     if (data.ai_analysis_chunk !== undefined) {
-      // 如果之前没有分析内容，则初始化
-      if (!stock.analysis) {
-        stock.analysis = '';
-      }
-      // 追加新的分析片段
-      stock.analysis += data.ai_analysis_chunk;
-      // 确保分析状态为正在分析
+      stock.analysis = (stock.analysis || '') + data.ai_analysis_chunk;
       stock.analysisStatus = 'analyzing';
     }
     
@@ -466,41 +508,15 @@ function handleStreamUpdate(data: StreamAnalysisUpdate) {
       stock.analysisStatus = 'error';
     }
     
-    // 更新股票名称、价格等信息
+    // 更新其他字段
     if (data.name !== undefined) {
       stock.name = data.name;
-    }
-    
-    if (data.price !== undefined) {
-      stock.price = data.price;
-    }
-    
-    if (data.change_percent !== undefined) {
-      stock.changePercent = data.change_percent;
-    }
-    
-    if (data.market_value !== undefined) {
-      stock.marketValue = data.market_value;
-    }
-    
-    // 添加新字段的处理
-    if (data.score !== undefined) {
-      stock.score = data.score;
     }
     
     if (data.recommendation !== undefined) {
       stock.recommendation = data.recommendation;
     }
     
-    if (data.price_change !== undefined) {
-      stock.price_change = data.price_change;
-    }
-    
-    if (data.rsi !== undefined) {
-      stock.rsi = data.rsi;
-    }
-    
-    // 添加技术指标字段的处理
     if (data.ma_trend !== undefined) {
       stock.ma_trend = data.ma_trend;
     }
@@ -513,12 +529,11 @@ function handleStreamUpdate(data: StreamAnalysisUpdate) {
       stock.volume_status = data.volume_status;
     }
     
-    // 添加分析日期字段的处理
     if (data.analysis_date !== undefined) {
       stock.analysis_date = data.analysis_date;
     }
     
-    // 更新数组中的股票信息
+    // 使用Vue的响应式API更新数组
     analyzedStocks.value[stockIndex] = stock;
   }
 }
@@ -530,9 +545,6 @@ async function analyzeStocks() {
     return;
   }
   
-  isAnalyzing.value = true;
-  analyzedStocks.value = [];
-  
   // 解析股票代码
   const codes = stockCodes.value
     .split(/[,\s\n]+/)
@@ -541,14 +553,38 @@ async function analyzeStocks() {
   
   if (codes.length === 0) {
     message.warning('未找到有效的股票代码');
-    isAnalyzing.value = false;
     return;
   }
+  
+  // 去除重复的股票代码
+  const uniqueCodes = Array.from(new Set(codes));
+  
+  // 检查是否有重复代码被移除
+  if (uniqueCodes.length < codes.length) {
+    message.info(`已自动去除${codes.length - uniqueCodes.length}个重复的股票代码`);
+  }
+  
+  // 在前端验证股票代码
+  const marketTypeEnum = marketType.value as keyof typeof MarketType;
+  const invalidCodes = validateMultipleStockCodes(
+    uniqueCodes, 
+    MarketType[marketTypeEnum]
+  );
+  
+  // 如果有无效代码，显示错误信息并返回
+  if (invalidCodes.length > 0) {
+    const errorMessages = invalidCodes.map(item => item.errorMessage).join('\n');
+    message.error(`股票代码验证失败:${errorMessages}`);
+    return;
+  }
+  
+  isAnalyzing.value = true;
+  analyzedStocks.value = [];
   
   try {
     // 构建请求参数
     const requestData = {
-      stock_codes: codes,
+      stock_codes: uniqueCodes,
       market_type: marketType.value
     } as any;
     
@@ -579,7 +615,10 @@ async function analyzeStocks() {
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`);
+      if (response.status === 404) {
+        throw new Error('服务器接口未找到，请检查服务是否正常运行');
+      }
+      throw new Error(`服务器响应错误: ${response.status}`);
     }
     
     // 处理流式响应
@@ -608,22 +647,39 @@ async function analyzeStocks() {
       
       for (const line of lines) {
         if (line.trim()) {
-          processStreamData(line);
+          try {
+            processStreamData(line);
+          } catch (e: Error | unknown) {
+            console.error('处理数据流时出错:', e);
+            message.error(`处理数据时出错: ${e instanceof Error ? e.message : '未知错误'}`);
+          }
         }
       }
     }
     
     // 处理最后可能剩余的数据
     if (buffer.trim()) {
-      processStreamData(buffer);
+      try {
+        processStreamData(buffer);
+      } catch (e: Error | unknown) {
+        console.error('处理最后的数据块时出错:', e);
+        message.error(`处理数据时出错: ${e instanceof Error ? e.message : '未知错误'}`);
+      }
     }
-    
-    // 注意：不再需要在这里更新状态，因为已经在processStreamData中处理了scan_completed消息
     
     message.success('分析完成');
   } catch (error: any) {
-    message.error(`分析出错: ${error.message || '未知错误'}`);
+    let errorMessage = '分析出错: ';
+    if (error.message.includes('404')) {
+      errorMessage += '服务器接口未找到，请确保后端服务正常运行';
+    } else {
+      errorMessage += error.message || '未知错误';
+    }
+    message.error(errorMessage);
     console.error('分析股票时出错:', error);
+    
+    // 清空分析状态
+    analyzedStocks.value = [];
   } finally {
     isAnalyzing.value = false;
   }
@@ -673,7 +729,7 @@ async function copyAnalysisResults() {
         
         if (stock.price_change !== undefined) {
           const sign = stock.price_change > 0 ? '+' : '';
-          result += `价格变动: ${sign}${stock.price_change.toFixed(2)}\n`;
+          result += `涨跌额: ${sign}${stock.price_change.toFixed(2)}\n`;
         }
         
         if (stock.ma_trend) {
@@ -867,6 +923,8 @@ onMounted(async () => {
     
     if (config.announcement) {
       announcement.value = config.announcement;
+      // 使用通知显示公告
+      showAnnouncement(config.announcement);
     }
     
     // 初始化后恢复本地保存的配置
@@ -880,16 +938,24 @@ onMounted(async () => {
 <style scoped>
 .app-container {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .main-layout {
   background-color: #f6f6f6;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .main-content {
   max-width: 1200px;
   margin: 0 auto;
   padding: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .card-title {
@@ -922,8 +988,9 @@ onMounted(async () => {
 
 .n-data-table .analysis-cell {
   max-width: 300px;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-word;
 }
 </style>

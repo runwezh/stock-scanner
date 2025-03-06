@@ -60,6 +60,30 @@ class StockAnalyzerService:
             # 获取股票数据
             df = await self.data_provider.get_stock_data(stock_code, market_type)
             
+            # 检查是否有错误
+            if hasattr(df, 'error'):
+                error_msg = df.error
+                logger.error(f"获取股票数据时出错: {error_msg}")
+                yield json.dumps({
+                    "stock_code": stock_code,
+                    "market_type": market_type,
+                    "error": error_msg,
+                    "status": "error"
+                })
+                return
+            
+            # 检查数据是否为空
+            if df.empty:
+                error_msg = f"获取到的股票 {stock_code} 数据为空"
+                logger.error(error_msg)
+                yield json.dumps({
+                    "stock_code": stock_code,
+                    "market_type": market_type,
+                    "error": error_msg,
+                    "status": "error"
+                })
+                return
+            
             # 计算技术指标
             df_with_indicators = self.indicator.calculate_indicators(df)
             

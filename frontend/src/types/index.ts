@@ -7,6 +7,18 @@ export interface ApiConfig {
   saveApiConfig: boolean;
 }
 
+// 登录相关类型
+export interface LoginRequest {
+  password: string;
+}
+
+export interface LoginResponse {
+  access_token?: string;
+  token_type?: string;
+  success?: boolean;
+  message?: string;
+}
+
 export interface StockInfo {
   code: string;
   name: string;
