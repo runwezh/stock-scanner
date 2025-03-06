@@ -10,11 +10,14 @@ scipy==1.15.1
 akshare==1.16.22
 tqdm==4.67.1
 
+# Web框架与异步处理
+fastapi==0.115.11
+uvicorn[standard]==0.34.0
+pydantic==2.10.6
+httpx==0.28.1
 
-# 网络和API请求
-requests==2.32.3
+# 环境配置
 python-dotenv==1.0.1
-flask==3.1.0
 
 # 日志和系统工具
 loguru==0.7.2
