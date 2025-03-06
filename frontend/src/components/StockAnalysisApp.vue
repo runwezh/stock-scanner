@@ -76,6 +76,45 @@
             <!-- 右侧结果区域 -->
             <n-grid-item :span="24" :lg-span="16">
               <div class="results-section">
+                <div class="results-header">
+                  <n-space align="center" justify="space-between">
+                    <n-text>分析结果 ({{ analyzedStocks.length }})</n-text>
+                    <n-space>
+                      <n-select 
+                        v-model:value="displayMode" 
+                        size="small" 
+                        style="width: 120px"
+                        :options="[
+                          { label: '卡片视图', value: 'card' },
+                          { label: '表格视图', value: 'table' }
+                        ]"
+                      />
+                      <n-button 
+                        size="small" 
+                        :disabled="analyzedStocks.length === 0"
+                        @click="copyAnalysisResults"
+                      >
+                        复制结果
+                      </n-button>
+                      <n-dropdown 
+                        trigger="click" 
+                        :disabled="analyzedStocks.length === 0"
+                        :options="exportOptions"
+                        @select="handleExportSelect"
+                      >
+                        <n-button size="small" :disabled="analyzedStocks.length === 0">
+                          导出
+                          <template #icon>
+                            <n-icon>
+                              <DownloadIcon />
+                            </n-icon>
+                          </template>
+                        </n-button>
+                      </n-dropdown>
+                    </n-space>
+                  </n-space>
+                </div>
+                
                 <template v-if="analyzedStocks.length === 0 && !isAnalyzing">
                   <n-empty description="尚未分析股票" size="large">
                     <template #icon>
@@ -84,12 +123,24 @@
                   </n-empty>
                 </template>
                 
-                <template v-else>
+                <template v-else-if="displayMode === 'card'">
                   <n-grid :cols="1" :x-gap="16" :y-gap="16" :lg-cols="2">
                     <n-grid-item v-for="stock in analyzedStocks" :key="stock.code">
                       <StockCard :stock="stock" />
                     </n-grid-item>
                   </n-grid>
+                </template>
+                
+                <template v-else>
+                  <n-data-table
+                    :columns="stockTableColumns"
+                    :data="analyzedStocks"
+                    :pagination="{ pageSize: 10 }"
+                    :row-key="(row) => row.code"
+                    :bordered="false"
+                    :single-line="false"
+                    striped
+                  />
                 </template>
               </div>
             </n-grid-item>
@@ -101,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { 
   NLayout, 
   NLayoutContent, 
@@ -115,12 +166,18 @@ import {
   NInput, 
   NButton,
   NEmpty,
-  useMessage
+  useMessage,
+  NSpace,
+  NText,
+  NDataTable,
+  NDropdown,
+  type DataTableColumns
 } from 'naive-ui';
 import { useClipboard } from '@vueuse/core'
 import { 
-  BarChart as BarChartIcon,
-  DocumentText as DocumentTextIcon
+  BarChartOutline as BarChartIcon,
+  DocumentTextOutline as DocumentTextIcon,
+  DownloadOutline as DownloadIcon
 } from '@vicons/ionicons5';
 
 import AnnouncementBanner from './AnnouncementBanner.vue';
@@ -148,6 +205,7 @@ const marketType = ref('A');
 const stockCodes = ref('');
 const isAnalyzing = ref(false);
 const analyzedStocks = ref<StockInfo[]>([]);
+const displayMode = ref<'card' | 'table'>('card');
 
 // API配置
 const apiConfig = ref<ApiConfig>({
@@ -165,6 +223,136 @@ const marketOptions = [
   { label: '美股', value: 'US' },
   { label: 'ETF', value: 'ETF' },
   { label: 'LOF', value: 'LOF' }
+];
+
+// 表格列定义
+const stockTableColumns = ref<DataTableColumns<StockInfo>>([
+  {
+    title: '代码',
+    key: 'code',
+    width: 100,
+    fixed: 'left'
+  },
+  {
+    title: '状态',
+    key: 'analysisStatus',
+    width: 100,
+    render(row: StockInfo) {
+      const statusMap = {
+        'waiting': '等待分析',
+        'analyzing': '分析中',
+        'completed': '已完成',
+        'error': '出错'
+      };
+      return statusMap[row.analysisStatus] || row.analysisStatus;
+    }
+  },
+  {
+    title: '价格',
+    key: 'price',
+    width: 100,
+    render(row: StockInfo) {
+      return row.price !== undefined ? row.price.toFixed(2) : '--';
+    }
+  },
+  {
+    title: '涨跌幅',
+    key: 'changePercent',
+    width: 100,
+    render(row: StockInfo) {
+      if (row.changePercent === undefined) return '--';
+      const sign = row.changePercent > 0 ? '+' : '';
+      return `${sign}${row.changePercent.toFixed(2)}%`;
+    }
+  },
+  {
+    title: 'RSI',
+    key: 'rsi',
+    width: 80,
+    render(row: StockInfo) {
+      return row.rsi !== undefined ? row.rsi.toFixed(2) : '--';
+    }
+  },
+  {
+    title: '均线趋势',
+    key: 'ma_trend',
+    width: 100,
+    render(row: StockInfo) {
+      const trendMap: Record<string, string> = {
+        'UP': '上升',
+        'DOWN': '下降',
+        'NEUTRAL': '平稳'
+      };
+      return row.ma_trend ? trendMap[row.ma_trend] || row.ma_trend : '--';
+    }
+  },
+  {
+    title: 'MACD信号',
+    key: 'macd_signal',
+    width: 100,
+    render(row: StockInfo) {
+      const signalMap: Record<string, string> = {
+        'BUY': '买入',
+        'SELL': '卖出',
+        'HOLD': '持有',
+        'NEUTRAL': '中性'
+      };
+      return row.macd_signal ? signalMap[row.macd_signal] || row.macd_signal : '--';
+    }
+  },
+  {
+    title: '评分',
+    key: 'score',
+    width: 80,
+    render(row: StockInfo) {
+      return row.score !== undefined ? row.score : '--';
+    }
+  },
+  {
+    title: '推荐',
+    key: 'recommendation',
+    width: 100
+  },
+  {
+    title: '分析日期',
+    key: 'analysis_date',
+    width: 120,
+    render(row: StockInfo) {
+      if (!row.analysis_date) return '--';
+      try {
+        const date = new Date(row.analysis_date);
+        if (isNaN(date.getTime())) {
+          return row.analysis_date;
+        }
+        return date.toISOString().split('T')[0];
+      } catch (e) {
+        return row.analysis_date;
+      }
+    }
+  },
+  {
+    title: '分析结果',
+    key: 'analysis',
+    ellipsis: {
+      tooltip: true
+    }
+  }
+]);
+
+// 导出选项
+const exportOptions = [
+  {
+    label: '导出为CSV',
+    key: 'csv'
+  },
+  {
+    label: '导出为Excel',
+    key: 'excel'
+  },
+  {
+    label: '导出为PDF',
+    key: 'pdf'
+  }
 ];
 
 // 更新API配置
@@ -200,6 +388,22 @@ function processStreamData(text: string) {
     } else if (data.stock_code) {
       // 更新消息
       handleStreamUpdate(data as StreamAnalysisUpdate);
+    } else if (data.scan_completed) {
+      // 扫描完成消息
+      message.success(`分析完成，共扫描 ${data.total_scanned} 只股票，符合条件 ${data.total_matched} 只`);
+      
+      // 将所有分析中的股票状态更新为已完成
+      analyzedStocks.value.forEach((stock, index) => {
+        if (stock.analysisStatus === 'analyzing') {
+          const updatedStock = { 
+            ...stock, 
+            analysisStatus: 'completed' as const 
+          };
+          analyzedStocks.value[index] = updatedStock;
+        }
+      });
+      
+      isAnalyzing.value = false;
     }
   } catch (e) {
     console.error('解析流数据出错:', e);
@@ -414,13 +618,7 @@ async function analyzeStocks() {
       processStreamData(buffer);
     }
     
-    // 将所有分析中的股票状态更新为已完成
-    analyzedStocks.value.forEach((stock, index) => {
-      if (stock.analysisStatus === 'analyzing') {
-        const updatedStock = { ...stock, analysisStatus: 'completed' };
-        analyzedStocks.value[index] = updatedStock;
-      }
-    });
+    // 注意：不再需要在这里更新状态，因为已经在processStreamData中处理了scan_completed消息
     
     message.success('分析完成');
   } catch (error: any) {
@@ -547,6 +745,108 @@ function restoreLocalApiConfig() {
   }
 }
 
+// 处理导出选择
+function handleExportSelect(key: string) {
+  switch (key) {
+    case 'csv':
+      exportToCSV();
+      break;
+    case 'excel':
+      message.info('Excel导出功能即将推出');
+      break;
+    case 'pdf':
+      message.info('PDF导出功能即将推出');
+      break;
+  }
+}
+
+// 导出为CSV
+function exportToCSV() {
+  if (analyzedStocks.value.length === 0) {
+    message.warning('没有可导出的分析结果');
+    return;
+  }
+  
+  try {
+    // 创建CSV内容
+    const headers = ['代码', '名称', '价格', '涨跌幅', 'RSI', '均线趋势', 'MACD信号', '成交量状态', '评分', '推荐', '分析日期'];
+    let csvContent = headers.join(',') + '\n';
+    
+    // 添加数据行
+    analyzedStocks.value.forEach(stock => {
+      const row = [
+        `"${stock.code}"`,
+        `"${stock.name || ''}"`,
+        stock.price !== undefined ? stock.price.toFixed(2) : '',
+        stock.changePercent !== undefined ? `${stock.changePercent > 0 ? '+' : ''}${stock.changePercent.toFixed(2)}%` : '',
+        stock.rsi !== undefined ? stock.rsi.toFixed(2) : '',
+        stock.ma_trend ? getChineseTrend(stock.ma_trend) : '',
+        stock.macd_signal ? getChineseSignal(stock.macd_signal) : '',
+        stock.volume_status ? getChineseVolumeStatus(stock.volume_status) : '',
+        stock.score !== undefined ? stock.score : '',
+        `"${stock.recommendation || ''}"`,
+        stock.analysis_date || ''
+      ];
+      
+      csvContent += row.join(',') + '\n';
+    });
+    
+    // 创建Blob对象
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `股票分析结果_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    // 添加到文档并触发点击
+    document.body.appendChild(link);
+    link.click();
+    
+    // 清理
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    message.success('已导出CSV文件');
+  } catch (error) {
+    message.error('导出失败');
+    console.error('导出CSV时出错:', error);
+  }
+}
+
+// 辅助函数：获取中文趋势描述
+function getChineseTrend(trend: string): string {
+  const trendMap: Record<string, string> = {
+    'UP': '上升',
+    'DOWN': '下降',
+    'NEUTRAL': '平稳'
+  };
+  return trendMap[trend] || trend;
+}
+
+// 辅助函数：获取中文信号描述
+function getChineseSignal(signal: string): string {
+  const signalMap: Record<string, string> = {
+    'BUY': '买入',
+    'SELL': '卖出',
+    'HOLD': '持有',
+    'NEUTRAL': '中性'
+  };
+  return signalMap[signal] || signal;
+}
+
+// 辅助函数：获取中文成交量状态描述
+function getChineseVolumeStatus(status: string): string {
+  const statusMap: Record<string, string> = {
+    'HIGH': '放量',
+    'LOW': '缩量',
+    'NORMAL': '正常'
+  };
+  return statusMap[status] || status;
+}
+
 // 页面加载时获取默认配置和公告
 onMounted(async () => {
   try {
@@ -614,5 +914,16 @@ onMounted(async () => {
 .results-section {
   padding: 0.5rem;
   min-height: 200px;
+}
+
+.results-header {
+  margin-bottom: 1rem;
+}
+
+.n-data-table .analysis-cell {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

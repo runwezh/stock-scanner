@@ -536,6 +536,36 @@ function getChineseVolumeStatus(status: string): string {
   overflow-y: auto;
   word-break: break-word;
   hyphens: auto;
+  
+  /* 自定义滚动条样式 */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(32, 128, 240, 0.3) transparent; /* Firefox */
+}
+
+/* Webkit浏览器的滚动条样式 */
+.analysis-result::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.analysis-result::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.analysis-result::-webkit-scrollbar-thumb {
+  background-color: rgba(32, 128, 240, 0.3);
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+.analysis-result::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(32, 128, 240, 0.5);
+}
+
+/* 在不滚动时隐藏滚动条，滚动时显示 */
+.analysis-result:not(:hover)::-webkit-scrollbar-thumb {
+  background-color: rgba(32, 128, 240, 0.1);
 }
 
 .analysis-streaming {

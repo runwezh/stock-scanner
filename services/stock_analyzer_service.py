@@ -159,10 +159,10 @@ class StockAnalyzerService:
         try:
             logger.info(f"开始批量扫描 {len(stock_codes)} 只股票, 市场: {market_type}")
             
-            # 输出初始状态
+            # 输出初始状态 - 发送批量分析初始化消息
             yield json.dumps({
-                "status": "scanning",
-                "total_stocks": len(stock_codes),
+                "stream_type": "batch",
+                "stock_codes": stock_codes,
                 "market_type": market_type,
                 "min_score": min_score
             })
@@ -177,6 +177,12 @@ class StockAnalyzerService:
                     stock_with_indicators[code] = self.indicator.calculate_indicators(df)
                 except Exception as e:
                     logger.error(f"计算 {code} 技术指标时出错: {str(e)}")
+                    # 发送错误状态
+                    yield json.dumps({
+                        "stock_code": code,
+                        "error": f"计算技术指标时出错: {str(e)}",
+                        "status": "error"
+                    })
             
             # 评分股票
             results = self.scorer.batch_score_stocks(stock_with_indicators)
@@ -184,30 +190,39 @@ class StockAnalyzerService:
             # 过滤低于最低评分的股票
             filtered_results = [r for r in results if r[1] >= min_score]
             
-            # 输出评分结果
-            yield json.dumps({
-                "scan_results": [
-                    {
+            # 为每只股票发送基本评分和推荐信息
+            for code, score, rec in results:
+                df = stock_with_indicators.get(code)
+                if df is not None and len(df) > 0:
+                    # 获取最新数据
+                    latest_data = df.iloc[-1]
+                    
+                    # 发送股票基本信息和评分
+                    yield json.dumps({
                         "stock_code": code,
                         "score": score,
-                        "recommendation": rec
-                    } for code, score, rec in filtered_results
-                ],
-                "total_matched": len(filtered_results),
-                "total_scanned": len(results)
-            })
+                        "recommendation": rec,
+                        "price": float(latest_data.get('Close', 0)),
+                        "price_change": float(latest_data.get('Change', 0)),
+                        "rsi": float(latest_data.get('RSI', 0)) if 'RSI' in latest_data else None,
+                        "ma_trend": "UP" if latest_data.get('MA5', 0) > latest_data.get('MA20', 0) else "DOWN",
+                        "macd_signal": "BUY" if latest_data.get('MACD', 0) > latest_data.get('MACD_Signal', 0) else "SELL",
+                        "volume_status": "HIGH" if latest_data.get('Volume_Ratio', 1) > 1.5 else ("LOW" if latest_data.get('Volume_Ratio', 1) < 0.5 else "NORMAL"),
+                        "status": "completed" if score < min_score else "waiting"
+                    })
             
             # 如果需要进一步分析，对评分较高的股票进行AI分析
             if stream and filtered_results:
-                top_stocks = filtered_results[:3]  # 只分析前3只评分最高的股票
+                # 只分析前5只评分最高的股票，避免分析过多导致前端卡顿
+                top_stocks = filtered_results[:5]
                 
                 for stock_code, score, _ in top_stocks:
                     df = stock_with_indicators.get(stock_code)
                     if df is not None:
                         # 输出正在分析的股票信息
                         yield json.dumps({
-                            "analyzing": stock_code,
-                            "score": score
+                            "stock_code": stock_code,
+                            "status": "analyzing"
                         })
                         
                         # AI分析
@@ -216,7 +231,7 @@ class StockAnalyzerService:
             
             # 输出扫描完成信息
             yield json.dumps({
-                "status": "completed",
+                "scan_completed": True,
                 "total_scanned": len(results),
                 "total_matched": len(filtered_results)
             })
