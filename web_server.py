@@ -56,6 +56,7 @@ frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fronte
 if os.path.exists(frontend_dist):
     # 直接挂载整个dist目录
     app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+    logger.info(f"前端构建目录挂载成功: {frontend_dist}")
 else:
     logger.warning("前端构建目录不存在，仅API功能可用")
 
