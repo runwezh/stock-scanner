@@ -424,4 +424,4 @@ async def serve_frontend(full_path: str, request: Request):
 
 if __name__ == '__main__':
     logger.info("股票AI分析系统启动")
-    uvicorn.run("web_server:app", host="127.0.0.1", port=8888, reload=True)
+    uvicorn.run("web_server:app", host="0.0.0.0", port=8888, reload=True)

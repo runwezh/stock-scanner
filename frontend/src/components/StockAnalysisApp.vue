@@ -125,7 +125,7 @@
                     :columns="stockTableColumns"
                     :data="analyzedStocks"
                     :pagination="{ pageSize: 10 }"
-                    :row-key="(row) => row.code"
+                    :row-key="(row: StockInfo) => row.code"
                     :bordered="false"
                     :single-line="false"
                     striped
@@ -141,12 +141,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, h } from 'vue';
+import { ref, onMounted, h } from 'vue';
 import { 
   NLayout, 
   NLayoutContent, 
   NCard, 
-  NPageHeader, 
   NIcon, 
   NGrid, 
   NGridItem, 
@@ -165,7 +164,6 @@ import {
 } from 'naive-ui';
 import { useClipboard } from '@vueuse/core'
 import { 
-  BarChartOutline as BarChartIcon,
   DocumentTextOutline as DocumentTextIcon,
   DownloadOutline as DownloadIcon,
   NotificationsOutline as NotificationsIcon
