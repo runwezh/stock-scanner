@@ -146,11 +146,17 @@
 
         <div class="api-actions">
           <div class="api-save-option">
-            <n-switch 
-              v-model:value="apiConfig.saveApiConfig"
-              @update:value="handleConfigChange"
-            />
-            <span class="save-label">保存配置到本地</span>
+            <n-button 
+              tertiary
+              size="small"
+              @click="saveConfig"
+              round
+            >
+              <template #icon>
+                <n-icon :component="SaveIcon" />
+              </template>
+              保存配置到本地
+            </n-button>
           </div>
           
           <div class="api-buttons">
@@ -188,7 +194,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, markRaw } from 'vue';
 import { 
   NButton, 
   NIcon, 
@@ -219,12 +225,14 @@ import {
   RemoveOutline as RemoveIcon,
   CheckmarkCircle as SuccessIcon,
   CloseCircle as ErrorIcon,
-  CodeSlashOutline as CodeIcon
+  CodeSlashOutline as CodeIcon,
+  SaveOutline as SaveIcon
 } from '@vicons/ionicons5';
 import { apiService } from '@/services/api';
 import { saveApiConfigToLocalStorage, loadApiConfig } from '@/utils';
 import type { ApiConfig } from '@/types';
 
+// 出于安全考虑，API KEY不会显示在前端
 const props = defineProps<{
   defaultApiUrl?: string;
   defaultApiModel?: string;
@@ -276,7 +284,7 @@ const apiConfig = ref<ApiConfig>({
   apiKey: '',
   apiModel: props.defaultApiModel || '',
   apiTimeout: props.defaultApiTimeout || '60',
-  saveApiConfig: false
+  saveApiConfig: true // 默认启用保存配置
 });
 
 const apiTimeout = computed({
@@ -301,39 +309,35 @@ function toggleConfig() {
 function handleConfigChange() {
   console.log('API配置变更:', apiConfig.value);
   
-  // 如果选择了保存配置，则自动保存
-  if (apiConfig.value.saveApiConfig) {
-    saveApiConfigToLocalStorage({
-      apiUrl: apiConfig.value.apiUrl,
-      apiKey: apiConfig.value.apiKey,
-      apiModel: apiConfig.value.apiModel,
-      apiTimeout: apiConfig.value.apiTimeout,
-      saveApiConfig: true
-    });
-  }
-  
-  // 向父组件发送更新事件
+  // 不再在每次配置变更时自动保存
+  // 仅向父组件发送更新事件
   emit('update:apiConfig', { ...apiConfig.value });
 }
 
 function handleTimeoutChange(value: number | null) {
   if (value !== null) {
     apiConfig.value.apiTimeout = value.toString();
-    handleConfigChange();
+    
+    // 仅通知父组件更新，不自动保存
+    emit('update:apiConfig', { ...apiConfig.value });
   }
 }
 
 function increaseTimeout() {
   if (apiTimeout.value < 300) {
     apiTimeout.value += 10;
-    handleTimeoutChange(apiTimeout.value);
+    
+    // 通知父组件
+    emit('update:apiConfig', { ...apiConfig.value });
   }
 }
 
 function decreaseTimeout() {
   if (apiTimeout.value > 10) {
     apiTimeout.value -= 10;
-    handleTimeoutChange(apiTimeout.value);
+    
+    // 通知父组件
+    emit('update:apiConfig', { ...apiConfig.value });
   }
 }
 
@@ -377,25 +381,14 @@ async function testConnection() {
       connectionStatus.value = {
         type: 'success',
         message: '连接成功！API配置有效。',
-        icon: SuccessIcon
+        icon: markRaw(SuccessIcon)
       };
-      
-      // 如果选择了保存配置，则保存
-      if (apiConfig.value.saveApiConfig) {
-        saveApiConfigToLocalStorage({
-          apiUrl: apiConfig.value.apiUrl,
-          apiKey: apiConfig.value.apiKey,
-          apiModel: apiConfig.value.apiModel,
-          apiTimeout: apiConfig.value.apiTimeout,
-          saveApiConfig: true
-        });
-      }
     } else {
       message.error(`API连接测试失败: ${response.message}`);
       connectionStatus.value = {
         type: 'error',
         message: `连接失败: ${response.message}`,
-        icon: ErrorIcon
+        icon: markRaw(ErrorIcon)
       };
     }
   } catch (error: any) {
@@ -403,7 +396,7 @@ async function testConnection() {
     connectionStatus.value = {
       type: 'error',
       message: `连接错误: ${error.message || '未知错误'}`,
-      icon: ErrorIcon
+      icon: markRaw(ErrorIcon)
     };
   } finally {
     testingConnection.value = false;
@@ -416,16 +409,18 @@ function resetConfig() {
     apiKey: '',
     apiModel: props.defaultApiModel || '',
     apiTimeout: props.defaultApiTimeout || '60',
-    saveApiConfig: false
+    saveApiConfig: true
   };
   
   // 清除本地存储
   if (window.localStorage) {
     localStorage.removeItem('apiConfig');
+    message.success('已重置API配置并清除本地存储');
+  } else {
+    message.success('已重置API配置');
   }
   
   connectionStatus.value = null;
-  message.success('已重置API配置');
   emit('update:apiConfig', { ...apiConfig.value });
 }
 
@@ -433,7 +428,21 @@ function resetConfig() {
 function selectModel(key: string) {
   console.log('选择模型:', key);
   apiConfig.value.apiModel = key;
-  handleConfigChange();
+  
+  // 通知父组件
+  emit('update:apiConfig', { ...apiConfig.value });
+}
+
+// 显式保存配置的函数
+function saveConfig() {
+  saveApiConfigToLocalStorage({
+    apiUrl: apiConfig.value.apiUrl,
+    apiKey: apiConfig.value.apiKey,
+    apiModel: apiConfig.value.apiModel,
+    apiTimeout: apiConfig.value.apiTimeout,
+    saveApiConfig: true
+  });
+  message.success('已将配置保存到本地');
 }
 
 onMounted(() => {
@@ -528,15 +537,27 @@ onMounted(() => {
 .api-save-option {
   display: flex;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.02);
   padding: 6px 12px;
   border-radius: 16px;
 }
 
-.save-label {
-  margin-left: 0.5rem;
-  font-size: 0.875rem;
+.api-save-option button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
   font-weight: 500;
+  background-color: rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.api-save-option button:hover {
+  background-color: rgba(32, 128, 240, 0.08);
+  transform: translateY(-1px);
+}
+
+.api-save-option button .n-icon {
+  font-size: 16px;
 }
 
 .api-buttons {

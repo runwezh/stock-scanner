@@ -603,16 +603,32 @@ async function analyzeStocks() {
       requestData.api_timeout = apiConfig.value.apiTimeout;
     }
     
+    // 获取身份验证令牌
+    const token = localStorage.getItem('token');
+    
+    // 构建请求头
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    
+    // 如果有令牌，添加到请求头
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     // 发送分析请求
     const response = await fetch('/analyze', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify(requestData)
     });
     
     if (!response.ok) {
+      if (response.status === 401) {
+        message.error('未授权访问，请登录后再试');
+        // 可以在这里触发登录流程
+        return;
+      }
       if (response.status === 404) {
         throw new Error('服务器接口未找到，请检查服务是否正常运行');
       }

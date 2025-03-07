@@ -51,7 +51,8 @@ button:hover {
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(32, 128, 240, 0.2) !important;
 }
 
 .card {
@@ -76,4 +77,39 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+/* 全局移除黑色边框 */
+*:focus {
+  outline: none !important;
+}
+
+/* 输入框和表单元素的焦点样式 */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(32, 128, 240, 0.2) !important;
+}
+
+/* 移除移动设备上的点击高亮 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 修复Firefox特定的焦点样式 */
+button::-moz-focus-inner,
+input::-moz-focus-inner {
+  border: 0;
+}
+
+/* Naive UI组件的焦点样式 */
+.n-button:focus,
+.n-button:focus-visible,
+.n-input:focus-within,
+.n-input-number:focus-within,
+.n-select:focus-within,
+.n-tag:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(32, 128, 240, 0.2) !important;
 }
