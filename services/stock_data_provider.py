@@ -79,10 +79,45 @@ class StockDataProvider:
                 logger.debug(f"获取港股数据: {stock_code}")
                 df = ak.stock_hk_daily(
                     symbol=stock_code,
-                    start_date=start_date,
-                    end_date=end_date,
                     adjust="qfq"
                 )
+                
+                # 在获取数据后进行日期过滤
+                try:
+                    if not isinstance(df.index, pd.DatetimeIndex):
+                        # 如果存在命名为'date'的列，将其设为索引
+                        if 'date' in df.columns:
+                            df['date'] = pd.to_datetime(df['date'])
+                            df.set_index('date', inplace=True)
+                        else:
+                            # 尝试将第一列转换为日期索引
+                            date_col = df.columns[0]
+                            df[date_col] = pd.to_datetime(df[date_col])
+                            df.set_index(date_col, inplace=True)
+                    
+                    # 转换日期字符串为日期对象
+                    if start_date:
+                        if start_date.isdigit() and len(start_date) == 8:
+                            start_date_dt = pd.to_datetime(start_date, format='%Y%m%d')
+                        else:
+                            start_date_dt = pd.to_datetime(start_date)
+                    else:
+                        start_date_dt = pd.to_datetime((datetime.now() - timedelta(days=365)).strftime('%Y%m%d'))
+                        
+                    if end_date:
+                        if end_date.isdigit() and len(end_date) == 8:
+                            end_date_dt = pd.to_datetime(end_date, format='%Y%m%d')
+                        else:
+                            end_date_dt = pd.to_datetime(end_date)
+                    else:
+                        end_date_dt = pd.to_datetime(datetime.now().strftime('%Y%m%d'))
+                    
+                    # 过滤日期范围
+                    df = df[(df.index >= start_date_dt) & (df.index <= end_date_dt)]
+                    logger.debug(f"港股日期过滤后数据点数: {len(df)}")
+                    
+                except Exception as e:
+                    logger.warning(f"港股日期过滤出错: {str(e)}，使用原始数据")
                 
             elif market_type in ['US']:
                 logger.debug(f"获取美股数据: {stock_code}")
