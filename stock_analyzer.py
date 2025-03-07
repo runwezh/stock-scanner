@@ -502,7 +502,8 @@ class StockAnalyzer:
                         try:
                             json_data = json.loads(data_content)
                             
-                            if 'choices' in json_data:
+                            # 检查 choices 列表是否为空
+                            if 'choices' in json_data and json_data['choices']:
                                 delta = json_data['choices'][0].get('delta', {})
                                 content = delta.get('content', '')
                                 
@@ -516,6 +517,8 @@ class StockAnalyzer:
                                         "ai_analysis_chunk": content
                                     })
                                     yield chunk_json
+                            else:
+                                logger.warning(f"收到空的 choices 列表: {data_content}")
                         except json.JSONDecodeError as e:
                             logger.error(f"[JSON解析错误] {str(e)}, 行内容: {data_content}")
                             # 忽略无法解析的JSON
