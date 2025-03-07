@@ -9,6 +9,8 @@
 3. 完善Dockerfile、GitHub Actions 支持docker一键部署使用。
 4. 支持x86_64 和 ARM64架构镜像
 5. 支持流式输出，支持前端传入Key(仅作为本地用户使用，日志等内容不会输出) 感谢@Cassianvale
+6. 重构为Vue3+Vite+TS+Naive UI，支持响应式布局
+7. 支持GitHub Actions 一键部署
 
 ## docker一键部署
 ```
@@ -19,9 +21,11 @@ docker run -d \
   -e API_URL=替换为你的api地址 \
   -e API_MODEL=替换为你的模型 \
   -e API_TIMEOUT=60 \
+  -e LOGIN_PASSWORD=替换为你的密码 \
   lanzhihong/stock-scanner:latest
 
 API_TIMEOUT=60   202503040712版本开始 (AI分析发生错误，查看日志是否有timed out类似错误，需要增加你的API超时时间)
+LOGIN_PASSWORD 为空时，表示不需要登录，否则需要经过登录接口验证
 
 注意⚠️： 环境变量名变更，更新版本后需要调整！！！
 
@@ -43,6 +47,18 @@ API_URL 处理逻辑说明：
 
 ```
 默认8888端口，部署完成后访问  http://127.0.0.1:8888 即可使用。
+
+## Github Actions 部署
+
+| 环境变量 | 说明 |
+| --- | --- |
+| DOCKERHUB_USERNAME | Docker Hub用户名 |
+| DOCKERHUB_TOKEN | Docker Hub访问令牌 |
+| SERVER_HOST | 部署服务器地址 |
+| SERVER_USERNAME | 服务器用户名 |
+| SSH_PRIVATE_KEY | SSH私钥 |
+| DEPLOY_PATH | 部署路径 |
+| SLACK_WEBHOOK | Slack通知Webhook（可选） |
 
 
 ## 注意事项 (Notes)
