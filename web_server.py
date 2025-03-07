@@ -54,7 +54,10 @@ app.add_middleware(
 # 设置静态文件
 frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'dist')
 if os.path.exists(frontend_dist):
-    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
+    # 直接挂载整个dist目录
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+else:
+    logger.warning("前端构建目录不存在，仅API功能可用")
 
 # 初始化异步服务
 # StockAnalyzerService 不需要全局初始化，在 /analyze 接口中按需创建
@@ -139,7 +142,7 @@ async def verify_token(token: Optional[str] = Depends(optional_oauth2_scheme)):
         raise credentials_exception
 
 # 用户登录接口
-@app.post("/login")
+@app.post("/api/login")
 async def login(request: LoginRequest):
     """用户登录接口"""
     # 如果未设置密码，表示不需要登录
@@ -160,13 +163,13 @@ async def login(request: LoginRequest):
     return {"access_token": access_token, "token_type": "bearer"}
 
 # 检查用户认证状态
-@app.get("/check_auth")
+@app.get("/api/check_auth")
 async def check_auth(username: str = Depends(verify_token)):
     """检查用户认证状态"""
     return {"authenticated": True, "username": username}
 
 # 获取系统配置
-@app.get("/config")
+@app.get("/api/config")
 async def get_config():
     """返回系统配置信息"""
     config = {
@@ -178,7 +181,7 @@ async def get_config():
     return config
 
 # AI分析股票
-@app.post("/analyze")
+@app.post("/api/analyze")
 async def analyze(request: AnalyzeRequest, username: str = Depends(verify_token)):
     try:
         logger.info("开始处理分析请求")
@@ -266,7 +269,7 @@ async def analyze(request: AnalyzeRequest, username: str = Depends(verify_token)
         raise HTTPException(status_code=500, detail=error_msg)
 
 # 搜索美股代码
-@app.get("/search_us_stocks")
+@app.get("/api/search_us_stocks")
 async def search_us_stocks(keyword: str = "", username: str = Depends(verify_token)):
     try:
         if not keyword:
@@ -281,7 +284,7 @@ async def search_us_stocks(keyword: str = "", username: str = Depends(verify_tok
         raise HTTPException(status_code=500, detail=str(e))
 
 # 搜索基金代码
-@app.get("/search_funds")
+@app.get("/api/search_funds")
 async def search_funds(keyword: str = "", market_type: str = "", username: str = Depends(verify_token)):
     try:
         if not keyword:
@@ -296,7 +299,7 @@ async def search_funds(keyword: str = "", market_type: str = "", username: str =
         raise HTTPException(status_code=500, detail=str(e))
 
 # 获取美股详情
-@app.get("/us_stock_detail/{symbol}")
+@app.get("/api/us_stock_detail/{symbol}")
 async def get_us_stock_detail(symbol: str, username: str = Depends(verify_token)):
     try:
         if not symbol:
@@ -311,7 +314,7 @@ async def get_us_stock_detail(symbol: str, username: str = Depends(verify_token)
         raise HTTPException(status_code=500, detail=str(e))
 
 # 获取基金详情
-@app.get("/fund_detail/{symbol}")
+@app.get("/api/fund_detail/{symbol}")
 async def get_fund_detail(symbol: str, market_type: str = "ETF", username: str = Depends(verify_token)):
     try:
         if not symbol:
@@ -326,7 +329,7 @@ async def get_fund_detail(symbol: str, market_type: str = "ETF", username: str =
         raise HTTPException(status_code=500, detail=str(e))
 
 # 测试API连接
-@app.post("/test_api_connection")
+@app.post("/api/test_api_connection")
 async def test_api_connection(request: TestAPIRequest, username: str = Depends(verify_token)):
     """测试API连接"""
     try:
@@ -395,33 +398,11 @@ async def test_api_connection(request: TestAPIRequest, username: str = Depends(v
         )
 
 # 检查是否需要登录
-@app.get("/need_login")
+@app.get("/api/need_login")
 async def need_login():
     """检查是否需要登录"""
     return {"require_login": REQUIRE_LOGIN}
 
-# 前端路由处理，必须放在所有API路由之后
-@app.get("/{full_path:path}")
-async def serve_frontend(full_path: str, request: Request):
-    """处理所有前端路由请求，返回index.html"""
-    # 排除API路径和静态资源
-    if full_path.startswith(("api/", "assets/", "docs", "openapi.json")) or \
-       full_path in ["check_auth", "config", "analyze", 
-                    "search_us_stocks", "search_funds", 
-                    "test_api_connection", "us_stock_detail", 
-                    "fund_detail"]:
-        # 对于API路径，让FastAPI继续处理
-        raise HTTPException(status_code=404, detail="API路径不存在")
-    
-    # 检查是否使用前端构建版本
-    if os.path.exists(frontend_dist):
-        index_file = os.path.join(frontend_dist, 'index.html')
-        return FileResponse(index_file)
-    else:
-        # 不再使用模板渲染，而是重定向到API文档页面
-        logger.warning("前端构建目录不存在，重定向到API文档页面")
-        return RedirectResponse(url="/docs")
 
 if __name__ == '__main__':
-    logger.info("股票AI分析系统启动")
-    uvicorn.run("web_server:app", host="0.0.0.0", port=8888, reload=True)
+    uvicorn.run("web_server:app", host="127.0.0.1", port=8888, reload=True)

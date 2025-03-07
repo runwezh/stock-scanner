@@ -205,7 +205,6 @@ import {
   NFormItem, 
   NInput,
   NInputNumber,
-  NSwitch,
   NAlert,
   NDivider,
   NDropdown,
