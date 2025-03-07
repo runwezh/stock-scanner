@@ -139,7 +139,7 @@
 
 <script setup lang="ts">
 import { computed, watch, ref } from 'vue';
-import { NCard, NDivider, NSpin, NIcon, NTag, NButton, useMessage } from 'naive-ui';
+import { NCard, NDivider, NIcon, NTag, NButton, useMessage } from 'naive-ui';
 import { 
   AlertCircleOutline as AlertCircleIcon,
   CalendarOutline,
@@ -147,7 +147,7 @@ import {
   HourglassOutline,
   ReloadOutline
 } from '@vicons/ionicons5';
-import { parseMarkdown, formatMarketValue as formatMarketValueFn } from '@/utils';
+import { parseMarkdown } from '@/utils';
 import type { StockInfo } from '@/types';
 
 const props = defineProps<{
@@ -252,11 +252,6 @@ function formatPriceChange(change: number | undefined | null): string {
   return `${sign}${change.toFixed(2)}`;
 }
 
-function formatMarketValue(value: number | undefined | null): string {
-  if (value === undefined || value === null) return '--';
-  return formatMarketValueFn(value);
-}
-
 function formatDate(dateStr: string | undefined | null): string {
   if (!dateStr) return '--';
   try {
@@ -268,16 +263,6 @@ function formatDate(dateStr: string | undefined | null): string {
   } catch (e) {
     return dateStr;
   }
-}
-
-function getMarketName(marketType: string): string {
-  const marketMap: Record<string, string> = {
-    'A': 'A股',
-    'HK': '港股',
-    'US': '美股'
-  };
-  
-  return marketMap[marketType] || marketType;
 }
 
 function getScoreClass(score: number): string {
