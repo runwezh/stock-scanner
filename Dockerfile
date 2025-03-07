@@ -67,7 +67,7 @@ EXPOSE 8888
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8888/config || exit 1
+  CMD curl -f http://localhost:8888/api/config || exit 1
 
 # 启动命令
 CMD ["python", "web_server.py"]
