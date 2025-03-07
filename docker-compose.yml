@@ -15,6 +15,7 @@ services:
       - API_TIMEOUT=${API_TIMEOUT}
       - LOGIN_PASSWORD=${LOGIN_PASSWORD}
       - ANNOUNCEMENT_TEXT=${ANNOUNCEMENT_TEXT}
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:8888}
     volumes:
       - ./logs:/app/logs
     restart: unless-stopped
@@ -34,6 +35,8 @@ services:
     container_name: stock-scanner-frontend
     ports:
       - "80:80"
+    environment:
+      - BACKEND_URL=${BACKEND_URL:-http://backend:8888}
     depends_on:
       - backend
     restart: unless-stopped
