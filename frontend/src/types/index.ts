@@ -65,14 +65,14 @@ export interface AnalyzeRequest {
   api_url?: string;
   api_key?: string;
   api_model?: string;
-  api_timeout?: string;
+  api_timeout?: number;
 }
 
 export interface TestApiRequest {
   api_url: string;
   api_key: string;
-  api_model: string;
-  api_timeout: string;
+  api_model?: string;
+  api_timeout: number;
 }
 
 export interface TestApiResponse {

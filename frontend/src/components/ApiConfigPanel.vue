@@ -371,8 +371,8 @@ async function testConnection() {
     const response = await apiService.testApiConnection({
       api_url: apiConfig.value.apiUrl,
       api_key: apiConfig.value.apiKey,
-      api_model: apiConfig.value.apiModel,
-      api_timeout: apiConfig.value.apiTimeout
+      api_model: apiConfig.value.apiModel || undefined,
+      api_timeout: parseInt(apiConfig.value.apiTimeout) || 60
     });
     
     if (response.success) {

@@ -60,7 +60,6 @@ else:
     logger.warning("前端构建目录不存在，仅API功能可用")
 
 # 初始化异步服务
-# StockAnalyzerService 不需要全局初始化，在 /analyze 接口中按需创建
 us_stock_service = USStockServiceAsync()
 fund_service = FundServiceAsync()
 

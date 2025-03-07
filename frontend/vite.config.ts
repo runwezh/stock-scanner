@@ -17,52 +17,17 @@ export default defineConfig({
   },
   server: {
     cors: true,
+    hmr: {
+      // 解决WebSocket连接问题
+      host: 'localhost',
+      port: 5173,
+      protocol: 'ws'
+    },
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8888',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-      '/analyze': {
-        target: 'http://127.0.0.1:8888',
-        changeOrigin: true,
-      },
-      '/test_api_connection': {
-        target: 'http://127.0.0.1:8888',
-        changeOrigin: true,
-      },
-      '/search_us_stocks': {
-        target: 'http://127.0.0.1:8888',
-        changeOrigin: true,
-      },
-      '/config': {
-        target: 'http://127.0.0.1:8888',
-        changeOrigin: true,
-      },
-      '/login': {
-        target: 'http://127.0.0.1:8888',
-        changeOrigin: true,
-      },
-      '/check_auth': {
-        target: 'http://127.0.0.1:8888',
-        changeOrigin: true,
-      },
-      '/need_login': {
-        target: 'http://127.0.0.1:8888',
-        changeOrigin: true,
-      },
-      '/us_stock_detail': {
-        target: 'http://127.0.0.1:8888',
-        changeOrigin: true,
-      },
-      '/fund_detail': {
-        target: 'http://127.0.0.1:8888',
-        changeOrigin: true,
-      },
-      '/search_funds': {
-        target: 'http://127.0.0.1:8888',
-        changeOrigin: true,
-      },
+      }
     },
   },
 })

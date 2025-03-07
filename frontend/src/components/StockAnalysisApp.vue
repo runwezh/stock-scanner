@@ -617,7 +617,7 @@ async function analyzeStocks() {
     }
     
     // 发送分析请求
-    const response = await fetch('/analyze', {
+    const response = await fetch('/api/analyze', {
       method: 'POST',
       headers,
       body: JSON.stringify(requestData)
