@@ -1,17 +1,12 @@
 name: Docker Build and Deploy
 
 on:
-  push:
-    branches: [ main ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
   workflow_dispatch:
     inputs:
       deploy:
         description: '是否部署'
         type: boolean
-        default: true
+        default: false
 
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -83,9 +78,7 @@ jobs:
     needs: [prepare, build]
     runs-on: ubuntu-latest
     if: |
-      success() && 
-      (github.ref == 'refs/heads/main' && github.event_name == 'push') || 
-      (github.event_name == 'workflow_dispatch' && inputs.deploy)
+      success() && inputs.deploy
     
     steps:
     - name: Checkout code for prod compose file
