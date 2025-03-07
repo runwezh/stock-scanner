@@ -51,15 +51,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 设置静态文件
-frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'dist')
-if os.path.exists(frontend_dist):
-    # 直接挂载整个dist目录
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
-    logger.info(f"前端构建目录挂载成功: {frontend_dist}")
-else:
-    logger.warning("前端构建目录不存在，仅API功能可用")
-
 # 初始化异步服务
 us_stock_service = USStockServiceAsync()
 fund_service = FundServiceAsync()
@@ -402,6 +393,15 @@ async def test_api_connection(request: TestAPIRequest, username: str = Depends(v
 async def need_login():
     """检查是否需要登录"""
     return {"require_login": REQUIRE_LOGIN}
+
+# 设置静态文件
+frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'dist')
+if os.path.exists(frontend_dist):
+    # 直接挂载整个dist目录
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+    logger.info(f"前端构建目录挂载成功: {frontend_dist}")
+else:
+    logger.warning("前端构建目录不存在，仅API功能可用")
 
 
 if __name__ == '__main__':
