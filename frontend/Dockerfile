@@ -19,17 +19,11 @@ RUN npm run build
 # 生产阶段
 FROM nginx:stable-alpine as production-stage
 
-# 复制自定义nginx配置（如需要）
-COPY nginx.conf /etc/nginx/conf.d/default.conf.template
+# 复制自定义nginx配置
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # 从构建阶段复制构建结果到nginx服务目录
 COPY --from=build-stage /app/dist /usr/share/nginx/html
-
-# 创建启动脚本
-RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
-    echo 'envsubst "$BACKEND_URL" < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
-    echo 'nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
-    chmod +x /docker-entrypoint.sh
 
 # 暴露80端口
 EXPOSE 80
@@ -39,4 +33,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:80 || exit 1
 
 # 设定启动命令
-CMD ["/docker-entrypoint.sh"] 
+CMD ["nginx", "-g", "daemon off;"] 
