@@ -20,6 +20,7 @@ build_upload.log
 *report.xml
 *.spec
 *.zip
+.env
 
 # frontend
 node_modules/
