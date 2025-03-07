@@ -26,16 +26,6 @@ jobs:
   build:
     needs: prepare
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [backend, frontend]
-        include:
-          - service: backend
-            context: .
-          - service: frontend
-            context: ./frontend
-      # 允许其中一个任务失败时，其他任务仍继续执行
-      fail-fast: false
     
     steps:
     - name: Checkout code
@@ -59,7 +49,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ secrets.DOCKERHUB_USERNAME }}/stock-scanner-${{ matrix.service }}
+        images: ${{ secrets.DOCKERHUB_USERNAME }}/stock-scanner
         tags: |
           type=raw,value=latest
           type=raw,value=${{ needs.prepare.outputs.version }}
@@ -67,12 +57,12 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v5
       with:
-        context: ${{ matrix.context }}
+        context: .
         platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}
-        cache-from: type=gha,scope=${{ matrix.service }}
-        cache-to: type=gha,scope=${{ matrix.service }},mode=max
+        cache-from: type=gha,scope=stock-scanner
+        cache-to: type=gha,scope=stock-scanner,mode=max
 
   deploy:
     needs: [prepare, build]
@@ -149,13 +139,8 @@ jobs:
           sleep 10
           
           # 验证服务是否正常运行
-          if ! curl -s http://localhost:80 > /dev/null; then
-            echo "前端服务未正常运行！"
-            exit 1
-          fi
-          
-          if ! curl -s http://localhost:8888/config > /dev/null; then
-            echo "后端服务未正常运行！"
+          if ! curl -s http://localhost:8888/api/config > /dev/null; then
+            echo "服务未正常运行！"
             exit 1
           fi
           
