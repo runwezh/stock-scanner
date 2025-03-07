@@ -26,10 +26,10 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 # 创建启动脚本
-RUN echo '#!/bin/sh \n\
-envsubst "\$BACKEND_URL" < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf \n\
-nginx -g "daemon off;"' > /docker-entrypoint.sh && \
-chmod +x /docker-entrypoint.sh
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'envsubst "$BACKEND_URL" < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
 
 # 暴露80端口
 EXPOSE 80
