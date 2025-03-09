@@ -117,11 +117,12 @@ jobs:
           mkdir -p ${DEPLOY_PATH}/nginx/ssl
           
           # 如果SSL证书不存在，创建自签名证书（仅用于测试）
-          if [ ! -f ${DEPLOY_PATH}/nginx/ssl/cert.pem ] || [ ! -f ${DEPLOY_PATH}/nginx/ssl/key.pem ]; then
+          if [ ! -f ${DEPLOY_PATH}/nginx/ssl/fullchain.pem ] || [ ! -f ${DEPLOY_PATH}/nginx/ssl/privkey.pem ]; then
             echo "SSL证书不存在，创建自签名证书..."
-            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-              -keyout ${DEPLOY_PATH}/nginx/ssl/key.pem \
-              -out ${DEPLOY_PATH}/nginx/ssl/cert.pem \
+            openssl req -x509 -nodes -days 365 \
+              -newkey rsa:2048 \
+              -keyout ${DEPLOY_PATH}/nginx/ssl/privkey.pem \
+              -out ${DEPLOY_PATH}/nginx/ssl/fullchain.pem \
               -subj "/CN=localhost" \
               -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
             echo "自签名证书创建完成"

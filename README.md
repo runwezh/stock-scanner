@@ -62,7 +62,7 @@ API_URL 处理逻辑说明：
 项目已集成Nginx服务，可以通过80端口(HTTP)和443端口(HTTPS)访问应用  
 使用docker-compose启动：  
 
-```
+```shell
 # 克隆仓库
 git clone https://github.com/your-username/stock-scanner.git
 cd stock-scanner
@@ -81,9 +81,10 @@ EOL
 mkdir -p nginx/ssl
 
 # 生成自签名SSL证书（仅用于测试环境）
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/ssl/key.pem \
-  -out nginx/ssl/cert.pem \
+openssl req -x509 -nodes -days 365 \
+  -newkey rsa:2048 \
+  -keyout nginx/ssl/privkey.pem \
+  -out nginx/ssl/fullchain.pem \
   -subj "/CN=localhost" \
   -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
 
@@ -91,17 +92,15 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 docker-compose up -d
 ```
 
-启动后可通过以下方式访问应用：
-- HTTP: http://你的域名或ip
-- HTTPS: https://你的域名或ip
-
 ### 使用自己的SSL证书
 
 如果您有自己的SSL证书，可以替换自签名证书：
 
 1. 将您的证书文件放在 `nginx/ssl/` 目录下
-2. 确保证书文件命名为 `cert.pem`，私钥文件命名为 `key.pem`
+2. 确保证书文件命名为 `fullchain.pem`，私钥文件命名为 `privkey.pem`
 3. 重启服务: `docker-compose restart nginx`
+
+相关参考：[免费泛域名 SSL 证书申请及自动续期（使用 1Panel 面板）](https://bronya-zaychik.cn/archives/GenSSL.html)
 
 ## Github Actions 部署
 
@@ -120,7 +119,6 @@ docker-compose up -d
 - 股票分析仅供参考，不构成投资建议
 - 使用前请确保网络连接正常
 - 建议在实盘前充分测试
-- 使用HTTPS可以提高数据传输的安全性
 
 ## 贡献 (Contributing)
 欢迎提交 issues 和 pull requests！

@@ -1,3 +1,5 @@
+# 用于GitHub Actions自动化部署流程
+
 version: '3.8'
 
 services:
