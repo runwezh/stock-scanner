@@ -1,33 +1,41 @@
 # 股票分析系统 (Stock Analysis System)
 
 ## 简介
-基于 https://github.com/DR-lin-eng/stock-scanner 二次修改，感谢原作者
+
+基于 https://github.com/DR-lin-eng/stock-scanner 二次修改，感谢原作者  
 
 ## 功能变更
-1. 增加html页面，支持浏览器在线使用。
-2. 增加港股、美股支持。
-3. 完善Dockerfile、GitHub Actions 支持docker一键部署使用。
-4. 支持x86_64 和 ARM64架构镜像
-5. 支持流式输出，支持前端传入Key(仅作为本地用户使用，日志等内容不会输出) 感谢@Cassianvale
-6. 重构为Vue3+Vite+TS+Naive UI，支持响应式布局
-7. 支持GitHub Actions 一键部署
 
-## docker一键部署
+1. 增加html页面，支持浏览器在线使用  
+2. 增加港股、美股支持  
+3. 完善Dockerfile、GitHub Actions 支持docker一键部署使用  
+4. 支持x86_64 和 ARM64架构镜像  
+5. 支持流式输出，支持前端传入Key(仅作为本地用户使用，日志等内容不会输出) 感谢@Cassianvale  
+6. 重构为Vue3+Vite+TS+Naive UI，支持响应式布局  
+7. 支持GitHub Actions 一键部署  
+8. 支持Nginx反向代理，可通过80/443端口访问
+
+## Docker镜像一键部署
+
 ```
+# 拉取最新版本
+docker pull cassianvale/stock-scanner:latest
+
+# 启动容器
 docker run -d \
-  --name stock-scanner \
+  --name stock-scanner-app \
   -p 8888:8888 \
-  -e API_KEY=替换为你的key \
-  -e API_URL=替换为你的api地址 \
-  -e API_MODEL=替换为你的模型 \
-  -e API_TIMEOUT=60 \
-  -e LOGIN_PASSWORD=替换为你的密码 \
-  lanzhihong/stock-scanner:latest
+  -e API_KEY=你的API密钥 \
+  -e API_URL=你的API地址 \
+  -e API_MODEL=你的API模型 \
+  -e API_TIMEOUT=超时时间(默认60秒) \
+  -e LOGIN_PASSWORD=登录密码(可选) \
+  -e ANNOUNCEMENT_TEXT=公告文本 \
+  -v $(pwd)/logs:/app/logs \
+  --restart unless-stopped \
+  --network bridge \
+  cassianvale/stock-scanner:latest
 
-API_TIMEOUT=60   202503040712版本开始 (AI分析发生错误，查看日志是否有timed out类似错误，需要增加你的API超时时间)
-LOGIN_PASSWORD 为空时，表示不需要登录，否则需要经过登录接口验证
-
-注意⚠️： 环境变量名变更，更新版本后需要调整！！！
 
 针对API_URL处理兼容更多的api地址，规则与Cherry Studio一致， /结尾忽略v1版本，#结尾强制使用输入地址。
 API_URL 处理逻辑说明：
@@ -46,7 +54,54 @@ API_URL 处理逻辑说明：
 
 
 ```
-默认8888端口，部署完成后访问  http://127.0.0.1:8888 即可使用。
+
+默认8888端口，部署完成后访问  http://你的域名或ip:8888 即可使用  
+
+## 使用Nginx反向代理
+
+项目已集成Nginx服务，可以通过80端口(HTTP)和443端口(HTTPS)访问应用  
+使用docker-compose启动：  
+
+```
+# 克隆仓库
+git clone https://github.com/your-username/stock-scanner.git
+cd stock-scanner
+
+# 创建.env文件并填写必要的环境变量
+cat > .env << EOL
+API_KEY=你的API密钥
+API_URL=你的API地址
+API_MODEL=你的API模型
+API_TIMEOUT=超时时间(默认60秒)
+LOGIN_PASSWORD=登录密码(可选)
+ANNOUNCEMENT_TEXT=公告文本
+EOL
+
+# 创建SSL证书目录
+mkdir -p nginx/ssl
+
+# 生成自签名SSL证书（仅用于测试环境）
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout nginx/ssl/key.pem \
+  -out nginx/ssl/cert.pem \
+  -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+
+# 启动服务
+docker-compose up -d
+```
+
+启动后可通过以下方式访问应用：
+- HTTP: http://你的域名或ip
+- HTTPS: https://你的域名或ip
+
+### 使用自己的SSL证书
+
+如果您有自己的SSL证书，可以替换自签名证书：
+
+1. 将您的证书文件放在 `nginx/ssl/` 目录下
+2. 确保证书文件命名为 `cert.pem`，私钥文件命名为 `key.pem`
+3. 重启服务: `docker-compose restart nginx`
 
 ## Github Actions 部署
 
@@ -65,6 +120,7 @@ API_URL 处理逻辑说明：
 - 股票分析仅供参考，不构成投资建议
 - 使用前请确保网络连接正常
 - 建议在实盘前充分测试
+- 使用HTTPS可以提高数据传输的安全性
 
 ## 贡献 (Contributing)
 欢迎提交 issues 和 pull requests！

@@ -76,6 +76,7 @@ jobs:
       with:
         sparse-checkout: |
           docker-compose.prod.yml
+          nginx/nginx.conf
     
     - name: Create .env file for deployment
       run: |
@@ -109,6 +110,22 @@ jobs:
               cp ${DEPLOY_PATH}/.env ${DEPLOY_PATH}/backups/.env.$(date +%Y%m%d%H%M%S)
             fi
           fi
+          
+          # 创建nginx目录和日志目录（如果不存在）
+          mkdir -p ${DEPLOY_PATH}/nginx
+          mkdir -p ${DEPLOY_PATH}/nginx/logs
+          mkdir -p ${DEPLOY_PATH}/nginx/ssl
+          
+          # 如果SSL证书不存在，创建自签名证书（仅用于测试）
+          if [ ! -f ${DEPLOY_PATH}/nginx/ssl/cert.pem ] || [ ! -f ${DEPLOY_PATH}/nginx/ssl/key.pem ]; then
+            echo "SSL证书不存在，创建自签名证书..."
+            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+              -keyout ${DEPLOY_PATH}/nginx/ssl/key.pem \
+              -out ${DEPLOY_PATH}/nginx/ssl/cert.pem \
+              -subj "/CN=localhost" \
+              -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+            echo "自签名证书创建完成"
+          fi
     
     - name: Copy files to server
       uses: appleboy/scp-action@master
@@ -116,7 +133,7 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "docker-compose.prod.yml,.env"
+        source: "docker-compose.prod.yml,.env,nginx/nginx.conf"
         target: ${{ secrets.DEPLOY_PATH }}
         overwrite: true
     
@@ -139,7 +156,7 @@ jobs:
           sleep 10
           
           # 验证服务是否正常运行
-          if ! curl -s http://localhost:8888/api/config > /dev/null; then
+          if ! curl -s -k https://localhost:443 > /dev/null && ! curl -s http://localhost:80 > /dev/null; then
             echo "服务未正常运行！"
             exit 1
           fi
