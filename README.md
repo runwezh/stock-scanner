@@ -21,21 +21,33 @@
 # 拉取最新版本
 docker pull cassianvale/stock-scanner:latest
 
-# 启动容器
+# 启动主应用容器
 docker run -d \
   --name stock-scanner-app \
+  --network stock-scanner-network \
   -p 8888:8888 \
-  -e API_KEY=你的API密钥 \
-  -e API_URL=你的API地址 \
-  -e API_MODEL=你的API模型 \
-  -e API_TIMEOUT=超时时间(默认60秒) \
-  -e LOGIN_PASSWORD=登录密码(可选) \
-  -e ANNOUNCEMENT_TEXT=公告文本 \
-  -v $(pwd)/logs:/app/logs \
+  -v "$(pwd)/logs:/app/logs" \
+  -v "$(pwd)/data:/app/data" \
+  -e API_KEY="你的API密钥" \
+  -e API_URL="你的API地址" \
+  -e API_MODEL="你的API模型" \
+  -e API_TIMEOUT="60" \
+  -e LOGIN_PASSWORD="你的登录密码" \
+  -e ANNOUNCEMENT_TEXT="你的公告内容" \
   --restart unless-stopped \
-  --network bridge \
   cassianvale/stock-scanner:latest
-
+  
+# 运行Nginx容器
+docker run -d \
+  --name stock-scanner-nginx \
+  --network stock-scanner-network \
+  -p 80:80 \
+  -p 443:443 \
+  -v "$(pwd)/nginx/nginx.conf:/etc/nginx/conf.d/default.conf" \
+  -v "$(pwd)/nginx/logs:/var/log/nginx" \
+  -v "$(pwd)/nginx/ssl:/etc/nginx/ssl" \
+  --restart unless-stopped \
+  nginx:stable-alpine
 
 针对API_URL处理兼容更多的api地址，规则与Cherry Studio一致， /结尾忽略v1版本，#结尾强制使用输入地址。
 API_URL 处理逻辑说明：
