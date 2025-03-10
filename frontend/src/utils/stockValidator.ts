@@ -16,57 +16,10 @@ export enum MarketType {
 
 /**
  * 验证A股股票代码
- * @param code 股票代码
  * @returns 是否为有效的A股代码
  */
-export const validateAStock = (code: string): boolean => {
-  // 深A主板股票代码00开头，6位数字
-  // 中小板股票代码002、003、004开头，6位数字
-  // 创业板股票代码300开头，6位数字
-  // 沪A主板股票代码600、601、603开头，6位数字
-  // 科创板股票代码688开头，6位数字
-  // 深B股票代码200开头，6位数字
-  // 沪B股票代码900开头，6位数字
-  // 老三板A股代码400开头，6位数字
-  // 老三板B股代码420开头，6位数字
-  // 北京证券交易所股票代码以8开头，一般为5位数字（如80XXX）
-  // 股转挂牌股票代码430、830开头，6位数字
-  
-  // 所有6位数字的股票代码前缀
-  const validPrefixes6Digits = [
-    '00',   // 深A主板
-    '002',  // 中小板
-    '003',  // 中小板
-    '004',  // 中小板
-    '300',  // 创业板
-    '600',  // 沪A主板
-    '601',  // 沪A主板
-    '603',  // 沪A主板
-    '688',  // 科创板
-    '200',  // 深B股
-    '900',  // 沪B股
-    '400',  // 老三板A股
-    '420',  // 老三板B股
-    '430',  // 股转挂牌股票
-    '830'   // 股转挂牌股票
-  ];
-  
-  // 验证6位数字的股票代码
-  if (/^\d{6}$/.test(code)) {
-    for (const prefix of validPrefixes6Digits) {
-      if (code.startsWith(prefix)) {
-        return true;
-      }
-    }
-  }
-  
-  // 验证北京证券交易所（以8开头的股票）
-  // 北交所股票一般是5位数字，格式为8xxxx
-  if (code.startsWith('8') && /^\d{5}$/.test(code)) {
-    return true;
-  }
-  
-  return false;
+export const validateAStock = (): boolean => {
+  return true;
 };
 
 /**
@@ -119,10 +72,10 @@ export const validateStockCode = (
   
   switch (marketType) {
     case MarketType.A:
-      if (!validateAStock(code)) {
+      if (!validateAStock()) {
         return { 
           valid: false, 
-          errorMessage: `无效的A股股票代码格式: ${code}。支持的代码格式包括：深A主板(00)、中小板(002/003/004)、创业板(300)、沪A主板(600/601/603)、科创板(688)、深B股(200)、沪B股(900)、老三板(400/420)、北交所(8开头5位数)、股转系统(430/830)`
+          errorMessage: `股票代码不能为空` // A股验证仅检查非空
         };
       }
       break;
