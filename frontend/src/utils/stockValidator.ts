@@ -1,4 +1,4 @@
- /**
+/**
  * 股票代码验证工具
  * 用于验证不同市场类型的股票代码格式
  */
@@ -24,6 +24,7 @@ export const validateAStock = (code: string): boolean => {
   // 深圳证券交易所股票代码以0或3开头，6位数字
   // 科创板股票代码以688开头，6位数字
   // 北京证券交易所股票代码以8开头，一般为5位数字（如80XXX）
+  // 北交所科技创新板块股票代码以43开头，6位数字
   // 注意：中小板、创业板代码格式已合并处理
   
   // 验证上海证券交易所（以6开头的6位数字）
@@ -44,6 +45,11 @@ export const validateAStock = (code: string): boolean => {
   // 验证北京证券交易所（以8开头的股票）
   // 北交所股票一般是5位数字，格式为8xxxx
   if (code.startsWith('8') && /^\d{5}$/.test(code)) {
+    return true;
+  }
+  
+  // 验证北交所科技创新板块（以43开头的6位数字）
+  if (code.startsWith('43') && /^\d{6}$/.test(code)) {
     return true;
   }
   
@@ -103,7 +109,7 @@ export const validateStockCode = (
       if (!validateAStock(code)) {
         return { 
           valid: false, 
-          errorMessage: `无效的A股股票代码格式: ${code}。A股代码应以0、3、6、688或8开头，且为6位数字或5位数字`
+          errorMessage: `无效的A股股票代码格式: ${code}。A股代码应以0、3、6、688、8或43开头，且为6位数字(北交所8开头为5位数字)`
         };
       }
       break;
