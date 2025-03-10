@@ -96,6 +96,7 @@ export interface StreamAnalysisUpdate {
   name?: string;
   price?: number;
   change_percent?: number;
+  price_change_value?: number;
   market_value?: number;
   score?: number;
   recommendation?: string;

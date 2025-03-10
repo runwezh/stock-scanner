@@ -211,23 +211,11 @@ function highlightKeywords(html: string): string {
   return html;
 }
 
-// 计算涨跌幅
+// 获取涨跌幅
 const calculatedChangePercent = computed(() => {
-  // 如果已有changePercent，则直接使用
   if (props.stock.changePercent !== undefined) {
     return props.stock.changePercent;
   }
-  
-  // 如果有price_change和price，则计算涨跌幅
-  if (props.stock.price_change !== undefined && props.stock.price !== undefined) {
-    // 计算涨跌幅百分比 = (价格变动 / (当前价格 - 价格变动)) * 100
-    const basePrice = props.stock.price - props.stock.price_change;
-    if (basePrice !== 0) {
-      return (props.stock.price_change / basePrice) * 100;
-    }
-  }
-  
-  // 无法计算则返回undefined
   return undefined;
 });
 

@@ -469,21 +469,12 @@ function handleStreamUpdate(data: StreamAnalysisUpdate) {
     
     // 确保所有数值类型的字段都有默认值
     stock.price = data.price ?? stock.price ?? undefined;
-    stock.price_change = data.price_change ?? stock.price_change ?? undefined;
-    // 使用change_percent作为涨跌幅
+    stock.price_change = data.price_change_value ?? data.price_change ?? stock.price_change ?? undefined;
     stock.changePercent = data.change_percent ?? stock.changePercent ?? undefined;
     stock.marketValue = data.market_value ?? stock.marketValue ?? undefined;
     stock.score = data.score ?? stock.score ?? undefined;
     stock.rsi = data.rsi ?? stock.rsi ?? undefined;
 
-    // 如果没有change_percent但有price_change和price，尝试计算changePercent
-    if (stock.changePercent === undefined && stock.price_change !== undefined && stock.price !== undefined) {
-      const basePrice = stock.price - stock.price_change;
-      if (basePrice !== 0) {
-        stock.changePercent = (stock.price_change / basePrice) * 100;
-      }
-    }
-    
     // 更新分析状态
     if (data.status) {
       stock.analysisStatus = data.status;

@@ -95,8 +95,15 @@ class StockAnalyzerService:
             latest_data = df_with_indicators.iloc[-1]
             previous_data = df_with_indicators.iloc[-2] if len(df_with_indicators) > 1 else latest_data
             
-            # 计算价格变化百分比
-            price_change = ((latest_data['Close'] - previous_data['Close']) / previous_data['Close']) * 100
+            # 价格变动绝对值
+            price_change_value = latest_data['Close'] - previous_data['Close']
+            
+            # 优先使用原始数据中的涨跌幅(Change_pct)
+            change_percent = latest_data.get('Change_pct')
+            
+            # 如果原始数据中没有涨跌幅，才进行计算
+            if change_percent is None and previous_data['Close'] != 0:
+                change_percent = (price_change_value / previous_data['Close']) * 100
             
             # 确定MA趋势
             ma_short = latest_data.get('MA5', 0)
@@ -142,7 +149,9 @@ class StockAnalyzerService:
                 "analysis_date": analysis_date,
                 "score": score,
                 "price": latest_data['Close'],
-                "price_change": price_change,
+                "price_change_value": price_change_value,  # 价格变动绝对值
+                "price_change": change_percent,  # 兼容旧版前端，传递涨跌幅
+                "change_percent": change_percent,  # 涨跌幅百分比，新字段
                 "ma_trend": ma_trend,
                 "rsi": latest_data.get('RSI', 0),
                 "macd_signal": macd_signal,
@@ -220,6 +229,13 @@ class StockAnalyzerService:
                 if df is not None and len(df) > 0:
                     # 获取最新数据
                     latest_data = df.iloc[-1]
+                    previous_data = df.iloc[-2] if len(df) > 1 else latest_data
+                    
+                    # 价格变动绝对值
+                    price_change_value = latest_data['Close'] - previous_data['Close']
+                    
+                    # 获取涨跌幅
+                    change_percent = latest_data.get('Change_pct')
                     
                     # 发送股票基本信息和评分
                     yield json.dumps({
@@ -227,7 +243,9 @@ class StockAnalyzerService:
                         "score": score,
                         "recommendation": rec,
                         "price": float(latest_data.get('Close', 0)),
-                        "price_change": float(latest_data.get('Change', 0)),
+                        "price_change_value": float(price_change_value),  # 价格变动绝对值
+                        "price_change": change_percent,  # 兼容旧版前端，传递涨跌幅
+                        "change_percent": change_percent,  # 涨跌幅百分比，新字段
                         "rsi": float(latest_data.get('RSI', 0)) if 'RSI' in latest_data else None,
                         "ma_trend": "UP" if latest_data.get('MA5', 0) > latest_data.get('MA20', 0) else "DOWN",
                         "macd_signal": "BUY" if latest_data.get('MACD', 0) > latest_data.get('MACD_Signal', 0) else "SELL",
