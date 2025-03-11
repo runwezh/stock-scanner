@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Request, Response, Depends, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse, StreamingResponse, FileResponse, RedirectResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Generator
 from services.stock_analyzer_service import StockAnalyzerService
@@ -10,9 +10,9 @@ from services.us_stock_service_async import USStockServiceAsync
 from services.fund_service_async import FundServiceAsync
 import os
 import httpx
-from logger import get_logger
+from utils.logger import get_logger
 from utils.api_utils import APIUtils
-from dotenv import load_dotenv, dotenv_values
+from dotenv import load_dotenv
 import uvicorn
 import json
 import secrets

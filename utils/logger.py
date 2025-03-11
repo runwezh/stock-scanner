@@ -2,7 +2,7 @@ from loguru import logger
 import sys
 import os
 from datetime import datetime
-import shutil
+
 
 # 创建日志目录
 log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")

@@ -1,19 +1,19 @@
 import asyncio
 import pandas as pd
 from typing import List, Dict, Any, Optional
-from logger import get_logger
+from utils.logger import get_logger
 
 # 获取日志器
 logger = get_logger()
 
 class USStockServiceAsync:
     """
-    异步美股服务
-    提供美股数据的异步搜索和获取功能
+    美股服务
+    提供美股数据的搜索和获取功能
     """
     
     def __init__(self):
-        """初始化异步美股服务"""
+        """初始化美股服务"""
         logger.debug("初始化USStockServiceAsync")
         
         # 可选：添加缓存以减少频繁请求

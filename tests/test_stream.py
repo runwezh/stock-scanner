@@ -1,13 +1,13 @@
 import os
 import requests
 import json
-from logger import get_logger, get_stream_logger
+from utils.logger import get_logger
 from dotenv import load_dotenv
 from utils.api_utils import APIUtils
 
 # 获取日志器
 logger = get_logger()
-stream_logger = get_stream_logger()
+
 
 def _truncate_json_for_logging(json_obj, max_length=500):
     """截断JSON对象用于日志记录，避免日志过大
@@ -38,7 +38,7 @@ def test_api_stream():
     # 获取API配置
     api_url = os.getenv('API_URL')
     api_key = os.getenv('API_KEY')
-    api_model = os.getenv('API_MODEL', 'gpt-3.5-turbo')
+    api_model = os.getenv('API_MODEL', 'gemini-2.0-flash')
     
     logger.info(f"开始测试API流式响应，API URL: {api_url}, MODEL: {api_model}")
     

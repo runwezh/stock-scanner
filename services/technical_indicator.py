@@ -1,7 +1,6 @@
 import pandas as pd
-import numpy as np
 from typing import Dict, Optional, Any
-from logger import get_logger
+from utils.logger import get_logger
 
 # 获取日志器
 logger = get_logger()
@@ -29,7 +28,7 @@ class TechnicalIndicator:
             'atr_period': 14
         }
         
-        logger.debug(f"初始化TechnicalIndicator，参数: {self.params}")
+        logger.debug(f"初始化TechnicalIndicator技术指标计算服务，参数: {self.params}")
     
     def calculate_ema(self, series: pd.Series, period: int) -> pd.Series:
         """

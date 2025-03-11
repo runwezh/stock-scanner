@@ -1,7 +1,6 @@
 import pandas as pd
-import numpy as np
-from typing import Dict, Optional, Any, List, Tuple
-from logger import get_logger
+from typing import Dict, List, Tuple
+from utils.logger import get_logger
 
 # 获取日志器
 logger = get_logger()
@@ -14,7 +13,7 @@ class StockScorer:
     
     def __init__(self):
         """初始化股票评分服务"""
-        logger.debug("初始化StockScorer")
+        logger.debug("初始化StockScorer股票评分服务")
     
     def calculate_score(self, df: pd.DataFrame) -> int:
         """
