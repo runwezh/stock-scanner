@@ -176,7 +176,7 @@ import {
   DownloadOutline as DownloadIcon,
 } from '@vicons/ionicons5';
 
-import MarketTimeDisplay from './MarketTimeDisplay.vue';
+// import MarketTimeDisplay from './MarketTimeDisplay.vue';
 import ApiConfigPanel from './ApiConfigPanel.vue';
 import StockSearch from './StockSearch.vue';
 import StockCard from './StockCard.vue';
@@ -215,9 +215,9 @@ const apiConfig = ref<ApiConfig>({
 });
 
 // 移动端检测
-const isMobile = computed(() => {
-  return window.innerWidth <= 768;
-});
+// const isMobile = computed(() => {
+//   return window.innerWidth <= 768;
+// });
 
 // 监听窗口大小变化
 function handleResize() {
