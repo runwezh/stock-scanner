@@ -152,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, h, computed, onBeforeUnmount } from 'vue';
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
 import { 
   NLayout, 
   NLayoutContent, 
@@ -166,7 +166,6 @@ import {
   NButton,
   NEmpty,
   useMessage,
-  useNotification,
   NSpace,
   NText,
   NDataTable,
@@ -177,7 +176,6 @@ import { useClipboard } from '@vueuse/core'
 import { 
   DocumentTextOutline as DocumentTextIcon,
   DownloadOutline as DownloadIcon,
-  NotificationsOutline as NotificationsIcon
 } from '@vicons/ionicons5';
 
 import MarketTimeDisplay from './MarketTimeDisplay.vue';
@@ -194,7 +192,6 @@ import { validateMultipleStockCodes, MarketType } from '@/utils/stockValidator';
 
 // 使用Naive UI的组件API
 const message = useMessage();
-const notification = useNotification();
 const { copy } = useClipboard();
 
 // 从环境变量获取的默认配置

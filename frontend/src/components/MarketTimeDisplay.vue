@@ -106,13 +106,6 @@ import {
 import { updateMarketTimeInfo } from '@/utils';
 import type { MarketTimeInfo, MarketStatus } from '@/types';
 
-const props = defineProps({
-  isMobile: {
-    type: Boolean,
-    default: false
-  }
-});
-
 const marketInfo = ref<MarketTimeInfo>({
   currentTime: '',
   cnMarket: { isOpen: false, nextTime: '' },
