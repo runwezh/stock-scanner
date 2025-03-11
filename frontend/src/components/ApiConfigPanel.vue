@@ -1,7 +1,7 @@
 <template>
-  <div class="api-config-section">
+  <div class="api-config-section mobile-api-config-section">
     <n-button
-      class="toggle-button mobile-touch-target"
+      class="toggle-button mobile-touch-target mobile-toggle-button"
       size="small"
       @click="toggleConfig"
       :quaternary="true"
@@ -10,12 +10,12 @@
       <template #icon>
         <n-icon :component="expanded ? ChevronUpIcon : ChevronDownIcon" />
       </template>
-      <span class="toggle-text">API配置 {{ expanded ? '收起' : '展开' }}</span>
+      <span class="toggle-text mobile-toggle-text">API配置 {{ expanded ? '收起' : '展开' }}</span>
     </n-button>
     
     <n-collapse-transition :show="expanded">
-      <n-card class="api-config-card mobile-card mobile-shadow" :bordered="false">
-        <n-alert title="OpenAI API配置" type="info" v-if="isApiInfoVisible" class="api-info-alert">
+      <n-card class="api-config-card mobile-card mobile-shadow mobile-api-config-card" :bordered="false">
+        <n-alert title="OpenAI API配置" type="info" v-if="isApiInfoVisible" class="api-info-alert mobile-api-info-alert mobile-api-info-alert-small">
           <template #icon>
             <n-icon :component="InformationCircleIcon" />
           </template>
@@ -29,9 +29,9 @@
           </div>
         </n-alert>
 
-        <n-grid :cols="24" :x-gap="16" :y-gap="16" responsive="screen">
-          <n-grid-item :span="24" :md-span="14" :lg-span="14">
-            <n-form-item label="API URL" path="apiUrl">
+        <n-grid :cols="24" :x-gap="16" :y-gap="16" responsive="screen" class="mobile-grid mobile-grid-small">
+          <n-grid-item :span="24" :md-span="14" :lg-span="14" class="mobile-grid-item mobile-grid-item-small">
+            <n-form-item label="API URL" path="apiUrl" class="mobile-form-item">
               <n-input 
                 v-model:value="apiConfig.apiUrl" 
                 placeholder="https://api.openai.com/v1/chat/completions"
@@ -43,7 +43,7 @@
                 </template>
               </n-input>
               <template #feedback>
-                <div class="url-feedback">
+                <div class="url-feedback mobile-url-feedback">
                   <span class="formatted-url">实际请求地址: {{ formattedUrl }}</span>
                   <div class="url-tips">
                     <div>提示: URL以/结尾将忽略v1路径</div>
@@ -54,8 +54,8 @@
             </n-form-item>
           </n-grid-item>
 
-          <n-grid-item :span="24" :md-span="10" :lg-span="10">
-            <n-form-item label="API Key" path="apiKey">
+          <n-grid-item :span="24" :md-span="10" :lg-span="10" class="mobile-grid-item mobile-grid-item-small">
+            <n-form-item label="API Key" path="apiKey" class="mobile-form-item">
               <n-input 
                 v-model:value="apiConfig.apiKey" 
                 type="password" 
@@ -71,8 +71,8 @@
             </n-form-item>
           </n-grid-item>
 
-          <n-grid-item :span="12" :md-span="12" :lg-span="12">
-            <n-form-item label="模型" path="apiModel">
+          <n-grid-item :span="12" :md-span="12" :lg-span="12" class="mobile-grid-item mobile-grid-item-small">
+            <n-form-item label="模型" path="apiModel" class="mobile-form-item">
               <n-input
                 v-model:value="apiConfig.apiModel"
                 placeholder="输入或选择模型名称"
@@ -101,7 +101,7 @@
                 <div class="model-suggestions">
                   <div class="model-tip">您可以直接输入模型名称，或点击右侧按钮从下拉菜单选择</div>
                   <span>常用模型:</span>
-                  <div class="model-chips">
+                  <div class="model-chips mobile-model-chips">
                     <n-tag 
                       v-for="model in commonModels" 
                       :key="model.key"
@@ -109,6 +109,7 @@
                       round
                       clickable
                       @click="selectModel(model.key)"
+                      class="mobile-model-tag"
                     >
                       {{ model.label }}
                     </n-tag>
@@ -118,8 +119,8 @@
             </n-form-item>
           </n-grid-item>
 
-          <n-grid-item :span="12" :md-span="12" :lg-span="12">
-            <n-form-item label="超时时间(秒)" path="apiTimeout">
+          <n-grid-item :span="12" :md-span="12" :lg-span="12" class="mobile-grid-item mobile-grid-item-small">
+            <n-form-item label="超时时间(秒)" path="apiTimeout" class="mobile-form-item">
               <n-input-number 
                 v-model:value="apiTimeout" 
                 placeholder="60"
@@ -144,13 +145,14 @@
           </n-grid-item>
         </n-grid>
 
-        <div class="api-actions">
-          <div class="api-save-option">
+        <div class="api-actions mobile-api-actions">
+          <div class="api-save-option mobile-api-save-option">
             <n-button 
               tertiary
               size="small"
               @click="saveConfig"
               round
+              class="mobile-api-save-option-button"
             >
               <template #icon>
                 <n-icon :component="SaveIcon" />
@@ -159,13 +161,14 @@
             </n-button>
           </div>
           
-          <div class="api-buttons">
+          <div class="api-buttons mobile-api-buttons mobile-api-buttons-small">
             <n-button 
               type="primary" 
               :loading="testingConnection" 
               :disabled="!isConfigValid"
               @click="testConnection"
               round
+              class="mobile-api-button"
             >
               <template #icon>
                 <n-icon :component="CheckmarkIcon" />
@@ -173,7 +176,7 @@
               测试连接
             </n-button>
 
-            <n-button @click="resetConfig" round>
+            <n-button @click="resetConfig" round class="mobile-api-button">
               <template #icon>
                 <n-icon :component="RefreshIcon" />
               </template>
@@ -184,7 +187,7 @@
         
         <n-divider v-if="connectionStatus" style="margin: 16px 0 12px" />
         
-        <div v-if="connectionStatus" class="connection-status" :class="connectionStatus.type">
+        <div v-if="connectionStatus" class="connection-status mobile-connection-status" :class="connectionStatus.type">
           <n-icon :component="connectionStatus.icon" class="status-icon" />
           <span class="status-message">{{ connectionStatus.message }}</span>
         </div>
@@ -609,123 +612,6 @@ onMounted(() => {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 768px) {
-  .api-actions {
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
-  }
-  
-  .api-buttons {
-    width: 100%;
-    justify-content: space-between;
-    margin-top: 0.75rem;
-  }
-  
-  .api-config-card {
-    padding: 0.75rem;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    border-radius: 0.75rem !important;
-    overflow: hidden;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-  }
-  
-  .url-feedback {
-    flex-direction: column;
-    width: 100%;
-  }
-  
-  .api-info-alert {
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
-    border-radius: 0.5rem;
-  }
-  
-  .model-chips {
-    gap: 4px;
-    flex-wrap: wrap;
-    width: 100%;
-  }
-  
-  .toggle-text {
-    font-size: 0.8125rem;
-  }
-  
-  .api-save-option {
-    width: 100%;
-  }
-  
-  .api-save-option button {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  /* 确保输入框在移动端正确显示 */
-  :deep(.n-input) {
-    width: 100% !important;
-  }
-  
-  /* 确保下拉菜单在移动端正确显示 */
-  :deep(.n-dropdown-menu) {
-    max-width: 90vw;
-  }
-  
-  /* 确保连接状态在移动端正确显示 */
-  .connection-status {
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    margin-top: 0.75rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .api-config-section {
-    margin-bottom: 1.5rem;
-    width: 100%;
-    padding-bottom: 15px;
-  }
-  
-  .api-config-card {
-    padding: 0.5rem;
-    border-radius: 0.625rem !important;
-    margin-bottom: 1rem;
-    min-height: 80px;
-  }
-  
-  .api-buttons {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  
-  .api-buttons .n-button {
-    flex: 1;
-    min-width: 40%;
-    height: 36px !important;
-  }
-  
-  .toggle-button {
-    width: 100%;
-    height: 36px !important;
-  }
-  
-  .api-info-alert {
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
-    font-size: 0.75rem;
-  }
-  
-  .model-chips :deep(.n-tag) {
-    font-size: 0.75rem;
-    padding: 0 0.5rem;
-  }
-  
-  /* 确保边框在小屏幕上清晰可见 */
-  .api-config-card, .api-info-alert, .connection-status {
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  }
 }
 
 .model-suggestions {

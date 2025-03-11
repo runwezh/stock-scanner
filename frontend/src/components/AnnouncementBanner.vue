@@ -1,14 +1,14 @@
 <template>
-  <div v-if="showAnnouncement" class="announcement-container" :class="{ 'login-page-announcement': isLoginPage }">
+  <div v-if="showAnnouncement" class="announcement-container mobile-announcement-container" :class="{ 'login-page-announcement mobile-login-announcement': isLoginPage }">
     <n-card class="announcement-card mobile-card" :class="{ 'login-card-style': isLoginPage }">
       <template #header>
-        <div class="announcement-header">
+        <div class="announcement-header mobile-announcement-header">
           <n-icon size="18" :component="InformationCircleIcon" class="info-icon" />
           <span>系统公告</span>
         </div>
       </template>
-      <div class="announcement-content" v-html="processedContent"></div>
-      <div class="announcement-timer">{{ remainingTimeText }}</div>
+      <div class="announcement-content mobile-announcement-content" v-html="processedContent"></div>
+      <div class="announcement-timer mobile-announcement-timer">{{ remainingTimeText }}</div>
       <template #action>
         <n-button quaternary circle size="small" @click="closeAnnouncement" class="mobile-touch-target">
           <template #icon>
@@ -154,54 +154,4 @@ onBeforeUnmount(() => {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
-/* 移动端适配 */
-@media (max-width: 768px) {
-  .announcement-container {
-    top: 0.5rem;
-    right: 0.5rem;
-    left: 0.5rem;
-    max-width: calc(100% - 1rem);
-  }
-  
-  .announcement-card {
-    width: 100%;
-  }
-  
-  .announcement-header {
-    font-size: 0.9375rem;
-  }
-  
-  .announcement-content {
-    font-size: 0.875rem;
-  }
-  
-  /* 登录页面移动端适配 */
-  .login-page-announcement {
-    top: 0.75rem;
-    right: 0.75rem;
-    left: 0.75rem;
-  }
-}
-
-/* 小屏幕手机适配 */
-@media (max-width: 480px) {
-  .announcement-container {
-    top: 0.25rem;
-    right: 0.25rem;
-    left: 0.25rem;
-    max-width: calc(100% - 0.5rem);
-  }
-  
-  .announcement-header {
-    font-size: 0.875rem;
-  }
-  
-  .announcement-content {
-    font-size: 0.8125rem;
-  }
-  
-  .announcement-timer {
-    font-size: 0.6875rem;
-  }
-}
 </style>

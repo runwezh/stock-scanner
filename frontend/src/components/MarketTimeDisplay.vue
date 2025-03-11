@@ -1,29 +1,29 @@
 <template>
-  <n-card class="market-time-card mobile-card mobile-shadow">
-    <n-grid :x-gap="16" :y-gap="16" :cols="gridCols" responsive="screen">
+  <n-card class="market-time-card mobile-card mobile-shadow mobile-market-time-card">
+    <n-grid :x-gap="16" :y-gap="16" cols="1 s:2 m:4" responsive="screen">
       <!-- 当前时间 -->
-      <n-grid-item :span="24" :md-span="6">
-        <div class="time-block current-time-block">
-          <p class="time-label">当前时间</p>
-          <p class="current-time">{{ marketInfo.currentTime }}</p>
+      <n-grid-item>
+        <div class="time-block current-time-block mobile-time-block">
+          <p class="time-label mobile-time-label">当前时间</p>
+          <p class="current-time mobile-current-time">{{ marketInfo.currentTime }}</p>
         </div>
       </n-grid-item>
       
       <!-- A股状态 -->
-      <n-grid-item :span="24" :md-span="6">
-        <div class="time-block market-block" :class="{'market-open-block': marketInfo.cnMarket.isOpen, 'market-closed-block': !marketInfo.cnMarket.isOpen}">
-          <p class="time-label">A股市场</p>
+      <n-grid-item>
+        <div class="time-block market-block mobile-time-block" :class="{'market-open-block mobile-market-open-block': marketInfo.cnMarket.isOpen, 'market-closed-block mobile-market-closed-block': !marketInfo.cnMarket.isOpen}">
+          <p class="time-label mobile-time-label">A股市场</p>
           <div class="market-status" :class="marketInfo.cnMarket.isOpen ? 'status-open' : 'status-closed'">
-            <n-tag v-if="marketInfo.cnMarket.isOpen" type="success" size="medium" round class="status-tag mobile-touch-target">
+            <n-tag v-if="marketInfo.cnMarket.isOpen" type="success" size="medium" round class="status-tag mobile-touch-target mobile-status-tag">
               <template #icon><n-icon size="18"><pulse-icon /></n-icon></template>
               交易中
             </n-tag>
-            <n-tag v-else type="default" size="medium" round class="status-tag mobile-touch-target">
+            <n-tag v-else type="default" size="medium" round class="status-tag mobile-touch-target mobile-status-tag">
               <template #icon><n-icon size="18"><time-icon /></n-icon></template>
               已休市
             </n-tag>
           </div>
-          <p class="time-counter">{{ marketInfo.cnMarket.nextTime }}</p>
+          <p class="time-counter mobile-time-counter">{{ marketInfo.cnMarket.nextTime }}</p>
           <div class="market-progress-container">
             <div class="market-progress-bar" 
                  :class="marketInfo.cnMarket.isOpen ? 'progress-open' : 'progress-closed'"
@@ -38,7 +38,7 @@
       </n-grid-item>
 
       <!-- 港股状态 -->
-      <n-grid-item :span="24" :md-span="6">
+      <n-grid-item>
         <div class="time-block market-block" :class="{'market-open-block': marketInfo.hkMarket.isOpen, 'market-closed-block': !marketInfo.hkMarket.isOpen}">
           <p class="time-label">港股市场</p>
           <div class="market-status" :class="marketInfo.hkMarket.isOpen ? 'status-open' : 'status-closed'">
@@ -66,7 +66,7 @@
       </n-grid-item>
       
       <!-- 美股状态 -->
-      <n-grid-item :span="24" :md-span="6">
+      <n-grid-item>
         <div class="time-block market-block" :class="{'market-open-block': marketInfo.usMarket.isOpen, 'market-closed-block': !marketInfo.usMarket.isOpen}">
           <p class="time-label">美股市场</p>
           <div class="market-status" :class="marketInfo.usMarket.isOpen ? 'status-open' : 'status-closed'">
@@ -97,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { NCard, NGrid, NGridItem, NTag, NIcon } from 'naive-ui';
 import { 
   PulseOutline as PulseIcon,
@@ -111,11 +111,6 @@ const marketInfo = ref<MarketTimeInfo>({
   cnMarket: { isOpen: false, nextTime: '' },
   hkMarket: { isOpen: false, nextTime: '' },
   usMarket: { isOpen: false, nextTime: '' }
-});
-
-// 根据屏幕尺寸自动调整布局
-const gridCols = computed(() => {
-  return 24;
 });
 
 let intervalId: number | null = null;
