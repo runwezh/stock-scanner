@@ -76,7 +76,7 @@ API_URL 处理逻辑说明：
 
 ```shell
 # 克隆仓库
-git clone https://github.com/your-username/stock-scanner.git
+git clone https://github.com/cassianvale/stock-scanner.git
 cd stock-scanner
 
 # 创建.env文件并填写必要的环境变量
