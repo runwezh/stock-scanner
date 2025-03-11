@@ -1,7 +1,7 @@
 <template>
   <div class="api-config-section">
     <n-button
-      class="toggle-button"
+      class="toggle-button mobile-touch-target"
       size="small"
       @click="toggleConfig"
       :quaternary="true"
@@ -14,7 +14,7 @@
     </n-button>
     
     <n-collapse-transition :show="expanded">
-      <n-card class="api-config-card" :bordered="false">
+      <n-card class="api-config-card mobile-card mobile-shadow" :bordered="false">
         <n-alert title="OpenAI API配置" type="info" v-if="isApiInfoVisible" class="api-info-alert">
           <template #icon>
             <n-icon :component="InformationCircleIcon" />
@@ -29,8 +29,8 @@
           </div>
         </n-alert>
 
-        <n-grid :cols="24" :x-gap="16" :y-gap="16">
-          <n-grid-item :span="24" :lg-span="14">
+        <n-grid :cols="24" :x-gap="16" :y-gap="16" responsive="screen">
+          <n-grid-item :span="24" :md-span="14" :lg-span="14">
             <n-form-item label="API URL" path="apiUrl">
               <n-input 
                 v-model:value="apiConfig.apiUrl" 
@@ -54,7 +54,7 @@
             </n-form-item>
           </n-grid-item>
 
-          <n-grid-item :span="24" :lg-span="10">
+          <n-grid-item :span="24" :md-span="10" :lg-span="10">
             <n-form-item label="API Key" path="apiKey">
               <n-input 
                 v-model:value="apiConfig.apiKey" 
@@ -71,7 +71,7 @@
             </n-form-item>
           </n-grid-item>
 
-          <n-grid-item :span="12" :lg-span="12">
+          <n-grid-item :span="12" :md-span="12" :lg-span="12">
             <n-form-item label="模型" path="apiModel">
               <n-input
                 v-model:value="apiConfig.apiModel"
@@ -118,7 +118,7 @@
             </n-form-item>
           </n-grid-item>
 
-          <n-grid-item :span="12" :lg-span="12">
+          <n-grid-item :span="12" :md-span="12" :lg-span="12">
             <n-form-item label="超时时间(秒)" path="apiTimeout">
               <n-input-number 
                 v-model:value="apiTimeout" 
@@ -612,11 +612,113 @@ onMounted(() => {
   .api-actions {
     flex-direction: column;
     align-items: flex-start;
+    width: 100%;
   }
   
   .api-buttons {
     width: 100%;
     justify-content: space-between;
+    margin-top: 0.75rem;
+  }
+  
+  .api-config-card {
+    padding: 0.75rem;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 0.75rem !important;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  
+  .url-feedback {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .api-info-alert {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    border-radius: 0.5rem;
+  }
+  
+  .model-chips {
+    gap: 4px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  
+  .toggle-text {
+    font-size: 0.8125rem;
+  }
+  
+  .api-save-option {
+    width: 100%;
+  }
+  
+  .api-save-option button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* 确保输入框在移动端正确显示 */
+  :deep(.n-input) {
+    width: 100% !important;
+  }
+  
+  /* 确保下拉菜单在移动端正确显示 */
+  :deep(.n-dropdown-menu) {
+    max-width: 90vw;
+  }
+  
+  /* 确保连接状态在移动端正确显示 */
+  .connection-status {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-top: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .api-config-section {
+    margin-bottom: 0.75rem;
+    width: 100%;
+  }
+  
+  .api-config-card {
+    padding: 0.5rem;
+    border-radius: 0.625rem !important;
+  }
+  
+  .api-buttons {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .api-buttons .n-button {
+    flex: 1;
+    min-width: 40%;
+    height: 36px !important;
+  }
+  
+  .toggle-button {
+    width: 100%;
+    height: 36px !important;
+  }
+  
+  .api-info-alert {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .model-chips :deep(.n-tag) {
+    font-size: 0.75rem;
+    padding: 0 0.5rem;
+  }
+  
+  /* 确保边框在小屏幕上清晰可见 */
+  .api-config-card, .api-info-alert, .connection-status {
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
   }
 }
 

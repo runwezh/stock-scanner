@@ -49,6 +49,7 @@ export interface SearchResult {
 export interface MarketStatus {
   isOpen: boolean;
   nextTime: string;
+  progressPercentage?: number;
 }
 
 export interface MarketTimeInfo {

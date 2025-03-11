@@ -219,4 +219,73 @@ onBeforeUnmount(() => {
 .result-market-value {
   margin-top: 0.25rem;
 }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .search-results {
+    max-width: 100%;
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--n-border-color, rgba(0, 0, 0, 0.1));
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .search-result-item {
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .search-result-item:last-child {
+    border-bottom: none;
+  }
+  
+  .result-name {
+    max-width: 170px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* 确保输入框在移动端正确显示 */
+  :deep(.n-input) {
+    width: 100% !important;
+  }
+  
+  /* 增大触摸区域 */
+  .search-result-item {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .result-symbol-name, .result-meta {
+    font-size: 0.875rem;
+  }
+  
+  .result-name, .result-market, .result-market-value {
+    font-size: 0.75rem;
+  }
+  
+  .result-name {
+    max-width: 120px;
+  }
+  
+  .search-result-item {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .search-results {
+    border-radius: 0.625rem;
+  }
+  
+  .loading-results, .no-results {
+    padding: 0.75rem;
+    font-size: 0.75rem;
+  }
+  
+  /* 确保边框在小屏幕上清晰可见 */
+  .search-results {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+}
 </style>

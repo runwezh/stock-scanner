@@ -1,5 +1,5 @@
 <template>
-  <n-card class="stock-card" :bordered="false" :class="{ 'is-analyzing': isAnalyzing }">
+  <n-card class="stock-card mobile-card mobile-shadow" :bordered="false" :class="{ 'is-analyzing': isAnalyzing }">
     <div class="card-header">
       <div class="header-main">
         <div class="header-left">
@@ -1009,5 +1009,134 @@ const getStatusText = computed(() => {
   margin: 0.75rem auto;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 移动端适配样式 */
+@media (max-width: 768px) {
+  .stock-card {
+    margin-bottom: 0.75rem;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 0.75rem !important;
+    overflow: hidden;
+  }
+  
+  .card-header {
+    padding: 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .header-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .header-right {
+    margin-top: 0.5rem;
+    align-self: flex-end;
+  }
+  
+  .stock-price-info {
+    flex-direction: row;
+    margin-top: 0.5rem;
+    gap: 0.75rem;
+  }
+  
+  .stock-summary {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .indicators-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  .actions-bar {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .action-button {
+    width: 100%;
+    height: 36px !important;
+  }
+  
+  .analysis-result {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.75rem;
+    max-height: 300px;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    margin: 0.5rem;
+  }
+  
+  .analysis-result :deep(pre) {
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .analysis-result :deep(table) {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    border-radius: 0.375rem;
+  }
+  
+  .indicator-item {
+    border-radius: 0.5rem;
+    padding: 0.625rem;
+  }
+}
+
+/* 小屏幕手机适配 */
+@media (max-width: 480px) {
+  .stock-card {
+    margin-bottom: 0.5rem;
+    border-radius: 0.625rem !important;
+  }
+  
+  .stock-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .stock-name {
+    margin-left: 0;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+  }
+  
+  .indicators-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+  
+  .indicator-item {
+    padding: 0.5rem;
+  }
+  
+  .analysis-result {
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    margin: 0.375rem;
+  }
+  
+  .card-header {
+    padding: 0.625rem;
+  }
+  
+  /* 确保边框在小屏幕上清晰可见 */
+  .stock-card, .indicator-item, .analysis-result {
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
 }
 </style>

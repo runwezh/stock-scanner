@@ -1,10 +1,18 @@
 <template>
-  <div class="app-container">
+  <div class="app-container mobile-bottom-extend">
+    <!-- 公告横幅 -->
+    <AnnouncementBanner 
+      v-if="announcement && showAnnouncementBanner" 
+      :content="announcement" 
+      :auto-close-time="5"
+      @close="handleAnnouncementClose"
+    />
+    
     <n-layout class="main-layout">
-      <n-layout-content class="main-content">
+      <n-layout-content class="main-content mobile-content-container">
         
         <!-- 市场时间显示 -->
-        <MarketTimeDisplay />
+        <MarketTimeDisplay :is-mobile="isMobile" />
         
         <!-- API配置面板 -->
         <ApiConfigPanel
@@ -15,11 +23,11 @@
         />
         
         <!-- 主要内容 -->
-        <n-card class="analysis-container">
+        <n-card class="analysis-container mobile-card mobile-card-spacing mobile-shadow">
           
-          <n-grid :cols="24" :x-gap="16" :y-gap="16">
+          <n-grid :cols="24" :x-gap="16" :y-gap="16" responsive="screen">
             <!-- 左侧配置区域 -->
-            <n-grid-item :span="24" :lg-span="8">
+            <n-grid-item :span="24" :sm-span="24" :md-span="10" :lg-span="8">
               <div class="config-section">
                 <n-form-item label="选择市场类型">
                   <n-select
@@ -63,7 +71,7 @@
             </n-grid-item>
             
             <!-- 右侧结果区域 -->
-            <n-grid-item :span="24" :lg-span="16">
+            <n-grid-item :span="24" :sm-span="24" :md-span="14" :lg-span="16">
               <div class="results-section">
                 <div class="results-header">
                   <n-space align="center" justify="space-between">
@@ -135,13 +143,16 @@
             </n-grid-item>
           </n-grid>
         </n-card>
+        
+        <!-- 底部安全区域 -->
+        <SafeAreaBottom />
       </n-layout-content>
     </n-layout>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue';
+import { ref, onMounted, h, computed, onBeforeUnmount } from 'vue';
 import { 
   NLayout, 
   NLayoutContent, 
@@ -173,6 +184,8 @@ import MarketTimeDisplay from './MarketTimeDisplay.vue';
 import ApiConfigPanel from './ApiConfigPanel.vue';
 import StockSearch from './StockSearch.vue';
 import StockCard from './StockCard.vue';
+import SafeAreaBottom from './SafeAreaBottom.vue';
+import AnnouncementBanner from './AnnouncementBanner.vue';
 
 import { apiService } from '@/services/api';
 import type { StockInfo, ApiConfig, StreamInitMessage, StreamAnalysisUpdate } from '@/types';
@@ -189,6 +202,7 @@ const defaultApiUrl = ref('');
 const defaultApiModel = ref('');
 const defaultApiTimeout = ref('60');
 const announcement = ref('');
+const showAnnouncementBanner = ref(true);
 
 // 股票分析配置
 const marketType = ref('A');
@@ -206,20 +220,24 @@ const apiConfig = ref<ApiConfig>({
   saveApiConfig: false
 });
 
+// 移动端检测
+const isMobile = computed(() => {
+  return window.innerWidth <= 768;
+});
+
+// 监听窗口大小变化
+function handleResize() {
+  // 窗口大小变化时，isMobile计算属性会自动更新
+  // 这里可以添加其他需要在窗口大小变化时执行的逻辑
+}
+
 // 显示系统公告
 const showAnnouncement = (content: string) => {
   if (!content) return;
   
-  notification.info({
-    title: '系统公告',
-    content: () => h('div', { style: 'display: flex; align-items: center;' }, [
-      h(NIcon, { component: NotificationsIcon, style: 'margin-right: 8px; font-size: 18px;' }),
-      h('span', null, content)
-    ]),
-    duration: 0, // 设置为0表示不会自动关闭
-    keepAliveOnHover: true,
-    closable: true
-  });
+  // 使用AnnouncementBanner组件显示公告
+  announcement.value = content;
+  showAnnouncementBanner.value = true;
 };
 
 // 市场选项
@@ -911,6 +929,9 @@ function getChineseVolumeStatus(status: string): string {
 // 页面加载时获取默认配置和公告
 onMounted(async () => {
   try {
+    // 添加窗口大小变化监听
+    window.addEventListener('resize', handleResize);
+    
     // 从API获取配置信息
     const config = await apiService.getConfig();
     
@@ -938,6 +959,16 @@ onMounted(async () => {
     console.error('获取默认配置时出错:', error);
   }
 });
+
+// 组件销毁前移除事件监听
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize);
+});
+
+// 处理公告关闭事件
+function handleAnnouncementClose() {
+  showAnnouncementBanner.value = false;
+}
 </script>
 
 <style scoped>
@@ -969,7 +1000,7 @@ onMounted(async () => {
 }
 
 .analysis-container {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .config-section {
@@ -997,5 +1028,96 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
+}
+
+/* 移动端适配的媒体查询 */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 0.5rem;
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .action-buttons .n-button {
+    width: 100%;
+  }
+  
+  .card-title {
+    font-size: 1.1rem;
+  }
+  
+  .analysis-container {
+    margin-bottom: 0.75rem;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .config-section, .results-section {
+    padding: 0.25rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* 确保表格内容在移动端可滚动 */
+  .n-data-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    border-radius: 0.5rem;
+  }
+  
+  /* 改善表单项在移动端的间距 */
+  :deep(.n-form-item) {
+    margin-bottom: 0.75rem;
+  }
+  
+  /* 确保卡片视图在移动端正确显示 */
+  :deep(.n-grid) {
+    width: 100% !important;
+  }
+  
+  :deep(.n-grid-item) {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* 小屏幕手机适配 */
+@media (max-width: 480px) {
+  .main-content {
+    padding: 0.25rem;
+  }
+  
+  .results-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  :deep(.n-space) {
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  :deep(.n-space .n-button) {
+    margin-right: 0 !important;
+  }
+  
+  .analysis-container {
+    border-radius: 0.625rem;
+  }
+  
+  /* 确保下拉菜单在小屏幕上正确显示 */
+  :deep(.n-dropdown-menu) {
+    max-width: 90vw;
+  }
 }
 </style>

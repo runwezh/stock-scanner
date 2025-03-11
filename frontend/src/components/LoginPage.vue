@@ -1,5 +1,13 @@
 <template>
   <div class="login-container">
+    <!-- 公告横幅 -->
+    <AnnouncementBanner 
+      v-if="announcement && showAnnouncementBanner" 
+      :content="announcement" 
+      :auto-close-time="5"
+      @close="handleAnnouncementClose"
+    />
+    
     <div class="login-background">
       <div class="login-shape shape1"></div>
       <div class="login-shape shape2"></div>
@@ -80,22 +88,22 @@ import {
   NIcon,
   NText,
   useMessage,
-  useNotification
 } from 'naive-ui';
 import type { FormInst, FormRules } from 'naive-ui';
 import { 
   BarChartOutline as BarChartIcon, 
   LockClosedOutline as LockClosedIcon,
-  NotificationsOutline as NotificationsIcon
 } from '@vicons/ionicons5';
 import { apiService } from '@/services/api';
 import type { LoginRequest } from '@/types';
+import AnnouncementBanner from '@/components/AnnouncementBanner.vue';
 
 const message = useMessage();
-const notification = useNotification();
 const router = useRouter();
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
+const announcement = ref('');
+const showAnnouncementBanner = ref(true);
 
 const formValue = reactive({
   password: ''
@@ -114,16 +122,14 @@ const rules: FormRules = {
 const showAnnouncement = (content: string) => {
   if (!content) return;
   
-  notification.info({
-    title: '系统公告',
-    content: () => h('div', { style: 'display: flex; align-items: center;' }, [
-      h(NIcon, { component: NotificationsIcon, style: 'margin-right: 8px; font-size: 18px;' }),
-      h('span', null, content)
-    ]),
-    duration: 10000,
-    keepAliveOnHover: true,
-    closable: true
-  });
+  // 使用AnnouncementBanner组件显示公告
+  announcement.value = content;
+  showAnnouncementBanner.value = true;
+};
+
+// 处理公告关闭事件
+const handleAnnouncementClose = () => {
+  showAnnouncementBanner.value = false;
 };
 
 // 页面加载时检查是否已登录并获取系统公告
@@ -263,6 +269,11 @@ html, body {
   top: 0;
   left: 0;
   overflow: hidden;
+}
+
+/* 确保公告在登录页面上方显示 */
+:deep(.announcement-container) {
+  z-index: 100;
 }
 
 .login-background {
