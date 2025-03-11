@@ -143,9 +143,7 @@
             </n-grid-item>
           </n-grid>
         </n-card>
-        
-        <!-- 底部安全区域 -->
-        <SafeAreaBottom />
+
       </n-layout-content>
     </n-layout>
   </div>
@@ -182,7 +180,6 @@ import MarketTimeDisplay from './MarketTimeDisplay.vue';
 import ApiConfigPanel from './ApiConfigPanel.vue';
 import StockSearch from './StockSearch.vue';
 import StockCard from './StockCard.vue';
-import SafeAreaBottom from './SafeAreaBottom.vue';
 import AnnouncementBanner from './AnnouncementBanner.vue';
 
 import { apiService } from '@/services/api';
@@ -974,6 +971,8 @@ function handleAnnouncementClose() {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+  padding-bottom: 20px; /* 增加底部内边距 */
+  box-sizing: border-box;
 }
 
 .main-layout {
@@ -981,6 +980,7 @@ function handleAnnouncementClose() {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+  min-height: calc(100vh - 20px); /* 确保至少占满视口高度减去底部空间 */
 }
 
 .main-content {
@@ -1084,6 +1084,10 @@ function handleAnnouncementClose() {
     width: 100% !important;
     max-width: 100% !important;
   }
+  
+  .app-container {
+    padding-bottom: 30px; /* 增加移动端底部内边距 */
+  }
 }
 
 /* 小屏幕手机适配 */
@@ -1115,6 +1119,10 @@ function handleAnnouncementClose() {
   /* 确保下拉菜单在小屏幕上正确显示 */
   :deep(.n-dropdown-menu) {
     max-width: 90vw;
+  }
+  
+  .app-container {
+    padding-bottom: 40px; /* 增加小屏幕底部内边距 */
   }
 }
 </style>

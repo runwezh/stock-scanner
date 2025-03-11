@@ -250,6 +250,18 @@ onBeforeUnmount(() => {
   border-radius: 0.75rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   background: linear-gradient(to bottom, rgba(250, 250, 252, 0.8), rgba(245, 245, 250, 0.5));
+  min-height: 200px; /* 确保卡片有最小高度 */
+}
+
+/* 确保网格布局在各种屏幕尺寸下正确显示 */
+:deep(.n-grid) {
+  justify-content: center;
+  width: 100%;
+}
+
+:deep(.n-grid-item) {
+  display: flex;
+  justify-content: center;
 }
 
 .time-block {
@@ -262,17 +274,24 @@ onBeforeUnmount(() => {
   transition: all 0.3s ease;
   height: 100%;
   box-sizing: border-box;
+  max-width: 100%; /* 确保不超过父容器宽度 */
 }
 
 .current-time-block {
   background-color: rgba(32, 128, 240, 0.05);
   border: 1px solid rgba(32, 128, 240, 0.1);
+  max-width: 360px; /* 限制当前时间块的最大宽度 */
+  width: 100%; /* 确保响应式 */
+  margin: 0 auto; /* 居中显示 */
 }
 
 .market-block {
   position: relative;
   overflow: hidden;
   border: 1px solid transparent;
+  max-width: 360px; /* 限制市场块的最大宽度 */
+  width: 100%; /* 确保响应式 */
+  margin: 0 auto; /* 居中显示 */
 }
 
 .market-open-block {
@@ -305,6 +324,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   min-height: 36px;
   width: 100%;
+  flex-wrap: wrap; /* 允许内容在必要时换行 */
 }
 
 .status-tag {
@@ -315,6 +335,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   min-width: 100px;
+  max-width: 100%; /* 确保不超过父容器宽度 */
 }
 
 .market-status :deep(.n-tag__icon) {
@@ -336,6 +357,11 @@ onBeforeUnmount(() => {
   font-size: 0.875rem;
   color: var(--n-text-color-3);
   margin-top: 0.5rem;
+  width: 100%; /* 确保文本容器占满宽度 */
+  text-align: center; /* 文本居中 */
+  white-space: nowrap; /* 防止文本换行 */
+  overflow: hidden; /* 隐藏溢出内容 */
+  text-overflow: ellipsis; /* 显示省略号 */
 }
 
 /* 进度条样式 */
@@ -349,6 +375,7 @@ onBeforeUnmount(() => {
   position: relative;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(200, 200, 200, 0.4);
+  max-width: 100%; /* 确保不超过父容器宽度 */
 }
 
 .market-progress-bar {
@@ -398,6 +425,7 @@ onBeforeUnmount(() => {
   padding: 0 2px;
   font-weight: 500;
   text-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);
+  box-sizing: border-box; /* 确保内边距不会增加宽度 */
 }
 
 /* 反向标记（休市状态） */
@@ -407,6 +435,10 @@ onBeforeUnmount(() => {
 
 .progress-marker {
   position: relative;
+  white-space: nowrap; /* 防止文本换行 */
+  max-width: 45%; /* 限制宽度，防止重叠 */
+  overflow: hidden; /* 隐藏溢出内容 */
+  text-overflow: ellipsis; /* 显示省略号 */
 }
 
 @keyframes shimmer {
@@ -435,11 +467,12 @@ onBeforeUnmount(() => {
   .market-time-card {
     padding: 0.5rem;
     margin-bottom: 1rem;
+    min-height: 180px; /* 移动端下的最小高度 */
   }
   
   .time-block {
     padding: 0.625rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem; /* 增加底部外边距 */
   }
   
   .current-time {
@@ -452,8 +485,14 @@ onBeforeUnmount(() => {
   }
   
   .status-tag {
-    min-width: 120px;
-    height: 40px !important;
+    min-width: 100px; /* 减小移动端下的最小宽度 */
+    height: 36px !important;
+    font-size: 0.875rem; /* 减小字体大小 */
+  }
+  
+  .time-counter {
+    font-size: 0.75rem; /* 减小字体大小 */
+    margin-top: 0.375rem;
   }
   
   /* 增强视觉层次 */
@@ -486,8 +525,12 @@ onBeforeUnmount(() => {
   }
   
   .progress-markers {
-    top: -20px;
+    top: -18px; /* 调整位置 */
     font-size: 0.6875rem;
+  }
+  
+  .progress-marker {
+    max-width: 40%; /* 移动端下进一步限制宽度 */
   }
   
   .progress-marker.start::before,
@@ -506,16 +549,26 @@ onBeforeUnmount(() => {
     background-color: rgba(90, 90, 90, 0.9);
     box-shadow: 0 0 4px rgba(90, 90, 90, 0.5);
   }
+  
+  .current-time-block {
+    max-width: 360px; /* 移动端下的最大宽度 */
+  }
+  
+  .market-block {
+    max-width: 360px; /* 移动端下的最大宽度 */
+  }
 }
 
 /* 小屏幕手机适配 */
 @media (max-width: 480px) {
   .market-time-card {
     padding: 0.375rem;
+    min-height: 160px; /* 小屏幕下的最小高度 */
   }
   
   .time-block {
     padding: 0.5rem;
+    margin-bottom: 1rem; /* 增加小屏幕下的底部外边距 */
   }
   
   .current-time {
@@ -531,8 +584,9 @@ onBeforeUnmount(() => {
   }
   
   .status-tag {
-    min-width: 100px;
-    font-size: 0.875rem;
+    min-width: 90px; /* 进一步减小最小宽度 */
+    font-size: 0.8125rem;
+    padding: 0 12px !important; /* 减小内边距 */
   }
   
   /* 确保边框在小屏幕上清晰可见 */
@@ -547,8 +601,12 @@ onBeforeUnmount(() => {
   }
   
   .progress-markers {
-    top: -20px;
+    top: -16px; /* 调整位置 */
     font-size: 0.625rem;
+  }
+  
+  .progress-marker {
+    max-width: 35%; /* 小屏幕下进一步限制宽度 */
   }
   
   .progress-marker.start::before,
@@ -565,5 +623,19 @@ onBeforeUnmount(() => {
   .progress-open, .progress-closed {
     border-width: 0;
   }
+  
+  .current-time-block {
+    max-width: 300px; /* 小屏幕下的最大宽度 */
+  }
+  
+  .market-block {
+    max-width: 300px; /* 小屏幕下的最大宽度 */
+  }
+}
+
+/* 确保API配置面板有足够的空间 */
+.n-collapse {
+  margin-bottom: 16px; /* 添加底部间距 */
+  padding-bottom: 8px; /* 增加内边距底部 */
 }
 </style>

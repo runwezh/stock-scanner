@@ -465,8 +465,9 @@ onMounted(() => {
 
 <style scoped>
 .api-config-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   position: relative;
+  padding-bottom: 10px;
 }
 
 .toggle-button {
@@ -487,12 +488,14 @@ onMounted(() => {
 }
 
 .api-config-card {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   background: linear-gradient(to bottom, rgba(240, 240, 245, 0.5), rgba(250, 250, 252, 0.8));
   padding: 16px;
   transition: all 0.3s ease;
+  overflow: visible;
+  min-height: 100px;
 }
 
 .api-info-alert {
@@ -680,13 +683,16 @@ onMounted(() => {
 
 @media (max-width: 480px) {
   .api-config-section {
-    margin-bottom: 0.75rem;
+    margin-bottom: 1.5rem;
     width: 100%;
+    padding-bottom: 15px;
   }
   
   .api-config-card {
     padding: 0.5rem;
     border-radius: 0.625rem !important;
+    margin-bottom: 1rem;
+    min-height: 80px;
   }
   
   .api-buttons {
