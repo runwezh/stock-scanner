@@ -25,9 +25,9 @@
         <!-- 主要内容 -->
         <n-card class="analysis-container mobile-card mobile-card-spacing mobile-shadow">
           
-          <n-grid :cols="24" :x-gap="16" :y-gap="16" responsive="screen">
+          <n-grid cols="1 xl:24" :x-gap="16" :y-gap="16" responsive="screen">
             <!-- 左侧配置区域 -->
-            <n-grid-item :span="24" :sm-span="24" :md-span="10" :lg-span="8">
+            <n-grid-item span="1 xl:8">
               <div class="config-section">
                 <n-form-item label="选择市场类型">
                   <n-select
@@ -71,7 +71,7 @@
             </n-grid-item>
             
             <!-- 右侧结果区域 -->
-            <n-grid-item :span="24" :sm-span="24" :md-span="14" :lg-span="16">
+            <n-grid-item span="1 xl:16">
               <div class="results-section">
                 <div class="results-header">
                   <n-space align="center" justify="space-between">
@@ -121,7 +121,7 @@
                 </template>
                 
                 <template v-else-if="displayMode === 'card'">
-                  <n-grid :cols="1" :x-gap="16" :y-gap="16" :lg-cols="2">
+                  <n-grid cols="1" :x-gap="8" :y-gap="8" responsive="screen">
                     <n-grid-item v-for="stock in analyzedStocks" :key="stock.code">
                       <StockCard :stock="stock" />
                     </n-grid-item>
@@ -129,15 +129,18 @@
                 </template>
                 
                 <template v-else>
-                  <n-data-table
-                    :columns="stockTableColumns"
-                    :data="analyzedStocks"
-                    :pagination="{ pageSize: 10 }"
-                    :row-key="(row: StockInfo) => row.code"
-                    :bordered="false"
-                    :single-line="false"
-                    striped
-                  />
+                  <div class="table-container">
+                    <n-data-table
+                      :columns="stockTableColumns"
+                      :data="analyzedStocks"
+                      :pagination="{ pageSize: 10 }"
+                      :row-key="(row: StockInfo) => row.code"
+                      :bordered="false"
+                      :single-line="false"
+                      striped
+                      :scroll-x="1200"
+                    />
+                  </div>
                 </template>
               </div>
             </n-grid-item>
@@ -409,10 +412,13 @@ function handleMarketTypeChange() {
 
 // 添加选择的股票
 function addSelectedStock(symbol: string) {
+  // 确保symbol不包含序号或其他不需要的信息
+  const cleanSymbol = symbol.trim().replace(/^\d+\.\s*/, '');
+  
   if (stockCodes.value) {
-    stockCodes.value += ', ' + symbol;
+    stockCodes.value += ', ' + cleanSymbol;
   } else {
-    stockCodes.value = symbol;
+    stockCodes.value = cleanSymbol;
   }
 }
 
@@ -1000,6 +1006,11 @@ function handleAnnouncementClose() {
   margin-bottom: 1rem;
 }
 
+/* 修改卡片内容区域的内边距 */
+.analysis-container :deep(.n-card__content) {
+  padding: 16px;
+}
+
 .config-section {
   padding: 0.5rem;
 }
@@ -1027,12 +1038,55 @@ function handleAnnouncementClose() {
   word-break: break-word;
 }
 
+/* 表格容器基础样式 */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* 支持iOS的滚动惯性 */
+  position: relative;
+  border-radius: 0.5rem;
+}
+
+/* 表格横向滚动指示器 */
+.table-container::after {
+  content: '←→';
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  color: rgba(32, 128, 240, 0.6);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 2;
+  animation: fadeInOut 2s infinite;
+  display: none; /* 默认隐藏，只在移动端显示 */
+}
+
 /* 移动端适配的媒体查询 */
 @media (max-width: 768px) {
   .main-content {
     padding: 0.5rem;
     max-width: 100%;
     width: 100%;
+  }
+  
+  /* 显示滚动指示器 */
+  .table-container::after {
+    display: block;
+  }
+  
+  /* 减少移动端卡片内容区域的内边距 */
+  .analysis-container :deep(.n-card__content) {
+    padding: 12px 8px;
+  }
+  
+  /* 确保卡片内部没有多余边距 */
+  :deep(.n-card > .n-card__content) {
+    padding: 12px 8px;
+  }
+  
+  /* 减少结果区域的内边距 */
+  .results-section {
+    padding: 0.25rem 0.125rem;
   }
   
   .action-buttons {
@@ -1056,33 +1110,61 @@ function handleAnnouncementClose() {
     box-sizing: border-box;
   }
   
-  .config-section, .results-section {
+  .config-section {
     padding: 0.25rem;
     width: 100%;
     box-sizing: border-box;
   }
   
-  /* 确保表格内容在移动端可滚动 */
-  .n-data-table-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
+  /* 移动端表格样式优化 */
+  .table-container {
+    margin: 0 -4px; /* 抵消父容器的padding */
+    padding: 0 4px;
+  }
+
+  /* 表格组件移动端优化 */
+  :deep(.n-data-table-wrapper) {
     border-radius: 0.5rem;
   }
+
+  :deep(.n-data-table-base-table-header, .n-data-table-base-table-body) {
+    min-width: 100%;
+  }
+
+  :deep(.n-pagination) {
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
   
-  /* 改善表单项在移动端的间距 */
+  /* 保留原有移动端优化样式 */
   :deep(.n-form-item) {
     margin-bottom: 0.75rem;
   }
-  
-  /* 确保卡片视图在移动端正确显示 */
+
   :deep(.n-grid) {
     width: 100% !important;
   }
-  
+
   :deep(.n-grid-item) {
     width: 100% !important;
     max-width: 100% !important;
+  }
+
+  :deep(.n-grid[cols="1 m\\:24"]) {
+    gap: 8px !important;
+  }
+
+  :deep(.n-grid[cols="1 l\\:2"]) {
+    gap: 6px !important;
+  }
+
+  :deep(.n-grid-item) > * {
+    margin-bottom: 8px;
+  }
+
+  :deep(.n-dropdown-menu) {
+    max-width: 90vw;
   }
   
   .app-container {
@@ -1096,10 +1178,31 @@ function handleAnnouncementClose() {
     padding: 0.25rem;
   }
   
+  /* 进一步减少小屏幕卡片内容区域的内边距 */
+  .analysis-container :deep(.n-card__content) {
+    padding: 6px 4px;
+  }
+  
+  /* 使用更精确的选择器确保覆盖 */
+  :deep(.n-card) > :deep(.n-card__content),
+  :deep(.n-card-header) {
+    padding: 6px 4px !important;
+  }
+  
+  /* 减少网格间距到最小 */
+  :deep(.n-grid[cols="1 l\\:2"]) {
+    gap: 4px !important;
+  }
+  
+  .results-section {
+    padding: 0.15rem 0.05rem;
+  }
+  
   .results-header {
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
+    margin-bottom: 0.5rem;
   }
   
   :deep(.n-space) {
@@ -1114,15 +1217,76 @@ function handleAnnouncementClose() {
   
   .analysis-container {
     border-radius: 0.625rem;
+    margin-bottom: 0.5rem;
   }
   
-  /* 确保下拉菜单在小屏幕上正确显示 */
-  :deep(.n-dropdown-menu) {
-    max-width: 90vw;
+  /* 小屏幕下进一步优化n-grid */
+  :deep(.n-grid) {
+    gap: 4px !important;
+  }
+  
+  :deep(.n-grid-item) {
+    padding: 0 !important;
+  }
+  
+  /* 确保n-grid-item内容在小屏幕下有更紧凑的间距 */
+  :deep(.n-grid-item) > * {
+    margin-bottom: 4px;
+  }
+  
+  /* 小屏幕表格样式调整 */
+  .table-container {
+    margin: 0 -2px;
+    padding: 0 2px;
+  }
+  
+  /* 小屏幕分页控件优化 */
+  :deep(.n-pagination .n-pagination-item) {
+    margin: 0 2px;
   }
   
   .app-container {
     padding-bottom: 40px; /* 增加小屏幕底部内边距 */
+  }
+}
+
+/* 超小屏幕适配 */
+@media (max-width: 375px) {
+  /* 超小屏幕卡片内容区域几乎无内边距 */
+  .analysis-container :deep(.n-card__content) {
+    padding: 4px 2px;
+  }
+  
+  /* 使用更精确的选择器确保覆盖 */
+  :deep(.n-card) > :deep(.n-card__content),
+  :deep(.n-card-header) {
+    padding: 3px 2px !important;
+  }
+  
+  /* 网格间距最小化 */
+  :deep(.n-grid[cols="1 l\\:2"]),
+  :deep(.n-grid[cols="1 m\\:24"]) {
+    gap: 3px !important;
+  }
+  
+  /* 极简边距 */
+  .results-section {
+    padding: 0.1rem 0.025rem;
+  }
+  
+  /* 进一步调整超小屏幕的间距和尺寸 */
+  .main-content {
+    padding: 0.15rem;
+  }
+  
+  .config-section {
+    padding: 0.15rem;
+  }
+  
+  /* 确保StockCard组件最大化利用空间 */
+  :deep(.stock-card) {
+    margin: 2px 0 !important;
+    border-radius: 4px !important;
   }
 }
 </style>

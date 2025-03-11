@@ -13,7 +13,7 @@
       </template>
     </n-input>
     
-    <div class="search-results" v-show="showResults">
+    <div class="search-results mobile-search-results" v-show="showResults">
       <div v-if="loading" class="loading-results">
         <n-spin size="small" />
         <span>搜索中...</span>
@@ -28,12 +28,12 @@
           <div
             v-for="item in results"
             :key="item.symbol"
-            class="search-result-item"
+            class="search-result-item mobile-search-result-item"
             @click="selectStock(item)"
           >
             <div class="result-symbol-name">
               <span class="result-symbol">{{ item.symbol }}</span>
-              <span class="result-name">{{ item.name }}</span>
+              <span class="result-name mobile-result-name">{{ item.name }}</span>
             </div>
             <div class="result-meta">
               <span class="result-market">{{ item.market }}</span>
@@ -104,7 +104,10 @@ function handleSearchInput() {
 }
 
 function selectStock(item: SearchResult) {
-  emit('select', item.symbol);
+  // 处理symbol，确保不包含序号
+  // 假设symbol格式可能是"1. AAPL"这样的格式，我们只需要"AAPL"部分
+  const cleanSymbol = item.symbol.replace(/^\d+\.\s*/, '');
+  emit('select', cleanSymbol);
   searchKeyword.value = '';
   showResults.value = false;
 }
@@ -222,38 +225,13 @@ onBeforeUnmount(() => {
 
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .search-results {
-    max-width: 100%;
-    width: 100%;
-    border-radius: 0.75rem;
-    border: 1px solid var(--n-border-color, rgba(0, 0, 0, 0.1));
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-  
-  .search-result-item {
-    padding: 0.625rem 0.875rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  }
-  
   .search-result-item:last-child {
     border-bottom: none;
-  }
-  
-  .result-name {
-    max-width: 170px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   
   /* 确保输入框在移动端正确显示 */
   :deep(.n-input) {
     width: 100% !important;
-  }
-  
-  /* 增大触摸区域 */
-  .search-result-item {
-    min-height: 44px;
   }
 }
 
@@ -262,30 +240,14 @@ onBeforeUnmount(() => {
     font-size: 0.875rem;
   }
   
-  .result-name, .result-market, .result-market-value {
+  .result-market, .result-market-value {
     font-size: 0.75rem;
-  }
-  
-  .result-name {
-    max-width: 120px;
-  }
-  
-  .search-result-item {
-    padding: 0.5rem 0.75rem;
-  }
-  
-  .search-results {
-    border-radius: 0.625rem;
   }
   
   .loading-results, .no-results {
     padding: 0.75rem;
     font-size: 0.75rem;
   }
-  
-  /* 确保边框在小屏幕上清晰可见 */
-  .search-results {
-    border: 1px solid rgba(0, 0, 0, 0.08);
-  }
+
 }
 </style>

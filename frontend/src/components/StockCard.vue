@@ -1,6 +1,6 @@
 <template>
-  <n-card class="stock-card mobile-card mobile-shadow" :bordered="false" :class="{ 'is-analyzing': isAnalyzing }">
-    <div class="card-header">
+  <n-card class="stock-card mobile-card mobile-shadow mobile-stock-card" :bordered="false" :class="{ 'is-analyzing': isAnalyzing }">
+    <div class="card-header mobile-card-header">
       <div class="header-main">
         <div class="header-left">
           <div class="stock-info">
@@ -126,7 +126,10 @@
       </template>
       
       <template v-else-if="stock.analysisStatus === 'analyzing'">
-        <div class="analysis-result analysis-streaming" v-if="parsedAnalysis" v-html="parsedAnalysis" :key="analysisContentKey"></div>
+        <div class="analysis-result analysis-streaming" 
+             ref="analysisResultRef"
+             v-html="parsedAnalysis">
+        </div>
       </template>
       
       <template v-else-if="stock.analysisStatus === 'completed'">
@@ -138,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, ref } from 'vue';
+import { computed, watch, ref, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { NCard, NDivider, NIcon, NTag, NButton, useMessage } from 'naive-ui';
 import { 
   AlertCircleOutline as AlertCircleIcon,
@@ -159,22 +162,17 @@ const isAnalyzing = computed(() => {
 });
 
 const lastAnalysisLength = ref(0);
+const lastAnalysisText = ref('');
 
 // 监听分析内容变化
 watch(() => props.stock.analysis, (newVal) => {
   if (newVal && props.stock.analysisStatus === 'analyzing') {
     lastAnalysisLength.value = newVal.length;
+    lastAnalysisText.value = newVal;
   }
 }, { immediate: true });
 
-// 添加一个计算属性，用于监控分析内容是否更新
-const analysisContentKey = ref(0);
-watch(() => props.stock.analysis, (newVal, oldVal) => {
-  if (newVal && oldVal && newVal.length > oldVal.length && props.stock.analysisStatus === 'analyzing') {
-    analysisContentKey.value++;
-  }
-}, { immediate: false });
-
+// 分析内容的解析
 const parsedAnalysis = computed(() => {
   if (props.stock.analysis) {
     let result = parseMarkdown(props.stock.analysis);
@@ -414,6 +412,99 @@ const getStatusText = computed(() => {
       return '';
   }
 });
+
+// 添加滚动控制相关变量
+const analysisResultRef = ref<HTMLElement | null>(null);
+const userScrolling = ref(false);
+const scrollPosition = ref(0);
+const scrollThreshold = 30; // 底部阈值，小于这个值认为用户已滚动到底部
+
+// 检测用户滚动行为
+function handleScroll() {
+  if (!analysisResultRef.value) return;
+  
+  const element = analysisResultRef.value;
+  const atBottom = element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold;
+  
+  // 记录当前滚动位置
+  scrollPosition.value = element.scrollTop;
+  
+  // 判断用户是否正在主动滚动
+  if (atBottom) {
+    // 用户滚动到底部，标记为非主动滚动状态
+    userScrolling.value = false;
+  } else {
+    // 用户未在底部，标记为主动滚动状态
+    userScrolling.value = true;
+  }
+}
+
+// 监听滚动事件
+onMounted(() => {
+  if (analysisResultRef.value) {
+    // 初始滚动到底部
+    analysisResultRef.value.scrollTop = analysisResultRef.value.scrollHeight;
+    analysisResultRef.value.addEventListener('scroll', handleScroll);
+  }
+});
+
+// 清理事件监听
+onBeforeUnmount(() => {
+  if (analysisResultRef.value) {
+    analysisResultRef.value.removeEventListener('scroll', handleScroll);
+  }
+});
+
+// 改进流式更新监听，更保守地控制滚动行为
+let isProcessingUpdate = false; // 防止重复处理更新
+watch(() => props.stock.analysis, (newVal, oldVal) => {
+  // 只在分析中且内容增加时处理
+  if (newVal && oldVal && newVal.length > oldVal.length && 
+      props.stock.analysisStatus === 'analyzing' && !isProcessingUpdate) {
+    
+    isProcessingUpdate = true; // 标记正在处理更新
+    
+    // 检查是否应该自动滚动
+    let shouldAutoScroll = false;
+    if (analysisResultRef.value) {
+      const element = analysisResultRef.value;
+      // 仅当滚动接近底部或用户尚未开始滚动时自动滚动
+      const atBottom = element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold;
+      shouldAutoScroll = atBottom || !userScrolling.value;
+    }
+    
+    // 使用nextTick确保DOM已更新
+    nextTick(() => {
+      if (analysisResultRef.value && shouldAutoScroll) {
+        // 使用smoothScroll而非直接设置scrollTop，减少视觉跳动
+        smoothScrollToBottom(analysisResultRef.value);
+      }
+      
+      // 重置处理标记
+      setTimeout(() => {
+        isProcessingUpdate = false;
+      }, 50); // 短暂延迟，防止过快连续处理
+    });
+  }
+}, { immediate: false });
+
+// 平滑滚动到底部的辅助函数
+function smoothScrollToBottom(element: HTMLElement) {
+  const targetPosition = element.scrollHeight;
+  
+  // 如果已经很接近底部，直接跳转避免不必要的动画
+  const currentGap = targetPosition - element.scrollTop - element.clientHeight;
+  if (currentGap < 100) {
+    element.scrollTop = targetPosition;
+    return;
+  }
+  
+  // 否则使用平滑滚动
+  element.scrollTo({
+    top: targetPosition,
+    behavior: 'smooth'
+  });
+}
 </script>
 
 <style scoped>
@@ -423,6 +514,8 @@ const getStatusText = computed(() => {
   flex-direction: column;
   transition: all 0.3s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  width: 100%; /* 确保宽度不会超过容器 */
+  max-width: 100%; /* 限制最大宽度 */
 }
 
 .stock-card.is-analyzing {
@@ -439,6 +532,7 @@ const getStatusText = computed(() => {
   position: relative;
   background: linear-gradient(to bottom, rgba(240, 240, 245, 0.3), transparent);
   border-radius: 8px 8px 0 0;
+  width: 100%; /* 确保宽度不会超过容器 */
 }
 
 .header-main {
@@ -525,6 +619,7 @@ const getStatusText = computed(() => {
 .header-right {
   display: flex;
   align-items: center;
+  max-width: 380px;
 }
 
 .copy-button {
@@ -738,6 +833,8 @@ const getStatusText = computed(() => {
   text-align: left;
   display: flex;
   flex-direction: column;
+  width: 100%; /* 确保宽度不会超过容器 */
+  overflow-x: hidden; /* 防止内容横向溢出 */
 }
 
 .error-status {
@@ -771,10 +868,18 @@ const getStatusText = computed(() => {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  display: block; /* 确保显示为块级元素 */
+  box-sizing: border-box; /* 确保padding不增加宽度 */
   
   /* 自定义滚动条样式 */
   scrollbar-width: thin; /* Firefox */
   scrollbar-color: rgba(32, 128, 240, 0.3) transparent; /* Firefox */
+  /* 改进滚动行为 */
+  scroll-behavior: smooth;
+  overflow-anchor: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  will-change: scroll-position;
 }
 
 /* Webkit浏览器的滚动条样式 */
@@ -807,6 +912,13 @@ const getStatusText = computed(() => {
   position: relative;
   border-left: 2px solid var(--n-info-color);
   animation: fadePulse 2s infinite;
+  /* 改进滚动行为 */
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  will-change: scroll-position;
+  /* 防止内容更新时的布局抖动 */
+  contain: content;
+  scroll-padding-bottom: 20px;
 }
 
 /* 改进流式输出的动画效果，消除闪烁 */
@@ -886,6 +998,8 @@ const getStatusText = computed(() => {
   border-radius: 3px;
   font-family: monospace;
   font-size: 0.85em;
+  white-space: pre-wrap; /* 允许代码内容自动换行 */
+  word-break: break-word; /* 确保长单词可以换行 */
 }
 
 .analysis-result :deep(pre) {
@@ -896,12 +1010,16 @@ const getStatusText = computed(() => {
   margin: 0.75rem 0;
   border-left: 3px solid #2080f0;
   max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
   white-space: pre-wrap; /* 允许代码块自动换行 */
+  word-break: break-word; /* 允许长单词换行 */
 }
 
 .analysis-result :deep(pre code) {
   background: transparent;
   padding: 0;
+  white-space: inherit; /* 继承pre的换行行为 */
 }
 
 /* 优化引用样式 */
@@ -923,6 +1041,8 @@ const getStatusText = computed(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   table-layout: fixed; /* 固定表格布局 */
   max-width: 100%;
+  display: block; /* 使表格成为块级元素 */
+  overflow-x: auto; /* 允许表格滚动 */
 }
 
 .analysis-result :deep(th), .analysis-result :deep(td) {
@@ -994,6 +1114,10 @@ const getStatusText = computed(() => {
   border-bottom: 1px dotted #2080f0;
   transition: all 0.2s ease;
   font-weight: 500;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  display: inline-block;
+  max-width: 100%;
 }
 
 .analysis-result :deep(a:hover) {
@@ -1009,16 +1133,13 @@ const getStatusText = computed(() => {
   margin: 0.75rem auto;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  object-fit: contain; /* 保持图片比例 */
 }
 
 /* 移动端适配样式 */
 @media (max-width: 768px) {
   .stock-card {
     margin-bottom: 0.75rem;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    border-radius: 0.75rem !important;
-    overflow: hidden;
   }
   
   .card-header {
@@ -1027,19 +1148,77 @@ const getStatusText = computed(() => {
   }
   
   .header-main {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  
+  .header-left {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .stock-info {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    min-width: auto;
+  }
+  
+  .stock-code {
+    font-size: 1.2rem;
+  }
+  
+  .stock-name {
+    font-size: 0.8rem;
+    max-width: 100px;
   }
   
   .header-right {
     margin-top: 0.5rem;
-    align-self: flex-end;
+    width: 320px;
+    display: flex;
+    justify-content: flex-end;
   }
   
   .stock-price-info {
+    display: flex;
     flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
     margin-top: 0.5rem;
-    gap: 0.75rem;
+    gap: 16px;
+    border-left: none;
+    border-top: 1px dashed rgba(0, 0, 0, 0.09);
+    padding-top: 8px;
+    padding-left: 0;
+    width: 100%;
+  }
+  
+  .stock-price, .stock-change {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+  }
+  
+  .stock-price .label,
+  .stock-change .label {
+    font-size: 0.75rem;
+  }
+  
+  .stock-price .value {
+    font-size: 1rem;
+  }
+  
+  .stock-change .value {
+    font-size: 0.9rem;
   }
   
   .stock-summary {
@@ -1049,10 +1228,43 @@ const getStatusText = computed(() => {
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   }
   
-  .indicators-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .technical-indicators {
+    margin: 0.75rem 0.5rem;
+    background-color: rgba(240, 240, 245, 0.5);
+    border-radius: 0.5rem;
     padding: 0.5rem;
-    gap: 0.5rem;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+  
+  .indicators-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    padding: 0.25rem;
+  }
+  
+  .indicator-item {
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.5rem;
+    background-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+  }
+  
+  .indicator-item:active {
+    transform: scale(0.98);
+    box-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
+  }
+  
+  .indicator-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  
+  .indicator-label {
+    font-size: 0.7rem;
+    color: var(--n-text-color-3);
+    margin-top: 0.125rem;
   }
   
   .actions-bar {
@@ -1066,35 +1278,242 @@ const getStatusText = computed(() => {
     height: 36px !important;
   }
   
-  .analysis-result {
-    font-size: 0.8125rem;
-    padding: 0.5rem 0.75rem;
-    max-height: 300px;
-    border-radius: 0.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    margin: 0.5rem;
+  .card-content {
+    padding: 0.5rem 0.3rem;
   }
   
-  .analysis-result :deep(pre) {
-    font-size: 0.75rem;
-    padding: 0.5rem;
-    border-radius: 0.375rem;
+  .analysis-result {
+    font-size: 0.85rem;
+    line-height: 1.65;
+    padding: 0.6rem 0.5rem;
+    max-height: 350px;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    margin: 0.4rem 0;
+    background-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    -webkit-overflow-scrolling: touch; /* 加强iOS滚动平滑性 */
+    overscroll-behavior: contain; /* 防止滚动传播 */
+    touch-action: pan-y; /* 优化触摸滚动体验 */
+    width: 100%; /* 占据全部可用宽度 */
+    box-sizing: border-box;
+    position: relative; /* 确保滚动提示正确定位 */
+    overflow-x: hidden !important; /* 强制禁止横向滚动 */
+  }
+  
+  /* 优化表格在移动端的显示 */
+  .analysis-result :deep(table) {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 0.4rem;
+    margin: 0.7rem 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+    position: relative;
   }
   
+  /* 优化代码块在移动端的显示 */
+  .analysis-result :deep(pre) {
+    font-size: 0.8rem;
+    padding: 0.75rem 0.5rem;
+    border-radius: 0.4rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0.7rem 0;
+    background-color: rgba(0, 0, 0, 0.04);
+    border-left: 3px solid rgba(32, 128, 240, 0.5);
+    width: 100% !important;
+    box-sizing: border-box;
+    white-space: pre-wrap;
+    word-break: break-word;
+    position: relative;
+  }
+  
+  /* 拖动滚动提示效果 - 恢复并优化 */
+  .analysis-result :deep(pre)::after,
+  .analysis-result :deep(table)::after {
+    content: '⟷';
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    color: rgba(32, 128, 240, 0.5);
+    font-size: 12px;
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 3;
+  }
+  
+  /* 改进链接触摸体验 */
+  .analysis-result :deep(a) {
+    padding: 0.1rem 0;
+    margin: 0 0.1rem;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
+  
+  /* 改进按钮和交互元素触摸体验 */
+  .analysis-result :deep(button),
+  .analysis-result :deep(.interactive) {
+    min-height: 36px; /* 最小触摸高度 */
+    min-width: 36px; /* 最小触摸宽度 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* 确保所有内容在移动端都能正确换行和显示 */
+  .analysis-result :deep(*) {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .analysis-streaming {
+    background-color: rgba(32, 128, 240, 0.03);
+  }
+  
+  .analysis-completed {
+    background-color: rgba(24, 160, 88, 0.02);
+  }
+  
+  /* 优化标题样式 */
+  .analysis-result :deep(h1), 
+  .analysis-result :deep(h2), 
+  .analysis-result :deep(h3) {
+    margin: 1rem 0 0.7rem 0;
+    line-height: 1.3;
+    padding-bottom: 0.4rem;
+  }
+  
+  .analysis-result :deep(h1) {
+    font-size: 1.3rem;
+  }
+  
+  .analysis-result :deep(h2) {
+    font-size: 1.15rem;
+  }
+  
+  .analysis-result :deep(h3) {
+    font-size: 1rem;
+  }
+  
+  /* 优化段落间距 */
+  .analysis-result :deep(p) {
+    margin: 0.6rem 0;
+  }
+  
+  /* 优化列表样式 */
+  .analysis-result :deep(ul), 
+  .analysis-result :deep(ol) {
+    padding-left: 1.2rem;
+    margin: 0.6rem 0;
+  }
+  
+  .analysis-result :deep(li) {
+    margin-bottom: 0.35rem;
+    padding-left: 0.3rem;
+  }
+  
+  /* 优化引用块 */
+  .analysis-result :deep(blockquote) {
+    margin: 0.7rem 0;
+    padding: 0.6rem 0.75rem;
+    border-left: 4px solid #f0a020;
+    background-color: rgba(240, 160, 32, 0.07);
+    border-radius: 0.25rem;
+  }
+  
+  /* 优化代码块 */
+  .analysis-result :deep(pre) {
+    font-size: 0.8rem;
+    padding: 0.75rem 0.5rem;
+    border-radius: 0.4rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0.7rem 0;
+    background-color: rgba(0, 0, 0, 0.04);
+    border-left: 3px solid rgba(32, 128, 240, 0.5);
+    white-space: pre-wrap;
+  }
+  
+  .analysis-result :deep(code) {
+    font-size: 0.8rem;
+    padding: 0.15rem 0.3rem;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 0.2rem;
+  }
+  
+  /* 优化表格显示 */
   .analysis-result :deep(table) {
     display: block;
     overflow-x: auto;
-    white-space: nowrap;
     -webkit-overflow-scrolling: touch;
     width: 100%;
-    border-radius: 0.375rem;
+    border-radius: 0.4rem;
+    margin: 0.7rem 0;
+    font-size: 0.8rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
   }
   
-  .indicator-item {
-    border-radius: 0.5rem;
-    padding: 0.625rem;
+  .analysis-result :deep(th), 
+  .analysis-result :deep(td) {
+    padding: 0.5rem 0.4rem;
+  }
+  
+  /* 优化强调文本 */
+  .analysis-result :deep(strong) {
+    font-weight: 600;
+  }
+  
+  /* 优化专业术语显示 */
+  .analysis-result :deep(.buy), 
+  .analysis-result :deep(.sell), 
+  .analysis-result :deep(.hold) {
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+  }
+  
+  .analysis-result :deep(.indicator) {
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+  }
+  
+  /* 优化图片显示 */
+  .analysis-result :deep(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.4rem;
+    margin: 0.7rem auto;
+  }
+  
+  /* 优化滚动条样式 */
+  .analysis-result::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  .analysis-result::-webkit-scrollbar-thumb {
+    background-color: rgba(32, 128, 240, 0.3);
+    border-radius: 2px;
+  }
+  
+  /* 滚动提示 */
+  .analysis-result::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: linear-gradient(to top, rgba(255, 255, 255, 0.7), transparent);
+    pointer-events: none;
+    opacity: 0.8;
+    border-radius: 0 0 0.5rem 0.5rem;
+    z-index: 2;
   }
 }
 
@@ -1106,28 +1525,78 @@ const getStatusText = computed(() => {
   }
   
   .stock-info {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .stock-code {
+    font-size: 1rem;
   }
   
   .stock-name {
     margin-left: 0;
-    margin-top: 0.25rem;
-    font-size: 0.875rem;
+    margin-top: 0;
+    font-size: 0.75rem;
+    max-width: 80px;
+  }
+  
+  .stock-price-info {
+    gap: 12px;
+    padding-top: 6px;
+    margin-top: 6px;
+    flex-wrap: nowrap;
+  }
+  
+  .stock-price, .stock-change {
+    white-space: nowrap;
+  }
+  
+  .stock-price .label,
+  .stock-change .label {
+    font-size: 0.7rem;
+  }
+  
+  .stock-price .value {
+    font-size: 0.85rem;
+  }
+  
+  .stock-change .value {
+    font-size: 0.8rem;
+    padding: 1px 4px;
+  }
+  
+  .technical-indicators {
+    margin: 0.5rem 0.25rem;
+    border-radius: 0.45rem;
+    padding: 0.4rem 0.3rem;
   }
   
   .indicators-grid {
-    grid-template-columns: repeat(1, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    padding: 0.2rem;
   }
   
   .indicator-item {
-    padding: 0.5rem;
+    border-radius: 0.45rem;
+    padding: 0.5rem 0.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   }
   
-  .analysis-result {
-    font-size: 0.75rem;
-    padding: 0.5rem;
-    margin: 0.375rem;
+  .indicator-value {
+    font-size: 0.9rem;
+    margin-bottom: 0.15rem;
+  }
+  
+  .indicator-label {
+    font-size: 0.7rem;
+    margin-top: 0;
   }
   
   .card-header {
@@ -1138,5 +1607,208 @@ const getStatusText = computed(() => {
   .stock-card, .indicator-item, .analysis-result {
     border: 1px solid rgba(0, 0, 0, 0.08) !important;
   }
+  
+  /* 为不同类型的指标设置不同的边框颜色 */
+  .indicator-item .rsi-overbought {
+    border-bottom: 2px solid #d03050;
+  }
+  
+  .indicator-item .rsi-oversold {
+    border-bottom: 2px solid #18a058;
+  }
+  
+  .indicator-item .trend-up {
+    border-bottom: 2px solid #d03050;
+  }
+  
+  .indicator-item .trend-down {
+    border-bottom: 2px solid #18a058;
+  }
+  
+  .indicator-item .signal-buy {
+    border-bottom: 2px solid #d03050;
+  }
+  
+  .indicator-item .signal-sell {
+    border-bottom: 2px solid #18a058;
+  }
+  
+  /* 分析结果小屏幕样式 */
+  .analysis-result {
+    font-size: 0.825rem;
+    line-height: 1.6;
+    padding: 0.5rem 0.4rem;
+    margin: 0.2rem 0;
+    max-height: 300px;
+    max-width: none; /* 移除宽度限制 */
+    width: 100%; /* 占据全部可用宽度 */
+    box-sizing: border-box;
+  }
+  
+  .card-content {
+    padding: 0.3rem 0.1rem;
+  }
+  
+  .analysis-result :deep(h1) {
+    font-size: 1.2rem;
+    margin-top: 0.85rem;
+  }
+  
+  .analysis-result :deep(h2) {
+    font-size: 1.1rem;
+  }
+  
+  .analysis-result :deep(h3) {
+    font-size: 0.95rem;
+  }
+  
+  .analysis-result :deep(ul), 
+  .analysis-result :deep(ol) {
+    padding-left: 1rem;
+  }
+  
+  .analysis-result :deep(blockquote) {
+    padding: 0.5rem 0.625rem;
+  }
+  
+  .analysis-result :deep(pre) {
+    font-size: 0.75rem;
+    padding: 0.6rem 0.4rem;
+  }
+  
+  .analysis-result :deep(code) {
+    font-size: 0.75rem;
+  }
+  
+  .analysis-result :deep(th), 
+  .analysis-result :deep(td) {
+    padding: 0.4rem 0.3rem;
+  }
+}
+
+/* 超小屏幕适配 */
+@media (max-width: 375px) {
+  .indicators-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+  }
+  
+  .indicator-item {
+    padding: 0.4rem 0.2rem;
+  }
+  
+  .indicator-value {
+    font-size: 0.85rem;
+    margin-bottom: 0.1rem;
+  }
+  
+  .indicator-label {
+    font-size: 0.65rem;
+  }
+  
+  /* 分析结果超小屏幕样式 */
+  .analysis-result {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.3rem;
+    margin: 0.1rem 0;
+    width: 100%; /* 占据全部可用宽度 */
+    box-sizing: border-box;
+  }
+  
+  .analysis-result :deep(h1) {
+    font-size: 1.15rem;
+  }
+  
+  .analysis-result :deep(h2) {
+    font-size: 1.05rem;
+  }
+  
+  .analysis-result :deep(h3) {
+    font-size: 0.9rem;
+  }
+  
+  .card-content {
+    padding: 0.2rem 0.05rem;
+  }
+}
+
+/* 添加PC端特定样式，确保纵向布局 */
+@media (min-width: 769px) {
+  .stock-card {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .card-header {
+    flex-direction: column;
+  }
+  
+  .header-main {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+  
+  .header-left {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+  
+  .stock-price-info {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+  
+  .stock-summary {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+  
+  .card-content {
+    width: 100%;
+    overflow-x: hidden;
+  }
+  
+  .analysis-result {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* 优化技术指标在PC端的显示 */
+  .indicators-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* 确保所有嵌套元素不会超出容器 */
+.analysis-result :deep(*) {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 对于图片特别控制 */
+.analysis-result :deep(img) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.75rem auto;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  object-fit: contain; /* 保持图片比例 */
+}
+
+/* 修复长链接可能导致的溢出 */
+.analysis-result :deep(a) {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  display: inline-block;
+  max-width: 100%;
+}
+
+/* 删除滚动控制面板样式 */
+.scroll-controls {
+  display: none;
 }
 </style>
