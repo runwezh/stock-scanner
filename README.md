@@ -162,6 +162,99 @@ This is a professional A-share stock analysis system that provides comprehensive
 - 随机指标 (Stochastic Oscillator)
 - 平均真实波动范围 (ATR)
 
+## 技术栈详解 (Technology Stack)
+
+### 后端技术栈 (Backend Stack)
+
+#### 核心编程语言与框架 (Core Language & Frameworks)
+- Python 3.10 - 主要开发语言
+- FastAPI (0.115.11) - 现代、高性能的Web框架
+- Uvicorn (0.34.0) - 快速ASGI服务器
+
+#### 数据处理与科学计算 (Data Processing & Scientific Computing)
+- NumPy (1.25.2) - 科学计算基础库
+- Pandas (2.0.3) - 数据分析和处理框架
+- SciPy (1.11.3) - 科学计算工具箱
+- AkShare (1.16.83) - 金融数据获取库
+
+#### 异步处理 (Asynchronous Processing)
+- httpx (0.28.1) - 现代异步HTTP客户端
+- AsyncGenerator - 异步生成器实现流式处理
+
+#### 数据可视化 (Data Visualization)
+- Matplotlib (3.7.3) - 绘图库
+- Seaborn (0.13.0) - 基于Matplotlib的统计数据可视化
+
+#### 数据解析与处理 (Data Parsing & Processing)
+- BeautifulSoup4 (4.12.3) - HTML解析
+- lxml (4.9.4) - XML/HTML处理
+- html5lib (1.1) - HTML解析器
+- jsonpath (0.82.2) - JSON数据处理
+- openpyxl (3.1.5) - Excel文件处理
+
+#### 安全与认证 (Security & Authentication)
+- python-jose (3.4.0) - JWT令牌处理
+- passlib (1.7.4) - 密码哈希和验证
+
+#### 配置与日志 (Configuration & Logging)
+- python-dotenv (1.0.1) - 环境变量管理
+- loguru (0.7.2) - 高级日志记录
+
+### 前端技术栈 (Frontend Stack)
+
+#### 核心框架和语言 (Core Frameworks & Languages)
+- Vue.js 3.5.13 - 渐进式JavaScript框架
+- TypeScript - 类型安全的JavaScript超集
+- Vite 6.2.0 - 现代前端构建工具
+
+#### UI组件与路由 (UI Components & Routing)
+- Naive UI (2.41.0) - Vue 3组件库
+- Vue Router (4.5.0) - 官方路由管理器
+
+#### 工具库 (Utility Libraries)
+- Axios (1.8.1) - HTTP客户端
+- Marked (15.0.7) - Markdown解析和渲染
+- VueUse (12.8.2) - Vue组合式API工具集
+
+### 部署与运维技术 (Deployment & DevOps)
+
+#### 容器化 (Containerization)
+- Docker - 应用容器化
+- Docker Compose - 多容器应用编排
+
+#### Web服务器 (Web Server)
+- Nginx - 反向代理，SSL终端，静态资源缓存
+
+#### CI/CD (Continuous Integration/Deployment)
+- GitHub Actions - 自动化构建和部署
+
+### 系统架构 (System Architecture)
+
+#### 微服务架构 (Microservices Architecture)
+- 前后端分离设计
+- 服务层设计模式，各服务相对独立
+
+#### 异步处理流程 (Asynchronous Processing)
+- 流式响应 (Streaming Response)
+- 异步数据获取和处理
+
+#### 安全机制 (Security Mechanisms)
+- JWT认证
+- HTTPS/SSL加密
+- CORS防护
+
+### 特色功能 (Special Features)
+
+#### AI分析集成 (AI Analysis Integration)
+- 通过外部API (如OpenAI) 进行股票数据分析
+- 流式数据传输，支持实时响应
+
+#### 多市场支持 (Multi-Market Support)
+- A股市场
+- 美股市场
+- 港股市场
+- ETF/LOF基金
+
 ## 系统依赖 (System Dependencies)
 - Python 3.8+
 - PyQt6
