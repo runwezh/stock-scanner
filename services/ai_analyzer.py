@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from utils.logger import get_logger
 from utils.api_utils import APIUtils
 from datetime import datetime
+import inspect
 
 # 获取日志器
 logger = get_logger()
@@ -41,347 +42,280 @@ class AIAnalyzer:
     
     async def get_ai_analysis(self, df: pd.DataFrame, stock_code: str, market_type: str = 'A', stream: bool = False) -> AsyncGenerator[str, None]:
         """
-        对股票数据进行AI分析
-        
-        Args:
-            df: 包含技术指标的DataFrame
-            stock_code: 股票代码
-            market_type: 市场类型，默认为'A'股
-            stream: 是否使用流式响应
-            
-        Returns:
-            异步生成器，生成分析结果字符串
+        对股票数据进行AI分析 (使用手动迭代处理流)
         """
         try:
-            logger.info(f"开始AI分析 {stock_code}, 流式模式: {stream}")
-            
+            lineno_start = inspect.currentframe().f_lineno + 1
+            logger.info(f"L{lineno_start}: 开始AI分析 {stock_code}, 流式模式: {stream}")
+
             # 提取关键技术指标
             latest_data = df.iloc[-1]
-            
-            # 计算技术指标
-            rsi = latest_data.get('RSI')
-            price = latest_data.get('Close')
-            price_change = latest_data.get('Change')
-            
-            # 确定MA趋势
+
+            # --- Safely get basic indicators ---
+            rsi = None
+            price = None
+            price_change = None
+            try:
+                rsi = latest_data.get('RSI')
+                price = latest_data.get('Close')
+                price_change = latest_data.get('Change')
+            except Exception as data_get_e:
+                lineno_get_err = inspect.currentframe().f_back.f_lineno
+                logger.error(f"L{lineno_get_err}: 获取基础指标 (RSI, Price, Change) 时出错", exc_info=True)
+                yield json.dumps({"stock_code": stock_code,"error": f"获取基础指标时出错: {str(data_get_e)}","status": "error"})
+                return
+            # --- End Safely get basic indicators ---
+
             ma_trend = 'UP' if latest_data.get('MA5', 0) > latest_data.get('MA20', 0) else 'DOWN'
-            
-            # 确定MACD信号
             macd = latest_data.get('MACD', 0)
             macd_signal = latest_data.get('MACD_Signal', 0)
             macd_signal_type = 'BUY' if macd > macd_signal else 'SELL'
-            
-            # 确定成交量状态
             volume_ratio = latest_data.get('Volume_Ratio', 1)
             volume_status = 'HIGH' if volume_ratio > 1.5 else ('LOW' if volume_ratio < 0.5 else 'NORMAL')
-            
-            # AI 分析内容
-            # 最近14天的股票数据记录
             recent_data = df.tail(14).to_dict('records')
-            
-            # 包含trend, volatility, volume_trend, rsi_level的字典
+
+            # --- Safely create technical_summary ---
             technical_summary = {
-                'trend': 'upward' if df.iloc[-1]['MA5'] > df.iloc[-1]['MA20'] else 'downward',
-                'volatility': f"{df.iloc[-1]['Volatility']:.2f}%",
-                'volume_trend': 'increasing' if df.iloc[-1]['Volume_Ratio'] > 1 else 'decreasing',
-                'rsi_level': df.iloc[-1]['RSI']
+                'trend': 'upward' if latest_data.get('MA5', 0) > latest_data.get('MA20', 0) else 'downward',
+                'volatility': f"{latest_data.get('Volatility', 0):.2f}%", # Use get
+                'volume_trend': 'increasing' if latest_data.get('Volume_Ratio', 1) > 1 else 'decreasing', # Use get
+                'rsi_level': latest_data.get('RSI', 50.0) # Use get with default
             }
-            
-            # 根据市场类型调整分析提示
+            lineno_summary = inspect.currentframe().f_lineno
+            logger.debug(f"L{lineno_summary}: technical_summary created. Content (truncated): {self._truncate_json_for_logging(technical_summary)}")
+            # --- End Safely create technical_summary ---
+
+            # --- Prompt Creation ---
             if market_type in ['ETF', 'LOF']:
-                prompt = f"""
-                分析基金 {stock_code}：
-
-                技术指标概要：
-                {technical_summary}
-                
-                近14日交易数据：
-                {recent_data}
-                
-                请提供：
-                1. 净值走势分析（包含支撑位和压力位）
-                2. 成交量分析及其对净值的影响
-                3. 风险评估（包含波动率和折溢价分析）
-                4. 短期和中期净值预测
-                5. 关键价格位分析
-                6. 申购赎回建议（包含止损位）
-                
-                请基于技术指标和市场表现进行分析，给出具体数据支持。
-                """
+                prompt = f"分析基金 {stock_code}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.净值走势分析(支撑压力位) 2.成交量分析 3.风险评估(波动率/折溢价) 4.短期中期预测 5.关键价格位 6.申购赎回建议(止损)"
             elif market_type == 'US':
-                prompt = f"""
-                分析美股 {stock_code}：
-
-                技术指标概要：
-                {technical_summary}
-                
-                近14日交易数据：
-                {recent_data}
-                
-                请提供：
-                1. 趋势分析（包含支撑位和压力位，美元计价）
-                2. 成交量分析及其含义
-                3. 风险评估（包含波动率和美股市场特有风险）
-                4. 短期和中期目标价位（美元）
-                5. 关键技术位分析
-                6. 具体交易建议（包含止损位）
-                
-                请基于技术指标和美股市场特点进行分析，给出具体数据支持。
-                """
+                 prompt = f"分析美股 {stock_code}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位,美元) 2.成交量分析 3.风险评估(波动率/美股风险) 4.短期中期目标价(美元) 5.关键技术位 6.交易建议(止损)"
             elif market_type == 'HK':
-                prompt = f"""
-                分析港股 {stock_code}：
+                 prompt = f"分析港股 {stock_code}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位,港币) 2.成交量分析 3.风险评估(波动率/港股风险) 4.短期中期目标价(港币) 5.关键技术位 6.交易建议(止损)"
+            else: # A股
+                prompt = f"分析A股 {stock_code}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位) 2.成交量分析 3.风险评估(波动率) 4.短期中期目标价 5.关键技术位 6.交易建议(止损)"
+            # --- End Prompt Creation ---
 
-                技术指标概要：
-                {technical_summary}
-                
-                近14日交易数据：
-                {recent_data}
-                
-                请提供：
-                1. 趋势分析（包含支撑位和压力位，港币计价）
-                2. 成交量分析及其含义
-                3. 风险评估（包含波动率和港股市场特有风险）
-                4. 短期和中期目标价位（港币）
-                5. 关键技术位分析
-                6. 具体交易建议（包含止损位）
-                
-                请基于技术指标和港股市场特点进行分析，给出具体数据支持。
-                """
-            else:  # A股
-                prompt = f"""
-                分析A股 {stock_code}：
-
-                技术指标概要：
-                {technical_summary}
-                
-                近14日交易数据：
-                {recent_data}
-                
-                请提供：
-                1. 趋势分析（包含支撑位和压力位）
-                2. 成交量分析及其含义
-                3. 风险评估（包含波动率分析）
-                4. 短期和中期目标价位
-                5. 关键技术位分析
-                6. 具体交易建议（包含止损位）
-                
-                请基于技术指标和A股市场特点进行分析，给出具体数据支持。
-                """
-            
-            # 格式化API URL
             api_url = APIUtils.format_api_url(self.API_URL)
-            
-            # 准备请求数据
-            request_data = {
-                "model": self.API_MODEL,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7,
-                "stream": stream
-            }
-            
-            # 准备请求头
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.API_KEY}"
-            }
-            
-            # 获取当前日期作为分析日期
+            request_data = { "model": self.API_MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7, "stream": stream }
+            headers = { "Content-Type": "application/json", "Authorization": f"Bearer {self.API_KEY}" }
             analysis_date = datetime.now().strftime("%Y-%m-%d")
-            
-            # 异步请求API
+
             async with httpx.AsyncClient(timeout=self.API_TIMEOUT) as client:
-                # 记录请求
-                logger.debug(f"发送AI请求: URL={api_url}, MODEL={self.API_MODEL}, STREAM={stream}")
-                
-                # 先发送技术指标数据
-                yield json.dumps({
-                    "stock_code": stock_code,
-                    "status": "analyzing",
-                    "rsi": rsi,
-                    "price": price,
-                    "price_change": price_change,
-                    "ma_trend": ma_trend,
-                    "macd_signal": macd_signal_type,
-                    "volume_status": volume_status,
-                    "analysis_date": analysis_date
-                })
-                
+                lineno_pre_req = inspect.currentframe().f_lineno + 1
+                logger.debug(f"L{lineno_pre_req}: 发送AI请求前. Type(technical_summary)={type(technical_summary)}")
+                # Initial yield with basic data
+                yield json.dumps({ "stock_code": stock_code, "status": "analyzing", "rsi": rsi, "price": price, "price_change": price_change, "ma_trend": ma_trend, "macd_signal": macd_signal_type, "volume_status": volume_status, "analysis_date": analysis_date })
+
+                lineno_pre_stream = inspect.currentframe().f_lineno
+                logger.debug(f"L{lineno_pre_stream}: Before 'if stream:'. Type(technical_summary)={type(technical_summary)}")
+
                 if stream:
-                    # 流式响应处理
-                    async with client.stream("POST", api_url, json=request_data, headers=headers) as response:
-                        if response.status_code != 200:
-                            error_text = await response.aread()
-                            error_data = json.loads(error_text)
-                            error_message = error_data.get('error', {}).get('message', '未知错误')
-                            logger.error(f"AI API请求失败: {response.status_code} - {error_message}")
-                            yield json.dumps({
-                                "stock_code": stock_code,
-                                "error": f"API请求失败: {error_message}",
-                                "status": "error"
-                            })
-                            return
-                            
-                        # 处理流式响应
-                        buffer = ""
-                        collected_messages = []
-                        chunk_count = 0
-                        
-                        async for chunk in response.aiter_text():
-                            if chunk:
-                                # 分割多行响应（处理某些API可能在一个chunk中返回多行）
-                                lines = chunk.strip().split('\n')
-                                for line in lines:
-                                    line = line.strip()
-                                    if not line:
-                                        continue
-                                        
-                                    # 处理以data:开头的行
-                                    if line.startswith("data: "):
-                                        line = line[6:]  # 去除"data: "前缀
-                                     
-                                    if line == "[DONE]":
-                                        logger.debug("收到流结束标记 [DONE]")
-                                        continue
-                                        
+                    lineno_in_stream = inspect.currentframe().f_lineno
+                    logger.debug(f"L{lineno_in_stream}: 进入 'if stream:'. Type(technical_summary)={type(technical_summary)}")
+                    buffer = ""
+                    chunk_count = 0
+                    iterator = None
+
+                    try: # Outer try for stream connection, iteration, and final processing
+                        async with client.stream("POST", api_url, json=request_data, headers=headers) as response:
+                            lineno_resp = inspect.currentframe().f_lineno
+                            logger.info(f"L{lineno_resp}: Got stream response, status: {response.status_code}")
+                            if response.status_code != 200:
+                                lineno_err_resp = inspect.currentframe().f_back.f_lineno
+                                error_text = await response.aread()
+                                logger.error(f"L{lineno_err_resp}: AI API 请求失败: {response.status_code}. Response: {error_text[:500]}")
+                                yield json.dumps({ "stock_code": stock_code, "error": f"API请求失败: {response.status_code}", "status": "error" })
+                                return
+
+                            # --- Get Iterator ---
+                            try:
+                                lineno_get_iter = inspect.currentframe().f_lineno + 1
+                                logger.info(f"L{lineno_get_iter}: Preparing to get stream iterator")
+                                iterator = response.aiter_text()
+                                logger.info(f"L{inspect.currentframe().f_lineno}: Got stream iterator")
+                            except AttributeError as iter_init_ae:
+                                logger.error(f"!!! L{inspect.currentframe().f_back.f_lineno}: AttributeError caught getting async iterator !!!")
+                                logger.exception("Traceback (Iterator Creation):")
+                                yield json.dumps({"stock_code": stock_code,"error": f"获取流迭代器错误: {str(iter_init_ae)}","status": "error"})
+                                return
+                            except Exception as iter_init_other_e:
+                                logger.error(f"!!! L{inspect.currentframe().f_back.f_lineno}: Other exception caught getting async iterator: {type(iter_init_other_e).__name__} !!!", exc_info=True)
+                                yield json.dumps({"stock_code": stock_code,"error": f"获取流迭代器错误: {str(iter_init_other_e)}","status": "error"})
+                                return
+
+                            if iterator is None:
+                                logger.error(f"L{inspect.currentframe().f_lineno}: Iterator is None, stopping.")
+                                yield json.dumps({"stock_code": stock_code,"error": "无法获取流数据","status": "error"})
+                                return
+                            # --- Iterator Obtained ---
+
+                            # --- Manual Iteration Loop ---
+                            logger.info(f"L{inspect.currentframe().f_lineno}: Starting manual iteration with while loop")
+                            while True:
+                                chunk = None
+                                current_line_for_error = None
+                                try:
+                                    # Explicitly get the next chunk
+                                    lineno_anext = inspect.currentframe().f_lineno + 1
+                                    logger.debug(f"L{lineno_anext}: Calling await iterator.__anext__()")
+                                    chunk = await iterator.__anext__()
+                                    logger.debug(f">>> Manual Iteration: Got chunk (len={len(chunk)}) <<<")
+
+                                    # --- Try processing the loop body ---
                                     try:
-                                        # 处理特殊错误情况
-                                        if "error" in line.lower():
-                                            error_msg = line
-                                            try:
-                                                error_data = json.loads(line)
-                                                error_msg = error_data.get("error", line)
-                                            except:
-                                                pass
-                                            
-                                            logger.error(f"流式响应中收到错误: {error_msg}")
-                                            yield json.dumps({
-                                                "stock_code": stock_code,
-                                                "error": f"流式响应错误: {error_msg}",
-                                                "status": "error"
-                                            })
-                                            continue
-                                        
-                                        # 尝试解析JSON
-                                        chunk_data = json.loads(line)
-                                        
-                                        # 检查是否有finish_reason
-                                        finish_reason = chunk_data.get("choices", [{}])[0].get("finish_reason")
-                                        if finish_reason == "stop":
-                                            logger.debug("收到finish_reason=stop，流结束")
-                                            continue
-                                        
-                                        # 获取delta内容
-                                        delta = chunk_data.get("choices", [{}])[0].get("delta", {})
-                                        
-                                        # 检查delta是否为空对象
-                                        if not delta or delta == {}:
-                                            logger.debug("收到空的delta对象，跳过")
-                                            continue
-                                        
-                                        content = delta.get("content", "")
-                                        
-                                        if content:
-                                            chunk_count += 1
-                                            buffer += content
-                                            collected_messages.append(content)
-                                            
-                                            # 直接发送每个内容片段，不累积
-                                            yield json.dumps({
-                                                "stock_code": stock_code,
-                                                "ai_analysis_chunk": content,
-                                                "status": "analyzing"
-                                            })
-                                    except json.JSONDecodeError:
-                                        # 记录解析错误并尝试恢复
-                                        logger.error(f"JSON解析错误，块内容: {line}")
-                                        
-                                        # 如果是特定错误模式，处理它
-                                        if "streaming failed after retries" in line.lower():
-                                            logger.error("检测到流式传输失败")
-                                            yield json.dumps({
-                                                "stock_code": stock_code,
-                                                "error": "流式传输失败，请稍后重试",
-                                                "status": "error"
-                                            })
-                                            return
-                                        continue
-                        
-                        logger.info(f"AI流式处理完成，共收到 {chunk_count} 个内容片段，总长度: {len(buffer)}")
-                        
-                        # 如果buffer不为空且不以换行符结束，发送一个换行符
-                        if buffer and not buffer.endswith('\n'):
-                            logger.debug("发送换行符")
-                            yield json.dumps({
-                                "stock_code": stock_code,
-                                "ai_analysis_chunk": "\n",
-                                "status": "analyzing"
-                            })
-                        
-                        # 完整的分析内容
+                                        if chunk:
+                                            lines = chunk.strip().split('\n')
+                                            for line in lines:
+                                                current_line_for_error = line
+                                                line = line.strip()
+                                                if not line: continue
+                                                if line.startswith("data: "): line = line[6:]
+
+                                                lineno_proc = inspect.currentframe().f_lineno
+                                                logger.debug(f"L{lineno_proc}: Processing line: {line[:100]}")
+                                                content = self._extract_content_from_line(line) # Use refactored extract function
+
+                                                if content:
+                                                    chunk_count += 1
+                                                    buffer += content
+                                                    yield json.dumps({ "stock_code": stock_code, "ai_analysis_chunk": content, "status": "analyzing" })
+                                                # No extensive error checks needed here as _extract handles them
+
+                                        logger.debug("<<< Manual Iteration End: Chunk processed successfully <<<")
+
+                                    except AttributeError as ae_body:
+                                        logger.error(f"!!! L{inspect.currentframe().f_back.f_lineno}: AttributeError caught within MANUAL loop BODY !!!")
+                                        logger.error(f"Chunk: {chunk[:200]}, Line: {current_line_for_error[:200] if current_line_for_error else 'N/A'}")
+                                        logger.exception("Traceback (Manual Loop Body AE):")
+                                        yield json.dumps({"stock_code": stock_code, "error": f"内部处理错误: {str(ae_body)}", "status": "error"})
+                                        return
+                                    except Exception as loop_e_body:
+                                        logger.error(f"!!! L{inspect.currentframe().f_back.f_lineno}: Other exception caught within MANUAL loop BODY: {type(loop_e_body).__name__} !!!", exc_info=True)
+                                        logger.error(f"Chunk: {chunk[:200]}, Line: {current_line_for_error[:200] if current_line_for_error else 'N/A'}")
+                                        yield json.dumps({"stock_code": stock_code, "error": f"内部循环错误: {str(loop_e_body)}", "status": "error"})
+                                        return
+                                    # --- End Try processing the loop body ---
+
+                                except StopAsyncIteration:
+                                    # Normal exit from the iterator
+                                    logger.info(f"L{inspect.currentframe().f_lineno}: StopAsyncIteration received, exiting loop normally.")
+                                    break # Exit the while True loop
+                                except AttributeError as anext_ae:
+                                    # Catch AttributeError specifically from __anext__()
+                                    logger.error(f"!!! L{inspect.currentframe().f_back.f_lineno}: AttributeError caught calling iterator.__anext__() !!!")
+                                    logger.exception("Traceback (__anext__ call AE):")
+                                    yield json.dumps({"stock_code": stock_code, "error": f"流迭代错误 (anext AE): {str(anext_ae)}", "status": "error"})
+                                    return
+                                except Exception as anext_other_e:
+                                    # Catch any other error during __anext__()
+                                    logger.error(f"!!! L{inspect.currentframe().f_back.f_lineno}: Other exception caught calling iterator.__anext__(): {type(anext_other_e).__name__} !!!", exc_info=True)
+                                    yield json.dumps({"stock_code": stock_code, "error": f"流迭代错误 (anext Other): {str(anext_other_e)}", "status": "error"})
+                                    return
+                            # --- End of while True loop ---
+
+                        # --- Processing after loop ---
+                        lineno_post_loop = inspect.currentframe().f_lineno
+                        logger.info(f"L{lineno_post_loop}: Exited manual iteration loop. Received {chunk_count} content chunks.")
+                        logger.debug(f"L{lineno_post_loop}: After loop. Type(technical_summary)={type(technical_summary)}")
                         full_content = buffer
-                        
-                        # 尝试从分析内容中提取投资建议
-                        recommendation = self._extract_recommendation(full_content)
-                        
-                        # 计算分析评分
-                        score = self._calculate_analysis_score(full_content, technical_summary)
-                        
-                        # 发送完成状态和评分、建议
-                        yield json.dumps({
-                            "stock_code": stock_code,
-                            "status": "completed",
-                            "score": score,
-                            "recommendation": recommendation
-                        })
+                        score = 50
+                        recommendation = "观望"
+                        try:
+                            recommendation = self._extract_recommendation(full_content)
+                            lineno_call_score = inspect.currentframe().f_lineno + 1
+                            logger.debug(f"L{lineno_call_score}: PRE-CALL _calculate_analysis_score. Type(technical_summary)={type(technical_summary)}")
+                            if isinstance(technical_summary, dict):
+                                score = self._calculate_analysis_score(full_content, technical_summary)
+                                logger.debug(f"L{inspect.currentframe().f_lineno}: Score calculated: {score}")
+                            else:
+                                logger.error(f"L{lineno_call_score}: ERROR - technical_summary is NOT dict!")
+                        except Exception as final_proc_e:
+                             lineno_final_err = inspect.currentframe().f_back.f_lineno
+                             logger.error(f"L{lineno_final_err}: Error in final stream result processing", exc_info=True)
+
+                        yield json.dumps({ "stock_code": stock_code, "status": "completed", "score": score, "recommendation": recommendation })
+                        logger.info(f"L{inspect.currentframe().f_lineno}: Final stream result yielded.")
+
+                    except Exception as stream_outer_e:
+                        # Outer exception handler for stream block
+                        lineno_outer_err = inspect.currentframe().f_back.f_lineno
+                        logger.error(f"!!! L{lineno_outer_err}: Outer exception caught during stream handling! Type: {type(stream_outer_e).__name__} !!!", exc_info=True)
+                        yield json.dumps({ "stock_code": stock_code, "error": f"流处理错误: {str(stream_outer_e)}", "status": "error" })
+                        return
                 else:
-                    # 非流式响应处理
+                    # --- Non-Streaming Path ---
+                    lineno_nonstream = inspect.currentframe().f_lineno
+                    logger.debug(f"L{lineno_nonstream}: Entering non-stream path. Type(technical_summary)={type(technical_summary)}")
                     response = await client.post(api_url, json=request_data, headers=headers)
+                    lineno_nonstream_resp = inspect.currentframe().f_lineno
+                    logger.info(f"L{lineno_nonstream_resp}: Got non-stream response, status: {response.status_code}")
                     
                     if response.status_code != 200:
-                        error_data = response.json()
-                        error_message = error_data.get('error', {}).get('message', '未知错误')
-                        logger.error(f"AI API请求失败: {response.status_code} - {error_message}")
-                        yield json.dumps({
-                            "stock_code": stock_code,
-                            "error": f"API请求失败: {error_message}",
-                            "status": "error"
-                        })
+                        error_message = '未知API错误'
+                        try:
+                            error_data = response.json()
+                            if isinstance(error_data, dict):
+                                error_content = error_data.get('error', {})
+                                error_message = error_content.get('message', str(error_data)) if isinstance(error_content, dict) else str(error_content)
+                            else: error_message = str(error_data)
+                        except json.JSONDecodeError: error_message = response.text[:500]
+                        logger.error(f"L{inspect.currentframe().f_back.f_lineno}: AI API请求失败 (non-stream): {response.status_code} - {error_message}")
+                        yield json.dumps({ "stock_code": stock_code, "error": f"API请求失败: {error_message}", "status": "error" })
                         return
-                    
-                    response_data = response.json()
-                    analysis_text = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
-                    
-                    # 尝试从分析内容中提取投资建议
-                    recommendation = self._extract_recommendation(analysis_text)
-                    
-                    # 计算分析评分
-                    score = self._calculate_analysis_score(analysis_text, technical_summary)
-                    
-                    # 发送完整的分析结果
-                    yield json.dumps({
-                        "stock_code": stock_code,
-                        "status": "completed",
-                        "analysis": analysis_text,
-                        "score": score,
-                        "recommendation": recommendation,
-                        "rsi": rsi,
-                        "price": price,
-                        "price_change": price_change,
-                        "ma_trend": ma_trend,
-                        "macd_signal": macd_signal_type,
-                        "volume_status": volume_status,
-                        "analysis_date": analysis_date
-                    })
-                    
+                        
+                    try:
+                        response_text = response.text 
+                        response_data = json.loads(response_text) 
+                        
+                        analysis_text = ""
+                        if isinstance(response_data, dict):
+                            choices = response_data.get("choices")
+                            if isinstance(choices, list) and choices:
+                                message = choices[0].get("message")
+                                if isinstance(message, dict):
+                                    analysis_text = message.get("content", "")
+                        
+                        if not analysis_text:
+                             logger.warning(f"L{inspect.currentframe().f_lineno}: Could not extract content via choices/message in non-stream.")
+                             analysis_text = response_text 
+
+                        recommendation = self._extract_recommendation(analysis_text or "")
+                        score = 50
+                        lineno_call_score_ns = inspect.currentframe().f_lineno + 1
+                        logger.debug(f"L{lineno_call_score_ns}: PRE-CALL _calculate_analysis_score (non-stream). Type(technical_summary)={type(technical_summary)}")
+                        if isinstance(technical_summary, dict):
+                            score = self._calculate_analysis_score(analysis_text or "", technical_summary)
+                            logger.debug(f"L{inspect.currentframe().f_lineno}: Score calculated (non-stream): {score}")
+                        else:
+                             logger.error(f"L{lineno_call_score_ns}: ERROR - technical_summary is NOT dict (non-stream)!")
+                             
+                        yield json.dumps({ "stock_code": stock_code, "status": "completed", "analysis": analysis_text, "score": score, "recommendation": recommendation, "rsi": rsi, "price": price, "price_change": price_change, "ma_trend": ma_trend, "macd_signal": macd_signal_type, "volume_status": volume_status, "analysis_date": analysis_date })
+                    except json.JSONDecodeError as json_e:
+                         lineno_json_err_ns = inspect.currentframe().f_back.f_lineno
+                         logger.error(f"L{lineno_json_err_ns}: Error decoding non-stream JSON response", exc_info=True)
+                         yield json.dumps({ "stock_code": stock_code, "error": f"解析响应错误: {str(json_e)}", "status": "error" })
+                    except Exception as non_stream_e:
+                         lineno_proc_err_ns = inspect.currentframe().f_back.f_lineno
+                         logger.error(f"L{lineno_proc_err_ns}: Error processing non-stream response", exc_info=True)
+                         yield json.dumps({ "stock_code": stock_code, "error": f"处理响应错误: {str(non_stream_e)}", "status": "error" })
+
         except Exception as e:
-            logger.error(f"AI分析出错: {str(e)}", exc_info=True)
-            yield json.dumps({
-                "stock_code": stock_code,
-                "error": f"分析出错: {str(e)}",
-                "status": "error"
-            })
-            
+            # Radically Simplified final exception handler
+            lineno_top_err = inspect.currentframe().f_back.f_lineno if inspect.currentframe().f_back else inspect.currentframe().f_lineno
+            exception_type = type(e).__name__
+            # ONLY log type and traceback. Do NOT call str(e) here.
+            logger.error(f"L{lineno_top_err}: AI分析顶层出错. 类型: {exception_type}", exc_info=True)
+
+            try:
+                yield json.dumps({
+                    "stock_code": stock_code,
+                    "error": f"分析顶层出错 ({exception_type})", # Report only type
+                    "status": "error"
+                })
+            except Exception as yield_e:
+                 logger.error(f"L{inspect.currentframe().f_lineno}: 发送顶层错误时再次出错: {str(yield_e)}")
+
     def _extract_recommendation(self, analysis_text: str) -> str:
         """从分析文本中提取投资建议"""
         # 查找投资建议部分
@@ -452,3 +386,112 @@ class AIAnalyzer:
         if len(json_str) <= max_length:
             return json_str
         return json_str[:max_length] + "..." 
+
+    def _extract_content_from_line(self, line: str) -> str | None:
+        """
+        从各种响应格式中提取内容，优化对碎片和非字典JSON的处理。
+        
+        Args:
+            line: 响应行
+            
+        Returns:
+            提取的内容字符串，如果无法提取或行无效则返回None
+        """
+        try:
+            # 1. Common pre-processing and checks
+            if not line or line.isspace(): return None
+            if line == "[DONE]":
+                logger.debug("Stream ended with [DONE].")
+                return None
+            # Ignore fragments of [DONE] marker explicitly if they are the whole line
+            if line in ("[", "D", "O", "N", "E", "]"): 
+                logger.debug(f"Ignoring likely fragment of [DONE]: '{line}'")
+                return None
+                
+            # Remove SSE prefix
+            if line.startswith("data: "): 
+                line = line[len("data: "):].strip() # Strip whitespace after removing prefix
+            if not line: return None # Ignore empty lines after prefix removal
+
+            # Ignore likely single character fragments unless it starts JSON
+            if len(line) == 1 and not line.startswith(('{', '[')):
+                 logger.debug(f"Ignoring likely single character fragment: '{line}'")
+                 return None
+
+            # 2. Attempt General JSON Parsing
+            try:
+                chunk_data = json.loads(line)
+                
+                # Handle cases where API returns non-dict JSON (e.g., an int)
+                if not isinstance(chunk_data, dict):
+                    logger.warning(f"Parsed valid JSON, but it's not a dictionary (type: {type(chunk_data)}). Line: {line[:100]}")
+                    return None # Treat as non-content
+
+                # --- Extract content from known dictionary structures ---
+                
+                # OpenAI / Anthropic / Compatible Choices Structure
+                choices = chunk_data.get("choices")
+                if isinstance(choices, list) and choices:
+                    choice = choices[0]
+                    if isinstance(choice, dict):
+                        finish_reason = choice.get("finish_reason")
+                        if finish_reason == "stop":
+                            logger.debug("Finish reason 'stop' detected in choices.")
+                            return None 
+                        delta = choice.get("delta")
+                        if isinstance(delta, dict):
+                            content = delta.get("content")
+                            if isinstance(content, str) and content: 
+                                logger.debug("[General Path] Extracted content from choices/delta.")
+                                return content
+                        message = choice.get("message")
+                        if isinstance(message, dict):
+                             content = message.get("content")
+                             if isinstance(content, str) and content:
+                                 logger.debug("[General Path] Extracted content from choices/message.")
+                                 return content
+
+                # Gemini Candidates Structure (Check even if not strictly Gemini API)
+                candidates = chunk_data.get("candidates")
+                if isinstance(candidates, list) and candidates:
+                     candidate = candidates[0]
+                     if isinstance(candidate, dict):
+                         content_obj = candidate.get("content")
+                         if isinstance(content_obj, dict):
+                             parts = content_obj.get("parts")
+                             if isinstance(parts, list) and parts:
+                                 part = parts[0]
+                                 if isinstance(part, dict):
+                                     text = part.get("text")
+                                     if isinstance(text, str) and text:
+                                         logger.debug("[General Path] Extracted content from candidates structure.")
+                                         return text
+
+                # DeepSeek Structure / Other common fields
+                output = chunk_data.get("output")
+                if isinstance(output, str) and output: 
+                    logger.debug("[General Path] Extracted content from DeepSeek 'output'.")
+                    return output
+                text = chunk_data.get("text")
+                if isinstance(text, str) and text: 
+                    logger.debug("[General Path] Extracted content from 'text' field.")
+                    return text
+
+                # If JSON parsed but no known content structure found
+                logger.debug(f"JSON parsed, but no known content structure found: {line[:100]}")
+                return None
+
+            except json.JSONDecodeError:
+                # Log JSON errors at DEBUG level normally to reduce noise
+                # Log as WARNING only if it looks like it should have been JSON
+                log_level = "warning" if line.startswith('{') or line.startswith('[') else "debug"
+                getattr(logger, log_level)(f"JSON decode failed for line: {line[:100]}")
+                return None 
+            except Exception as e:
+                 logger.error(f"Unexpected error during JSON parsing/extraction: {e}", exc_info=True)
+                 return None
+
+        except Exception as outer_e:
+            # Catch-all for unexpected errors within the function itself
+            logger.error(f"Unexpected error in _extract_content_from_line: {outer_e}", exc_info=True)
+            return None 
