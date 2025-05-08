@@ -2,14 +2,13 @@ import type { MarketTimeInfo } from '@/types';
 import { marked } from 'marked';
 
 // 防抖函数
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
   let timeout: number | null = null;
   
-  return (...args: Parameters<T>): void => {
+  return function(...args: Parameters<T>): void {
     const later = () => {
       timeout = null;
       func(...args);
@@ -27,18 +26,14 @@ export function formatMarketValue(value: number): string {
   if (!value) return '未知';
   
   if (value >= 1000000000000) {
-    return `${(value / 1000000000000).toFixed(2)}万亿`;
+    return (value / 1000000000000).toFixed(2) + '万亿';
+  } else if (value >= 100000000) {
+    return (value / 100000000).toFixed(2) + '亿';
+  } else if (value >= 10000) {
+    return (value / 10000).toFixed(2) + '万';
+  } else {
+    return value.toFixed(2);
   }
-  
-  if (value >= 100000000) {
-    return `${(value / 100000000).toFixed(2)}亿`;
-  }
-  
-  if (value >= 10000) {
-    return `${(value / 10000).toFixed(2)}万`;
-  }
-  
-  return value.toFixed(2);
 }
 
 // 解析Markdown
@@ -114,7 +109,7 @@ function getNextTimeText(
 ): string {
   if (isOpen) {
     // 计算距离收盘时间
-    const timeToCloseMinutes = (closeHour - currentHour) * 60 + (closeMinute - currentMinute);
+    let timeToCloseMinutes = (closeHour - currentHour) * 60 + (closeMinute - currentMinute);
     
     if (timeToCloseMinutes <= 0) {
       return '即将收盘';
@@ -124,26 +119,25 @@ function getNextTimeText(
     const minutes = timeToCloseMinutes % 60;
     
     return `距离收盘还有 ${hours}小时${minutes}分钟`;
-  }
-  
-  // 计算距离开盘时间
-  let nextOpenHour = openHour;
-  let nextOpenMinute = openMinute;
-  let isNextDay = false;
-  
-  if (currentHour >= closeHour) {
-    // 已经过了今天的收盘时间，下一个开盘是明天
-    isNextDay = true;
-  } else if (currentHour < openHour || (currentHour === openHour && currentMinute < openMinute)) {
-    // 还没到今天的开盘时间
-    isNextDay = false;
   } else {
-    // 当前处于盘中休息时间，下一个开盘时间是当天下午
-    nextOpenHour = 13;
-    nextOpenMinute = 0;
-  }
+    // 计算距离开盘时间
+    let nextOpenHour = openHour;
+    let nextOpenMinute = openMinute;
+    let isNextDay = false;
     
-    let timeToOpenMinutes: number;
+    if (currentHour >= closeHour) {
+      // 已经过了今天的收盘时间，下一个开盘是明天
+      isNextDay = true;
+    } else if (currentHour < openHour || (currentHour === openHour && currentMinute < openMinute)) {
+      // 还没到今天的开盘时间
+      isNextDay = false;
+    } else {
+      // 当前处于盘中休息时间，下一个开盘时间是当天下午
+      nextOpenHour = 13;
+      nextOpenMinute = 0;
+    }
+    
+    let timeToOpenMinutes;
     
     if (isNextDay) {
       timeToOpenMinutes = (24 - currentHour + nextOpenHour) * 60 + (nextOpenMinute - currentMinute);
@@ -160,7 +154,7 @@ function getNextTimeText(
     
     return `距离开盘还有 ${hours}小时${minutes}分钟`;
   }
-
+}
 
 // 保存API配置到localStorage
 export function saveApiConfigToLocalStorage(config: Partial<Pick<
