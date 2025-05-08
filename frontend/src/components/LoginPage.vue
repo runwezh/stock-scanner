@@ -42,7 +42,7 @@
       >
         <n-form-item path="password">
           <n-input
-            v-model="formValue.password"
+            v-model:value="formValue.password"
             type="password"
             placeholder="请输入密码"
             @keyup.enter="handleLogin"
@@ -183,7 +183,6 @@ const handleLogin = () => {
       } else {
         message.error(response.message || '登录失败');
       }
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     } catch (error: any) {
       console.error('登录失败:', error);
       message.error(error.message || '登录失败');
@@ -545,4 +544,4 @@ html, body {
     display: none;
   }
 }
-</style>
+</style> 
