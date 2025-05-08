@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { fileURLToPath } from 'url'
-import { dirname, resolve } from 'path'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 
 // 获取当前文件的目录路径（在ESM中替代__dirname）
 const __filename = fileURLToPath(import.meta.url)
