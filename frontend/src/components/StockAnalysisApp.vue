@@ -1,5 +1,25 @@
 <template>
   <div class="app-container mobile-bottom-extend">
+    <!-- 滑动菜单 -->
+    <div class="slide-menu-container" :class="{ 'menu-open': isMenuOpen }">
+      <div class="menu-overlay" @click="toggleMenu"></div>
+      <div class="slide-menu">
+        <n-button class="menu-item" @click="handleLogout">
+          <template #icon>
+            <n-icon><LogoutIcon /></n-icon>
+          </template>
+          登出
+        </n-button>
+      </div>
+    </div>
+    
+    <!-- 菜单按钮 -->
+    <n-button class="menu-button" circle @click="toggleMenu">
+      <template #icon>
+        <n-icon><MenuIcon /></n-icon>
+      </template>
+    </n-button>
+    
     <!-- 公告横幅 -->
     <AnnouncementBanner 
       v-if="announcement && showAnnouncementBanner" 
@@ -177,6 +197,8 @@ import { useClipboard } from '@vueuse/core'
 import { 
   DocumentTextOutline as DocumentTextIcon,
   DownloadOutline as DownloadIcon,
+  MenuOutline as MenuIcon,
+  LogOutOutline as LogoutIcon,
 } from '@vicons/ionicons5';
 
 import MarketTimeDisplay from './MarketTimeDisplay.vue';
@@ -193,6 +215,20 @@ import { validateMultipleStockCodes, MarketType } from '@/utils/stockValidator';
 // 使用Naive UI的组件API
 const message = useMessage();
 const { copy } = useClipboard();
+
+// 菜单状态
+const isMenuOpen = ref(false);
+
+// 切换菜单
+function toggleMenu() {
+  isMenuOpen.value = !isMenuOpen.value;
+}
+
+// 处理登出
+function handleLogout() {
+  localStorage.removeItem('token');
+  window.location.reload();
+}
 
 // 从环境变量获取的默认配置
 const defaultApiUrl = ref('');
@@ -978,6 +1014,72 @@ function handleAnnouncementClose() {
 </script>
 
 <style scoped>
+/* 滑动菜单样式 */
+.slide-menu-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.menu-open .menu-overlay {
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.menu-overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.slide-menu {
+  position: absolute;
+  top: 0;
+  left: -300px;
+  width: 280px;
+  height: 100%;
+  background: white;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  pointer-events: auto;
+}
+
+.menu-open .slide-menu {
+  left: 0;
+}
+
+.menu-button {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+.menu-item {
+  width: 100%;
+  text-align: left;
+  padding: 12px 20px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .slide-menu {
+    width: 250px;
+  }
+  
+  .menu-button {
+    top: 15px;
+    left: 15px;
+  }
+}
+
 .app-container {
   min-height: 100vh;
   width: 100%;
