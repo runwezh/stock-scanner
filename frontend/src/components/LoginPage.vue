@@ -183,6 +183,7 @@ const handleLogin = () => {
       } else {
         message.error(response.message || '登录失败');
       }
+    
     } catch (error: any) {
       console.error('登录失败:', error);
       message.error(error.message || '登录失败');
@@ -443,6 +444,7 @@ html, body {
   margin: 0 0 8px;
   background: linear-gradient(90deg, #2080f0, #44a4ff);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 

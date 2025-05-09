@@ -241,9 +241,7 @@ const props = defineProps<{
   defaultApiTimeout?: string;
 }>();
 
-const emit = defineEmits<{
-  (e: 'update:apiConfig', value: ApiConfig): void;
-}>();
+const emit = defineEmits<(e: 'update:apiConfig', value: ApiConfig) => void>();
 
 const message = useMessage();
 const expanded = ref(false);
@@ -290,7 +288,7 @@ const apiConfig = ref<ApiConfig>({
 });
 
 const apiTimeout = computed({
-  get: () => parseInt(apiConfig.value.apiTimeout) || 60,
+  get: () => Number.parseInt(apiConfig.value.apiTimeout) || 60,
   set: (val: number) => {
     apiConfig.value.apiTimeout = val.toString();
   }
@@ -350,11 +348,13 @@ function formatApiUrl(url: string): string {
     // 使用与后端一致的URL格式化逻辑
     if (url.endsWith('/')) {
       return `${url}chat/completions`;
-    } else if (url.endsWith('#')) {
+    } 
+    if (url.endsWith('#')) {
       return url.replace('#', '');
-    } else {
-      return `${url}/v1/chat/completions`;
-    }
+    } 
+      
+    return `${url}/v1/chat/completions`;
+  
   } catch (e) {
     // 如果URL格式错误，则返回原始字符串
     return url;
@@ -375,7 +375,7 @@ async function testConnection() {
       api_url: apiConfig.value.apiUrl,
       api_key: apiConfig.value.apiKey,
       api_model: apiConfig.value.apiModel || undefined,
-      api_timeout: parseInt(apiConfig.value.apiTimeout) || 60
+      api_timeout: Number.parseInt(apiConfig.value.apiTimeout) || 60
     });
     
     if (response.success) {

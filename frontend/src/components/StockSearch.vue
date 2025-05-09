@@ -60,9 +60,7 @@ const props = defineProps<{
   marketType: string;
 }>();
 
-const emit = defineEmits<{
-  (e: 'select', symbol: string): void;
-}>();
+const emit = defineEmits<(e: 'select', symbol: string) => void>();
 
 const searchKeyword = ref('');
 const results = ref<SearchResult[]>([]);

@@ -363,7 +363,7 @@ const stockTableColumns = ref<DataTableColumns<StockInfo>>([
       if (!row.analysis_date) return '--';
       try {
         const date = new Date(row.analysis_date);
-        if (isNaN(date.getTime())) {
+        if (Number.isNaN(date.getTime())) {
           return row.analysis_date;
         }
         return date.toISOString().split('T')[0];
@@ -420,7 +420,7 @@ function addSelectedStock(symbol: string) {
   const cleanSymbol = symbol.trim().replace(/^\d+\.\s*/, '');
   
   if (stockCodes.value) {
-    stockCodes.value += ', ' + cleanSymbol;
+    stockCodes.value += `, ${cleanSymbol}`;
   } else {
     stockCodes.value = cleanSymbol;
   }
@@ -626,7 +626,7 @@ async function analyzeStocks() {
     
     // 如果有令牌，添加到请求头
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers.Authorization = `Bearer ${token}`;
     }
     
     // 发送分析请求
@@ -676,7 +676,7 @@ async function analyzeStocks() {
         if (line.trim()) {
           try {
             processStreamData(line);
-          } catch (e: Error | unknown) {
+          } catch (e:  unknown) {
             console.error('处理数据流时出错:', e);
             message.error(`处理数据时出错: ${e instanceof Error ? e.message : '未知错误'}`);
           }
@@ -688,7 +688,7 @@ async function analyzeStocks() {
     if (buffer.trim()) {
       try {
         processStreamData(buffer);
-      } catch (e: Error | unknown) {
+      } catch (e: unknown) {
         console.error('处理最后的数据块时出错:', e);
         message.error(`处理数据时出错: ${e instanceof Error ? e.message : '未知错误'}`);
       }
@@ -730,7 +730,7 @@ async function copyAnalysisResults() {
         if (stock.analysis_date) {
           try {
             const date = new Date(stock.analysis_date);
-            if (!isNaN(date.getTime())) {
+            if (!Number.isNaN(date.getTime())) {
               result += `分析日期: ${date.toISOString().split('T')[0]}\n`;
             } else {
               result += `分析日期: ${stock.analysis_date}\n`;
@@ -814,7 +814,8 @@ async function copyAnalysisResults() {
 // 从本地存储恢复API配置
 function restoreLocalApiConfig() {
   const savedConfig = loadApiConfig();
-  if (savedConfig && savedConfig.saveApiConfig) {
+  //  if (savedConfig && savedConfig.saveApiConfig) {
+  if (savedConfig?.saveApiConfig) {
     apiConfig.value = {
       apiUrl: savedConfig.apiUrl || '',
       apiKey: savedConfig.apiKey || '',
@@ -853,9 +854,10 @@ function exportToCSV() {
   try {
     // 创建CSV内容
     const headers = ['代码', '名称', '价格', '涨跌幅', 'RSI', '均线趋势', 'MACD信号', '成交量状态', '评分', '推荐', '分析日期'];
-    let csvContent = headers.join(',') + '\n';
+    let csvContent = `${headers.join(',')}\n`;
     
     // 添加数据行
+    
     analyzedStocks.value.forEach(stock => {
       const row = [
         `"${stock.code}"`,
@@ -871,7 +873,7 @@ function exportToCSV() {
         stock.analysis_date || ''
       ];
       
-      csvContent += row.join(',') + '\n';
+      csvContent += `${row.join(',')}\n`;
     });
     
     // 创建Blob对象

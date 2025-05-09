@@ -32,9 +32,7 @@ const props = defineProps<{
   autoCloseTime?: number;
 }>();
 
-const emit = defineEmits<{
-  (e: 'close'): void;
-}>();
+const emit = defineEmits<(e: 'close') => void>();
 
 const route = useRoute();
 const isLoginPage = computed(() => route.path === '/login');

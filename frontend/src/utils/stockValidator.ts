@@ -75,7 +75,7 @@ export const validateStockCode = (
       if (!validateAStock()) {
         return { 
           valid: false, 
-          errorMessage: `股票代码不能为空` // A股验证仅检查非空
+          errorMessage: "股票代码不能为空" // A股验证仅检查非空
         };
       }
       break;
