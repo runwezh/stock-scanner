@@ -187,26 +187,27 @@ const parsedAnalysis = computed(() => {
 
 // 关键词高亮处理函数
 function highlightKeywords(html: string): string {
+  let result = html;
   // 买入/卖出/持有信号
-  html = html.replace(/(<strong>)(买入|卖出|持有)(<\/strong>)/g, '$1<span class="buy">$2</span>$3');
+  result = result.replace(/(<strong>)(买入|卖出|持有)(<\/strong>)/g, '$1<span class="buy">$2</span>$3');
   
   // 上涨/增长相关词
-  html = html.replace(/(<strong>)(上涨|看涨|增长|增加|上升)(<\/strong>)/g, '$1<span class="up">$2</span>$3');
+  result = result.replace(/(<strong>)(上涨|看涨|增长|增加|上升)(<\/strong>)/g, '$1<span class="up">$2</span>$3');
   
   // 下跌/减少相关词
-  html = html.replace(/(<strong>)(下跌|看跌|减少|降低|下降)(<\/strong>)/g, '$1<span class="down">$2</span>$3');
+  result = result.replace(/(<strong>)(下跌|看跌|减少|降低|下降)(<\/strong>)/g, '$1<span class="down">$2</span>$3');
   
   // 技术指标相关词
-  html = html.replace(/(<strong>)(RSI|MACD|MA|KDJ|均线|成交量|布林带|Bollinger|移动平均|相对强弱|背离)(<\/strong>)/g, 
+  result = result.replace(/(<strong>)(RSI|MACD|MA|KDJ|均线|成交量|布林带|Bollinger|移动平均|相对强弱|背离)(<\/strong>)/g, 
                       '$1<span class="indicator">$2</span>$3');
   
   // 高亮重要的百分比数字 (如 +12.34%, -12.34%)
-  html = html.replace(/([+-]?\d+\.?\d*\s*%)/g, '<span class="number">$1</span>');
+  result = result.replace(/([+-]?\d+\.?\d*\s*%)/g, '<span class="number">$1</span>');
   
   // 高亮重要的数值 (如带小数位的数字)
-  html = html.replace(/(\s|>)(\d+\.\d+)(\s|<)/g, '$1<span class="number">$2</span>$3');
+  result = result.replace(/(\s|>)(\d+\.\d+)(\s|<)/g, '$1<span class="number">$2</span>$3');
   
-  return html;
+  return result;
 }
 
 // 获取涨跌幅
@@ -242,7 +243,7 @@ function formatDate(dateStr: string | undefined | null): string {
   if (!dateStr) return '--';
   try {
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
       return dateStr;
     }
     return date.toISOString().split('T')[0];

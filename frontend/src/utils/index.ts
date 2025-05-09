@@ -8,7 +8,7 @@ export function debounce<T extends (...args: any[]) => any>(
 ): (...args: Parameters<T>) => void {
   let timeout: number | null = null;
   
-  return function(...args: Parameters<T>): void {
+  return (...args: Parameters<T>): void => {
     const later = () => {
       timeout = null;
       func(...args);
@@ -26,14 +26,15 @@ export function formatMarketValue(value: number): string {
   if (!value) return '未知';
   
   if (value >= 1000000000000) {
-    return (value / 1000000000000).toFixed(2) + '万亿';
-  } else if (value >= 100000000) {
-    return (value / 100000000).toFixed(2) + '亿';
-  } else if (value >= 10000) {
-    return (value / 10000).toFixed(2) + '万';
-  } else {
-    return value.toFixed(2);
+    return `${(value / 1000000000000).toFixed(2)}万亿`;
   }
+  if (value >= 100000000) {
+    return `${(value / 100000000).toFixed(2)}亿`;
+  }
+  if (value >= 10000) {
+    return `${(value / 10000).toFixed(2)}万`;
+  }
+    return value.toFixed(2);
 }
 
 // 解析Markdown
@@ -109,7 +110,7 @@ function getNextTimeText(
 ): string {
   if (isOpen) {
     // 计算距离收盘时间
-    let timeToCloseMinutes = (closeHour - currentHour) * 60 + (closeMinute - currentMinute);
+    const timeToCloseMinutes = (closeHour - currentHour) * 60 + (closeMinute - currentMinute);
     
     if (timeToCloseMinutes <= 0) {
       return '即将收盘';
@@ -119,7 +120,7 @@ function getNextTimeText(
     const minutes = timeToCloseMinutes % 60;
     
     return `距离收盘还有 ${hours}小时${minutes}分钟`;
-  } else {
+  }
     // 计算距离开盘时间
     let nextOpenHour = openHour;
     let nextOpenMinute = openMinute;
@@ -137,7 +138,7 @@ function getNextTimeText(
       nextOpenMinute = 0;
     }
     
-    let timeToOpenMinutes;
+    let timeToOpenMinutes: number;
     
     if (isNextDay) {
       timeToOpenMinutes = (24 - currentHour + nextOpenHour) * 60 + (nextOpenMinute - currentMinute);
@@ -153,7 +154,6 @@ function getNextTimeText(
     const minutes = timeToOpenMinutes % 60;
     
     return `距离开盘还有 ${hours}小时${minutes}分钟`;
-  }
 }
 
 // 保存API配置到localStorage
