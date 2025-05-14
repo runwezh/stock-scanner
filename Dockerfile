@@ -37,6 +37,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# 安装 tzdata 并设置时区为上海
+RUN apt-get update && apt-get install -y tzdata && \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+    
 # 复制项目文件 (requirements.txt)
 COPY requirements.txt /app/
 

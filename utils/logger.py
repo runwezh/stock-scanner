@@ -5,7 +5,8 @@ from datetime import datetime
 
 
 # 创建日志目录
-log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+log_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "logs")
+log_dir = os.path.abspath(log_dir)
 os.makedirs(log_dir, exist_ok=True)
 
 # 配置日志
