@@ -18,6 +18,14 @@ import json
 import secrets
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
+from sqlalchemy.future import select
+from passlib.context import CryptContext
+from utils.db import get_db
+from models.user import User
+from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
+from utils.db import init_db
+from contextlib import asynccontextmanager
 
 load_dotenv()
 
@@ -35,11 +43,18 @@ print(LOGIN_PASSWORD)
 # 是否需要登录
 REQUIRE_LOGIN = bool(LOGIN_PASSWORD.strip())
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
 
 app = FastAPI(
     title="Stock Scanner API",
     description="异步股票分析API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # 添加CORS中间件
@@ -71,6 +86,7 @@ class TestAPIRequest(BaseModel):
     api_timeout: Optional[int] = 10
 
 class LoginRequest(BaseModel):
+    username: str
     password: str
 
 class Token(BaseModel):
@@ -134,21 +150,15 @@ async def verify_token(token: Optional[str] = Depends(optional_oauth2_scheme)):
 
 # 用户登录接口
 @app.post("/api/login")
-async def login(request: LoginRequest):
-    """用户登录接口"""
-    # 如果未设置密码，表示不需要登录
-    if not REQUIRE_LOGIN:
-        access_token = create_access_token(data={"sub": "guest"})
-        return {"access_token": access_token, "token_type": "bearer"}
-        
-    if request.password != LOGIN_PASSWORD:
-        logger.warning("登录失败：密码错误")
-        raise HTTPException(status_code=401, detail="密码错误")
-    
-    # 创建访问令牌
+async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.username == request.username))
+    user = result.scalar_one_or_none()
+    if not user or not pwd_context.verify(request.password, user.hashed_password):
+        logger.warning("登录失败：用户名或密码错误")
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": "user"}, expires_delta=access_token_expires
+        data={"sub": user.username}, expires_delta=access_token_expires
     )
     logger.info("用户登录成功")
     return {"access_token": access_token, "token_type": "bearer"}
@@ -402,7 +412,6 @@ if os.path.exists(frontend_dist):
     logger.info(f"前端构建目录挂载成功: {frontend_dist}")
 else:
     logger.warning("前端构建目录不存在，仅API功能可用")
-
 
 if __name__ == '__main__':
     uvicorn.run("web_server:app", host="0.0.0.0", port=8888, reload=True)

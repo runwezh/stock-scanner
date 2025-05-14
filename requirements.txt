@@ -36,4 +36,7 @@ lxml==5.4.0
 jsonpath==0.82.2
 openpyxl==3.1.5
 python-jose[cryptography]==3.4.0
-passlib==1.7.4
+passlib>=1.7.4
+sqlalchemy[asyncio]
+asyncpg
+passlib[bcrypt]
