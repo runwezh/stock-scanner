@@ -40,6 +40,19 @@
         require-mark-placement="right-hanging"
         class="login-form"
       >
+        <n-form-item path="username">
+          <n-input
+            v-model:value="formValue.username"
+            placeholder="请输入用户名"
+            @keyup.enter="handleLogin"
+            size="large"
+            class="login-input"
+          >
+            <template #prefix>
+              <n-icon :component="BarChartIcon" />
+            </template>
+          </n-input>
+        </n-form-item>
         <n-form-item path="password">
           <n-input
             v-model:value="formValue.password"
@@ -106,10 +119,17 @@ const announcement = ref('');
 const showAnnouncementBanner = ref(true);
 
 const formValue = reactive({
+  username: '',
   password: ''
 });
 
 const rules: FormRules = {
+  username: [
+    {
+      required: true,
+      message: '请输入用户名'
+    }
+  ],
   password: [
     {
       required: true,
@@ -171,6 +191,7 @@ const handleLogin = () => {
     
     try {
       const loginRequest: LoginRequest = {
+        username: formValue.username,
         password: formValue.password
       };
       

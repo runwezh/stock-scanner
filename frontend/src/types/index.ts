@@ -9,6 +9,7 @@ export interface ApiConfig {
 
 // 登录相关类型
 export interface LoginRequest {
+  username: string;
   password: string;
 }
 

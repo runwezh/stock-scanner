@@ -15,6 +15,7 @@ services:
       - API_TIMEOUT=${API_TIMEOUT}
       - LOGIN_PASSWORD=${LOGIN_PASSWORD}
       - ANNOUNCEMENT_TEXT=${ANNOUNCEMENT_TEXT}
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@db:5432/stock_scanner
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
@@ -40,6 +41,8 @@ services:
         max-file: "5"
     networks:
       - stock-scanner-network
+    depends_on:
+      - db
 
   nginx:
     image: nginx:stable-alpine
@@ -76,6 +79,24 @@ services:
     networks:
       - stock-scanner-network
 
+  db:
+    image: postgres:15
+    container_name: stock-scanner-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=stock_scanner
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - stock-scanner-network
+
 networks:
   stock-scanner-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  pgdata: 
