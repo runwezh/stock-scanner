@@ -26,6 +26,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
 from utils.db import init_db
 from contextlib import asynccontextmanager
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 load_dotenv()
 
@@ -45,6 +48,9 @@ REQUIRE_LOGIN = bool(LOGIN_PASSWORD.strip())
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+limiter = Limiter(key_func=get_remote_address)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
@@ -56,6 +62,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # 添加CORS中间件
 app.add_middleware(
@@ -150,10 +158,11 @@ async def verify_token(token: Optional[str] = Depends(optional_oauth2_scheme)):
 
 # 用户登录接口
 @app.post("/api/login")
-async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.username == request.username))
+@limiter.limit("5/minute")  # 每IP每分钟最多5次
+async def login(request: Request,loginRequest: LoginRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.username == loginRequest.username))
     user = result.scalar_one_or_none()
-    if not user or not pwd_context.verify(request.password, user.hashed_password):
+    if not user or not pwd_context.verify(loginRequest.password, user.hashed_password):
         logger.warning("登录失败：用户名或密码错误")
         raise HTTPException(status_code=401, detail="用户名或密码错误")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -165,13 +174,15 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 # 检查用户认证状态
 @app.get("/api/check_auth")
-async def check_auth(username: str = Depends(verify_token)):
+@limiter.limit("5/minute")  # 每IP每分钟最多5次
+async def check_auth(request: Request,username: str = Depends(verify_token)):
     """检查用户认证状态"""
     return {"authenticated": True, "username": username}
 
 # 获取系统配置
 @app.get("/api/config")
-async def get_config():
+@limiter.limit("5/minute")  # 每IP每分钟最多5次
+async def get_config(request: Request):
     """返回系统配置信息"""
     config = {
         'announcement': os.getenv('ANNOUNCEMENT_TEXT') or '',
@@ -183,11 +194,12 @@ async def get_config():
 
 # AI分析股票
 @app.post("/api/analyze")
-async def analyze(request: AnalyzeRequest, username: str = Depends(verify_token)):
+@limiter.limit("5/minute")  # 每IP每分钟最多5次
+async def analyze(request: Request,analyzeRequest: AnalyzeRequest, username: str = Depends(verify_token)):
     try:
         logger.info("开始处理分析请求")
-        stock_codes = request.stock_codes
-        market_type = request.market_type
+        stock_codes = analyzeRequest.stock_codes
+        market_type = analyzeRequest.market_type
         
         # 后端再次去重，确保安全
         original_count = len(stock_codes)
@@ -198,10 +210,10 @@ async def analyze(request: AnalyzeRequest, username: str = Depends(verify_token)
         logger.debug(f"接收到分析请求: stock_codes={stock_codes}, market_type={market_type}")
         
         # 获取自定义API配置
-        custom_api_url = request.api_url
-        custom_api_key = request.api_key
-        custom_api_model = request.api_model
-        custom_api_timeout = request.api_timeout
+        custom_api_url = analyzeRequest.api_url
+        custom_api_key = analyzeRequest.api_key
+        custom_api_model = analyzeRequest.api_model
+        custom_api_timeout = analyzeRequest.api_timeout
         
         logger.debug(f"自定义API配置: URL={custom_api_url}, 模型={custom_api_model}, API Key={'已提供' if custom_api_key else '未提供'}, Timeout={custom_api_timeout}")
         
@@ -271,7 +283,8 @@ async def analyze(request: AnalyzeRequest, username: str = Depends(verify_token)
 
 # 搜索美股代码
 @app.get("/api/search_us_stocks")
-async def search_us_stocks(keyword: str = "", username: str = Depends(verify_token)):
+@limiter.limit("5/minute")  # 每IP每分钟最多5次
+async def search_us_stocks(request: Request,keyword: str = "", username: str = Depends(verify_token)):
     try:
         if not keyword:
             raise HTTPException(status_code=400, detail="请输入搜索关键词")
@@ -286,7 +299,8 @@ async def search_us_stocks(keyword: str = "", username: str = Depends(verify_tok
 
 # 搜索基金代码
 @app.get("/api/search_funds")
-async def search_funds(keyword: str = "", market_type: str = "", username: str = Depends(verify_token)):
+@limiter.limit("5/minute")  # 每IP每分钟最多5次
+async def search_funds(request: Request,keyword: str = "", market_type: str = "", username: str = Depends(verify_token)):
     try:
         if not keyword:
             raise HTTPException(status_code=400, detail="请输入搜索关键词")
@@ -301,7 +315,8 @@ async def search_funds(keyword: str = "", market_type: str = "", username: str =
 
 # 获取美股详情
 @app.get("/api/us_stock_detail/{symbol}")
-async def get_us_stock_detail(symbol: str, username: str = Depends(verify_token)):
+@limiter.limit("5/minute")  # 每IP每分钟最多5次
+async def get_us_stock_detail(request: Request,symbol: str, username: str = Depends(verify_token)):
     try:
         if not symbol:
             raise HTTPException(status_code=400, detail="请提供股票代码")
@@ -316,7 +331,8 @@ async def get_us_stock_detail(symbol: str, username: str = Depends(verify_token)
 
 # 获取基金详情
 @app.get("/api/fund_detail/{symbol}")
-async def get_fund_detail(symbol: str, market_type: str = "ETF", username: str = Depends(verify_token)):
+@limiter.limit("5/minute")  # 每IP每分钟最多5次
+async def get_fund_detail(request: Request,symbol: str, market_type: str = "ETF", username: str = Depends(verify_token)):
     try:
         if not symbol:
             raise HTTPException(status_code=400, detail="请提供基金代码")
@@ -331,14 +347,15 @@ async def get_fund_detail(symbol: str, market_type: str = "ETF", username: str =
 
 # 测试API连接
 @app.post("/api/test_api_connection")
-async def test_api_connection(request: TestAPIRequest, username: str = Depends(verify_token)):
+@limiter.limit("5/minute")  # 每IP每分钟最多5次
+async def test_api_connection(request: Request,testAPIRequest: TestAPIRequest, username: str = Depends(verify_token)):
     """测试API连接"""
     try:
         logger.info("开始测试API连接")
-        api_url = request.api_url
-        api_key = request.api_key
-        api_model = request.api_model
-        api_timeout = request.api_timeout
+        api_url = testAPIRequest.api_url
+        api_key = testAPIRequest.api_key
+        api_model = testAPIRequest.api_model
+        api_timeout = testAPIRequest.api_timeout
         
         logger.debug(f"测试API连接: URL={api_url}, 模型={api_model}, API Key={'已提供' if api_key else '未提供'}, Timeout={api_timeout}")
         
@@ -400,7 +417,8 @@ async def test_api_connection(request: TestAPIRequest, username: str = Depends(v
 
 # 检查是否需要登录
 @app.get("/api/need_login")
-async def need_login():
+@limiter.limit("5/minute")  # 每IP每分钟最多5次
+async def need_login(request: Request):
     """检查是否需要登录"""
     return {"require_login": REQUIRE_LOGIN}
 
