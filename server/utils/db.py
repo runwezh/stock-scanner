@@ -3,9 +3,15 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.future import select
 from passlib.context import CryptContext
-from models.user import Base, User
+from server.models.user import Base, User
 
+# 优先用环境变量 DATABASE_URL
 DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    # 如果没有，则用默认模板，并从环境变量取密码
+    password = os.getenv("POSTGRES_PASSWORD", "")
+    DATABASE_URL = f"postgresql+asyncpg://postgres:{password}@db:5432/stock_scanner"
+
 engine = create_async_engine(DATABASE_URL, echo=True, future=True)
 AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 

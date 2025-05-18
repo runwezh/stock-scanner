@@ -5,13 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Generator
-from services.stock_analyzer_service import StockAnalyzerService
-from services.us_stock_service_async import USStockServiceAsync
-from services.fund_service_async import FundServiceAsync
+from server.services.stock_analyzer_service import StockAnalyzerService
+from server.services.us_stock_service_async import USStockServiceAsync
+from server.services.fund_service_async import FundServiceAsync
 import os
 import httpx
-from utils.logger import get_logger
-from utils.api_utils import APIUtils
+from server.utils.logger import get_logger
+from server.utils.api_utils import APIUtils
 from dotenv import load_dotenv
 import uvicorn
 import json
@@ -20,15 +20,15 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from sqlalchemy.future import select
 from passlib.context import CryptContext
-from utils.db import get_db
-from models.user import User
+from server.utils.db import get_db
+from server.models.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
-import asyncio
-from utils.db import init_db
+from server.utils.db import init_db
 from contextlib import asynccontextmanager
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from starlette.config import Config
 
 load_dotenv()
 
@@ -47,6 +47,7 @@ print(LOGIN_PASSWORD)
 REQUIRE_LOGIN = bool(LOGIN_PASSWORD.strip())
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -423,7 +424,9 @@ async def need_login(request: Request):
     return {"require_login": REQUIRE_LOGIN}
 
 # 设置静态文件
-frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'dist')
+# frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../frontend', 'dist')
+# 绝对路径
+frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend', 'dist')
 if os.path.exists(frontend_dist):
     # 直接挂载整个dist目录
     app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")

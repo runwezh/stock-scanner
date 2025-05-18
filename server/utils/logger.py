@@ -3,10 +3,9 @@ import sys
 import os
 from datetime import datetime
 
-
-# 创建日志目录
-log_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "logs")
-log_dir = os.path.abspath(log_dir)
+# 获取项目根目录（假设logger.py在server/utils/下）
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+log_dir = os.path.join(BASE_DIR, "logs")
 os.makedirs(log_dir, exist_ok=True)
 
 # 配置日志

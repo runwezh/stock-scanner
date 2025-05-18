@@ -1,0 +1,33 @@
+name: stock-scanner
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - scipy
+  - fastapi
+  - uvicorn
+  - pydantic
+  - httpx
+  - python-dotenv
+  - loguru
+  - matplotlib
+  - seaborn
+  - ipython
+  - beautifulsoup4
+  - html5lib
+  - lxml
+  - openpyxl
+  - pip
+  - pip:
+    - akshare
+    - tqdm
+    - python-jose[cryptography]
+    - passlib
+    - sqlalchemy[asyncio]
+    - asyncpg
+    - passlib[bcrypt]
+    - slowapi
+    - jsonpath-ng 
