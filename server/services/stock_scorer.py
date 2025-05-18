@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Dict, List, Tuple
-from utils.logger import get_logger
+from server.utils.logger import get_logger
 
 # 获取日志器
 logger = get_logger()

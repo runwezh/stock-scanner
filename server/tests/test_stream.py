@@ -1,9 +1,9 @@
 import os
 import requests
 import json
-from utils.logger import get_logger
+from server.utils.logger import get_logger
 from dotenv import load_dotenv
-from utils.api_utils import APIUtils
+from server.utils.api_utils import APIUtils
 
 # 获取日志器
 logger = get_logger()

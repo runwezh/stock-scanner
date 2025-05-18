@@ -5,8 +5,8 @@ import httpx
 import re
 from typing import AsyncGenerator
 from dotenv import load_dotenv
-from utils.logger import get_logger
-from utils.api_utils import APIUtils
+from server.utils.logger import get_logger
+from server.utils.api_utils import APIUtils
 from datetime import datetime
 import inspect
 
@@ -124,7 +124,7 @@ class AIAnalyzer:
                             if response.status_code != 200:
                                 lineno_err_resp = inspect.currentframe().f_back.f_lineno
                                 error_text = await response.aread()
-                                logger.error(f"L{lineno_err_resp}: AI API 请求失败: {response.status_code}. Response: {error_text[:500]}")
+                                logger.error(f"L{lineno_err_resp}: AI API 请求失败: {response.status_code}.Url: {api_url}.Request: {request_data}.Response: {error_text[:500]}")
                                 yield json.dumps({ "stock_code": stock_code, "error": f"API请求失败: {response.status_code}", "status": "error" })
                                 return
 

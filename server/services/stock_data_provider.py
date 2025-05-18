@@ -2,7 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import asyncio
 from typing import Dict, List, Optional, Tuple, Any
-from utils.logger import get_logger
+from server.utils.logger import get_logger
 
 # 获取日志器
 logger = get_logger()
