@@ -28,8 +28,8 @@ export const validateAStock = (): boolean => {
  * @returns 是否为有效的港股代码
  */
 export const validateHKStock = (code: string): boolean => {
-  // 港股通常是5位数字
-  return /^\d{5}$/.test(code);
+  // 支持可选的HK前缀，后跟3~5位数字
+  return /^([Hh][Kk])?\d{3,5}$/.test(code);
 };
 
 /**
@@ -84,7 +84,7 @@ export const validateStockCode = (
       if (!validateHKStock(code)) {
         return { 
           valid: false, 
-          errorMessage: `无效的港股代码格式: ${code}。港股代码应为5位数字` 
+          errorMessage: `无效的港股代码格式: ${code}。港股代码应为3-5位数字或HK开头` 
         };
       }
       break;

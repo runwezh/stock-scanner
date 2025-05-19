@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 import uvicorn
 import json
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from jose import JWTError, jwt
 from sqlalchemy.future import select
 from passlib.context import CryptContext
@@ -121,9 +121,9 @@ optional_oauth2_scheme = OptionalOAuth2PasswordBearer(tokenUrl="login")
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -193,6 +193,15 @@ async def get_config(request: Request):
     }
     return config
 
+def normalize_stock_codes(stock_codes: list, market_type: str) -> list:
+    """
+    根据市场类型批量格式化股票代码
+    """
+    if market_type == 'HK':
+        return [StockAnalyzerService.format_hk_code(code.strip()) for code in stock_codes]
+    else:
+        return [code.strip() for code in stock_codes]
+
 # AI分析股票
 @app.post("/api/analyze")
 @limiter.limit("5/minute")  # 每IP每分钟最多5次
@@ -232,45 +241,34 @@ async def analyze(request: Request,analyzeRequest: AnalyzeRequest, username: str
         
         # 定义流式生成器
         async def generate_stream():
-            if len(stock_codes) == 1:
-                # 单个股票分析流式处理
-                stock_code = stock_codes[0].strip()
+            formatted_codes = normalize_stock_codes(stock_codes, market_type)
+            if len(formatted_codes) == 1:
+                stock_code = formatted_codes[0]
                 logger.info(f"开始单股流式分析: {stock_code}")
-                
                 stock_code_json = json.dumps(stock_code)
                 init_message = f'{{"stream_type": "single", "stock_code": {stock_code_json}}}\n'
                 yield init_message
-                
                 logger.debug(f"开始处理股票 {stock_code} 的流式响应")
                 chunk_count = 0
-                
-                # 使用异步生成器
                 async for chunk in custom_analyzer.analyze_stock(stock_code, market_type, stream=True):
                     chunk_count += 1
                     yield chunk + '\n'
-                
                 logger.info(f"股票 {stock_code} 流式分析完成，共发送 {chunk_count} 个块")
             else:
-                # 批量分析流式处理
-                logger.info(f"开始批量流式分析: {stock_codes}")
-                
-                stock_codes_json = json.dumps(stock_codes)
+                logger.info(f"开始批量流式分析: {formatted_codes}")
+                stock_codes_json = json.dumps(formatted_codes)
                 init_message = f'{{"stream_type": "batch", "stock_codes": {stock_codes_json}}}\n'
                 yield init_message
-                
                 logger.debug(f"开始处理批量股票的流式响应")
                 chunk_count = 0
-                
-                # 使用异步生成器
                 async for chunk in custom_analyzer.scan_stocks(
-                    [code.strip() for code in stock_codes], 
+                    formatted_codes, 
                     min_score=0, 
                     market_type=market_type,
                     stream=True
                 ):
                     chunk_count += 1
                     yield chunk + '\n'
-                
                 logger.info(f"批量流式分析完成，共发送 {chunk_count} 个块")
         
         logger.info("成功创建流式响应生成器")
