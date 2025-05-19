@@ -39,6 +39,18 @@ class StockAnalyzerService:
         
         logger.info("初始化StockAnalyzerService完成")
     
+    @staticmethod
+    def format_hk_code(code: str) -> str:
+        """
+        格式化港股股票代码：去除前缀，仅保留数字并补齐5位
+        例如：'hk700' -> '00700', '0700' -> '00700', '388' -> '00388'
+        """
+        import re
+        m = re.search(r'(\d{3,5})$', code)
+        if m:
+            return m.group(1).zfill(5)
+        return code
+    
     async def analyze_stock(self, stock_code: str, market_type: str = 'A', stream: bool = False) -> AsyncGenerator[str, None]:
         """
         分析单只股票
@@ -52,6 +64,7 @@ class StockAnalyzerService:
             异步生成器，生成分析结果的JSON字符串
         """
         try:
+            # 港股代码格式化逻辑已移至 web 层，这里不再处理
             logger.info(f"开始分析股票: {stock_code}, 市场: {market_type}")
             
             # 获取股票数据
@@ -188,6 +201,7 @@ class StockAnalyzerService:
         """
         try:
             logger.info(f"开始批量扫描 {len(stock_codes)} 只股票, 市场: {market_type}")
+            # 港股代码格式化逻辑已移至 web 层，这里不再处理
             
             # 输出初始状态 - 发送批量分析初始化消息
             yield json.dumps({

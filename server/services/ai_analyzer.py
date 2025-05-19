@@ -9,6 +9,7 @@ from server.utils.logger import get_logger
 from server.utils.api_utils import APIUtils
 from datetime import datetime
 import inspect
+import asyncio
 
 # 获取日志器
 logger = get_logger()
@@ -159,7 +160,11 @@ class AIAnalyzer:
                                     # Explicitly get the next chunk
                                     lineno_anext = inspect.currentframe().f_lineno + 1
                                     logger.debug(f"L{lineno_anext}: Calling await iterator.__anext__()")
-                                    chunk = await iterator.__anext__()
+                                    try:
+                                        chunk = await asyncio.wait_for(iterator.__anext__(), timeout=30)
+                                    except asyncio.TimeoutError:
+                                        logger.error("AI流式分析超时，主动退出循环")
+                                        break
                                     logger.debug(f">>> Manual Iteration: Got chunk (len={len(chunk)}) <<<")
 
                                     # --- Try processing the loop body ---

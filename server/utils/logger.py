@@ -1,7 +1,15 @@
+# 日志级别可通过环境变量 LOG_LEVEL 设置（如 DEBUG、INFO、WARNING、ERROR），优先读取 .env 文件，默认 INFO。
 from loguru import logger
 import sys
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# 加载 .env 配置
+load_dotenv()
+
+# 获取日志级别
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
 # 获取项目根目录（假设logger.py在server/utils/下）
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -15,14 +23,14 @@ logger.remove()  # 移除默认的处理器
 logger.add(
     sys.stdout,
     format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    level="INFO",   # 同时显示在控制台和写入到日志文件中
+    level=LOG_LEVEL,   # 控制台日志级别由环境变量控制
 )
 
 # 添加统一的日志文件处理器，按日期自动轮转
 logger.add(
     os.path.join(log_dir, "stock_scanner_{time:YYYY-MM-DD}.log"),
     format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{line} - {message}",
-    level="DEBUG",
+    level=LOG_LEVEL,   # 文件日志级别由环境变量控制
     rotation="00:00",    # 每天午夜轮转
     retention="7 days",  # 保留7天的日志
     compression="zip",   # 压缩旧日志文件
