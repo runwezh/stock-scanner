@@ -490,7 +490,7 @@ function processStreamData(text: string) {
       if (data.total_analyzed_successfully !== undefined) { // Changed from total_matched
         summaryMessage += ` 成功分析 ${data.total_analyzed_successfully} 个。`;
       }
-      message.success(summaryMessage.trim());
+      message.success(summaryMessage.trim(),{ duration: 5000 });
       // 扫描完成消息
       // message.success(`分析完成，共扫描 ${data.total_scanned} 只股票，符合条件 ${data.total_matched} 只`);
       
@@ -745,7 +745,7 @@ async function analyzeStocks() {
       }
     }
     
-    message.success('分析完成');
+    message.success('分析完成',{ duration: 3000 });
   } catch (error: any) {
     let errorMessage = '分析出错: ';
     if (error.message.includes('404')) {
