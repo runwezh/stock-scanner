@@ -41,12 +41,20 @@ class AIAnalyzer:
         
         logger.debug(f"初始化AIAnalyzer: API_URL={self.API_URL}, API_MODEL={self.API_MODEL}, API_KEY={'已提供' if self.API_KEY else '未提供'}, API_TIMEOUT={self.API_TIMEOUT}")
     
-    async def get_ai_analysis(self, df: pd.DataFrame, stock_code: str, market_type: str = 'A', stream: bool = False) -> AsyncGenerator[str, None]:
+    async def get_ai_analysis(self, df: pd.DataFrame, stock_code: str, market_type: str = 'A', stream: bool = False, stock_name: str = None, sector: str = None) -> AsyncGenerator[str, None]:
         """
         对股票数据进行AI分析 (使用手动迭代处理流)
+        Args:
+            df: DataFrame containing stock data.
+            stock_code: The stock code.
+            market_type: Market type ('A', 'US', 'HK', 'ETF', 'LOF').
+            stream: Whether to stream the response.
+            stock_name: Optional stock name.
+            sector: Optional sector information.
         """
         try:
-            lineno_start = inspect.currentframe().f_lineno + 1
+            current_frame = inspect.currentframe()
+            lineno_start = current_frame.f_lineno + 1 if current_frame else 0
             logger.info(f"L{lineno_start}: 开始AI分析 {stock_code}, 流式模式: {stream}")
 
             # 提取关键技术指标
@@ -61,7 +69,8 @@ class AIAnalyzer:
                 price = latest_data.get('Close')
                 price_change = latest_data.get('Change')
             except Exception as data_get_e:
-                lineno_get_err = inspect.currentframe().f_back.f_lineno
+                current_frame = inspect.currentframe()
+                lineno_get_err = current_frame.f_back.f_lineno if current_frame and current_frame.f_back else 0
                 logger.error(f"L{lineno_get_err}: 获取基础指标 (RSI, Price, Change) 时出错", exc_info=True)
                 yield json.dumps({"stock_code": stock_code,"error": f"获取基础指标时出错: {str(data_get_e)}","status": "error"})
                 return
@@ -87,14 +96,39 @@ class AIAnalyzer:
             # --- End Safely create technical_summary ---
 
             # --- Prompt Creation ---
+            prompt_intro_base = ""
+            market_specific_name = stock_code # Default to stock_code
+
+            if stock_name and stock_name.strip():
+                market_specific_name = f"{stock_name.strip()} ({stock_code})"
+            
+            # Constructing the introductory part of the prompt
             if market_type in ['ETF', 'LOF']:
-                prompt = f"分析基金 {stock_code}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.净值走势分析(支撑压力位) 2.成交量分析 3.风险评估(波动率/折溢价) 4.短期中期预测 5.关键价格位 6.申购赎回建议(止损)"
+                prompt_intro_base = f"基金 {market_specific_name}"
+                if sector and sector.strip():
+                    prompt_intro_base += f", 类型: {sector.strip()}" # ETFs/LOFs might use 'type' or 'category' instead of 'sector'
             elif market_type == 'US':
-                 prompt = f"分析美股 {stock_code}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位,美元) 2.成交量分析 3.风险评估(波动率/美股风险) 4.短期中期目标价(美元) 5.关键技术位 6.交易建议(止损)"
+                prompt_intro_base = f"美股 {market_specific_name}"
+                if sector and sector.strip():
+                    prompt_intro_base += f", 所处行业: {sector.strip()}"
             elif market_type == 'HK':
-                 prompt = f"分析港股 {stock_code}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位,港币) 2.成交量分析 3.风险评估(波动率/港股风险) 4.短期中期目标价(港币) 5.关键技术位 6.交易建议(止损)"
+                prompt_intro_base = f"港股 {market_specific_name}"
+                if sector and sector.strip():
+                    prompt_intro_base += f", 所处行业: {sector.strip()}"
+            else:  # A股 or default
+                prompt_intro_base = f"A股 {market_specific_name}"
+                if sector and sector.strip():
+                    prompt_intro_base += f", 所处行业: {sector.strip()}"
+
+            # Constructing the full prompt
+            if market_type in ['ETF', 'LOF']:
+                prompt = f"分析{prompt_intro_base}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.净值走势分析(支撑压力位) 2.成交量分析 3.风险评估(波动率/折溢价) 4.短期中期预测 5.关键价格位 6.申购赎回建议(止损)"
+            elif market_type == 'US':
+                 prompt = f"分析{prompt_intro_base}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位,美元) 2.成交量分析 3.风险评估(波动率/美股风险) 4.短期中期目标价(美元) 5.关键技术位 6.交易建议(止损)"
+            elif market_type == 'HK':
+                 prompt = f"分析{prompt_intro_base}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位,港币) 2.成交量分析 3.风险评估(波动率/港股风险) 4.短期中期目标价(港币) 5.关键技术位 6.交易建议(止损)"
             else: # A股
-                prompt = f"分析A股 {stock_code}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位) 2.成交量分析 3.风险评估(波动率) 4.短期中期目标价 5.关键技术位 6.交易建议(止损)"
+                prompt = f"分析{prompt_intro_base}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位) 2.成交量分析 3.风险评估(波动率) 4.短期中期目标价 5.关键技术位 6.交易建议(止损)"
             # --- End Prompt Creation ---
 
             api_url = APIUtils.format_api_url(self.API_URL)

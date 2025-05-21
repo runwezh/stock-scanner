@@ -247,7 +247,49 @@ class StockDataProvider:
             # 确保按日期升序排序
             df.sort_index(inplace=True)
                 
-            logger.info(f"成功获取{market_type}数据 {stock_code}, 数据点数: {len(df)}")
+            logger.info(f"成功获取{market_type} OHLCV数据 {stock_code}, 数据点数: {len(df)}")
+
+            # 获取股票名称和行业信息
+            stock_name_val = None
+            sector_val = None
+            try:
+                if market_type == 'A':
+                    # stock_code for A-shares usually doesn't need prefix for stock_individual_info_em
+                    info_df = ak.stock_individual_info_em(symbol=stock_code)
+                    stock_name_val = info_df[info_df['item'] == '股票简称']['value'].iloc[0]
+                    sector_val = info_df[info_df['item'] == '行业']['value'].iloc[0]
+                elif market_type == 'HK':
+                    # hk_stock_individual_info_em expects 5-digit code, e.g., "00700"
+                    # Assuming stock_code is already formatted correctly (e.g., "00700")
+                    info_df = ak.hk_stock_individual_info_em(symbol=stock_code)
+                    stock_name_val = info_df[info_df['item'] == '名称']['value'].iloc[0]
+                    sector_val = info_df[info_df['item'] == '行业']['value'].iloc[0] # Check if '行业' or '所属行业'
+                elif market_type == 'US':
+                    # stock_us_individual_info_em expects symbol like "AAPL"
+                    # Assuming stock_code is the correct symbol like "AAPL"
+                    info_df = ak.stock_us_individual_info_em(symbol=stock_code)
+                    stock_name_val = info_df[info_df['item'] == 'name']['value'].iloc[0]
+                    sector_val = info_df[info_df['item'] == 'industry']['value'].iloc[0]
+                
+                if stock_name_val:
+                    df.stock_name = stock_name_val
+                    logger.info(f"成功获取股票名称: {stock_name_val} for {stock_code}")
+                else:
+                    df.stock_name = None
+                    logger.warning(f"未能从akshare获取股票名称 for {stock_code}")
+
+                if sector_val:
+                    df.sector = sector_val
+                    logger.info(f"成功获取行业信息: {sector_val} for {stock_code}")
+                else:
+                    df.sector = None
+                    logger.warning(f"未能从akshare获取行业信息 for {stock_code}")
+
+            except Exception as e_info:
+                logger.warning(f"获取股票名称/行业信息失败 for {stock_code} ({market_type}): {str(e_info)}")
+                df.stock_name = None
+                df.sector = None
+            
             return df
             
         except Exception as e:
