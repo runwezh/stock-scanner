@@ -476,8 +476,23 @@ function processStreamData(text: string) {
       // 更新消息
       handleStreamUpdate(data as StreamAnalysisUpdate);
     } else if (data.scan_completed) {
+       // 批量扫描完成的总结消息
+      let summaryMessage = "批量分析完成。";
+      if (data.original_codes_count !== undefined) {
+        summaryMessage += ` 原始请求 ${data.original_codes_count} 个代码。`;
+      }
+      if (data.duplicates_excluded_count !== undefined && data.duplicates_excluded_count > 0) {
+        summaryMessage += ` 已排除 ${data.duplicates_excluded_count} 个重复代码。`;
+      }
+      if (data.unique_codes_processed_count !== undefined) { // Changed from total_scanned
+        summaryMessage += ` 实际分析 ${data.unique_codes_processed_count} 个唯一代码。`;
+      }
+      if (data.total_analyzed_successfully !== undefined) { // Changed from total_matched
+        summaryMessage += ` 成功分析 ${data.total_analyzed_successfully} 个。`;
+      }
+      message.success(summaryMessage.trim());
       // 扫描完成消息
-      message.success(`分析完成，共扫描 ${data.total_scanned} 只股票，符合条件 ${data.total_matched} 只`);
+      // message.success(`分析完成，共扫描 ${data.total_scanned} 只股票，符合条件 ${data.total_matched} 只`);
       
       // 将所有分析中的股票状态更新为已完成
       analyzedStocks.value = analyzedStocks.value.map(stock => {
