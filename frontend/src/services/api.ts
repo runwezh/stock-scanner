@@ -2,11 +2,14 @@ import axios from 'axios';
 import type { AnalyzeRequest, TestApiRequest, TestApiResponse, SearchResult, LoginRequest, LoginResponse } from '@/types';
 
 // API前缀
-const API_PREFIX = '/api';
+// const API_PREFIX = '/api'; // 保留旧代码的注释或删除
+
+// 从环境变量读取 API 基础 URL，如果未定义，则回退到相对路径 /api (用于本地开发代理)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // 创建axios实例
 const axiosInstance = axios.create({
-  baseURL: API_PREFIX
+  baseURL: API_BASE_URL
 });
 
 // 请求拦截器，添加token

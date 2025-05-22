@@ -329,7 +329,7 @@ class AIAnalyzer:
                         else:
                              logger.error(f"L{lineno_call_score_ns}: ERROR - technical_summary is NOT dict (non-stream)!")
                              
-                        yield json.dumps({ "stock_code": stock_code, "status": "completed", "analysis": analysis_text, "score": score, "recommendation": recommendation, "rsi": rsi, "price": price, "price_change": price_change, "ma_trend": ma_trend, "macd_signal": macd_signal_type, "volume_status": volume_status, "analysis_date": analysis_date })
+                        yield json.dumps({ "stock_code": stock_code, "status": "completed", "ai_analysis": analysis_text, "score": score, "recommendation": recommendation, "rsi": rsi, "price": price, "price_change": price_change, "ma_trend": ma_trend, "macd_signal": macd_signal_type, "volume_status": volume_status, "analysis_date": analysis_date })
                     except json.JSONDecodeError as json_e:
                          lineno_json_err_ns = inspect.currentframe().f_back.f_lineno
                          logger.error(f"L{lineno_json_err_ns}: Error decoding non-stream JSON response", exc_info=True)
