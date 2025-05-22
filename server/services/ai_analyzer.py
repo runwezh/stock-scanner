@@ -124,11 +124,17 @@ class AIAnalyzer:
             if market_type in ['ETF', 'LOF']:
                 prompt = f"分析{prompt_intro_base}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.净值走势分析(支撑压力位) 2.成交量分析 3.风险评估(波动率/折溢价) 4.短期中期预测 5.关键价格位 6.申购赎回建议(止损)"
             elif market_type == 'US':
-                 prompt = f"分析{prompt_intro_base}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位,美元) 2.成交量分析 3.风险评估(波动率/美股风险) 4.短期中期目标价(美元) 5.关键技术位 6.交易建议(止损)"
+                 prompt = f"分析{prompt_intro_base}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位,美元) 2.成交量分析 3.风险评估(波动率/美股风险) 4.短期中期目标价(美元) 5.关键技术位 6.交易建议(止损) 7.相关投资主题或热点分析"
             elif market_type == 'HK':
-                 prompt = f"分析{prompt_intro_base}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位,港币) 2.成交量分析 3.风险评估(波动率/港股风险) 4.短期中期目标价(港币) 5.关键技术位 6.交易建议(止损)"
+                 prompt = f"分析{prompt_intro_base}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位,港币) 2.成交量分析 3.风险评估(波动率/港股风险) 4.短期中期目标价(港币) 5.关键技术位 6.交易建议(止损) 7.相关投资主题或热点分析"
             else: # A股
-                prompt = f"分析{prompt_intro_base}...\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位) 2.成交量分析 3.风险评估(波动率) 4.短期中期目标价 5.关键技术位 6.交易建议(止损)"
+                # 获取概念板块信息
+                concept_info = ""
+                if hasattr(df, 'concepts') and df.concepts is not None and len(df.concepts) > 0:
+                    concept_info = f"\n股票题材和概念板块: {', '.join(df.concepts)}"
+                    logger.debug(f"添加题材概念信息到提示中: {concept_info}")
+                
+                prompt = f"分析{prompt_intro_base}...{concept_info}\n技术指标概要: {technical_summary}\n近14日交易数据: {recent_data}\n请提供: 1.趋势分析(支撑压力位) 2.成交量分析 3.风险评估(波动率) 4.短期中期目标价 5.关键技术位 6.交易建议(止损) 7.相关题材概念分析"
             # --- End Prompt Creation ---
 
             api_url = APIUtils.format_api_url(self.API_URL)
@@ -533,4 +539,4 @@ class AIAnalyzer:
         except Exception as outer_e:
             # Catch-all for unexpected errors within the function itself
             logger.error(f"Unexpected error in _extract_content_from_line: {outer_e}", exc_info=True)
-            return None 
+            return None

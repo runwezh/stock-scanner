@@ -252,12 +252,17 @@ class StockDataProvider:
             # 获取股票名称和行业信息
             stock_name_val = None
             sector_val = None
+            concepts_val = None
             try:
                 if market_type == 'A':
                     # stock_code for A-shares usually doesn't need prefix for stock_individual_info_em
                     info_df = ak.stock_individual_info_em(symbol=stock_code)
                     stock_name_val = info_df[info_df['item'] == '股票简称']['value'].iloc[0]
                     sector_val = info_df[info_df['item'] == '行业']['value'].iloc[0]
+                    
+                    # 获取股票的概念板块信息
+                    concepts_val = self.get_stock_concept_info(stock_code)
+                    
                 elif market_type == 'HK':
                     # hk_stock_individual_info_em expects 5-digit code, e.g., "00700"
                     # Assuming stock_code is already formatted correctly (e.g., "00700")
@@ -284,11 +289,19 @@ class StockDataProvider:
                 else:
                     df.sector = None
                     logger.warning(f"未能从akshare获取行业信息 for {stock_code}")
+                
+                if concepts_val and len(concepts_val) > 0:
+                    df.concepts = concepts_val
+                    logger.info(f"成功获取概念板块信息: {', '.join(concepts_val[:3])}... 共{len(concepts_val)}个 for {stock_code}")
+                else:
+                    df.concepts = None
+                    logger.warning(f"未能从akshare获取概念板块信息 for {stock_code}")
 
             except Exception as e_info:
-                logger.warning(f"获取股票名称/行业信息失败 for {stock_code} ({market_type}): {str(e_info)}")
+                logger.warning(f"获取股票名称/行业/概念信息失败 for {stock_code} ({market_type}): {str(e_info)}")
                 df.stock_name = None
                 df.sector = None
+                df.concepts = None
             
             return df
             
@@ -339,3 +352,65 @@ class StockDataProvider:
         
         # 构建结果字典，过滤掉失败的请求
         return {code: df for code, df in results if df is not None}
+
+    def get_stock_concept_info(self, stock_code: str) -> list:
+        """
+        获取股票的概念板块信息
+        
+        Args:
+            stock_code: 股票代码
+            
+        Returns:
+            包含股票概念板块的列表
+        """
+        import akshare as ak
+        try:
+            # 确保股票代码格式正确（去掉可能的市场前缀）
+            if '.' in stock_code:
+                pure_code = stock_code.split('.')[0]
+            else:
+                pure_code = stock_code
+                
+            logger.debug(f"获取股票概念板块信息: {pure_code}")
+            
+            # 获取所有的概念板块名称
+            concept_names_df = ak.stock_board_concept_name_em()
+            
+            # 存储该股票所属的概念板块
+            stock_concepts = []
+            
+            # 遍历概念板块，查找股票所属的板块
+            for _, concept_row in concept_names_df.iterrows():
+                concept_code = concept_row['代码']
+                concept_name = concept_row['板块名称']
+                
+                try:
+                    # 获取该概念板块的成份股
+                    cons_df = ak.stock_board_concept_cons_em(symbol=concept_code)
+                    
+                    # 检查当前股票是否在这个概念板块中
+                    if pure_code in cons_df['代码'].values:
+                        stock_concepts.append(concept_name)
+                        logger.debug(f"股票 {pure_code} 属于概念板块: {concept_name}")
+                except Exception as e:
+                    logger.warning(f"获取概念板块 {concept_name} 成份股时出错: {str(e)}")
+                    continue
+            
+            logger.info(f"股票 {pure_code} 共属于 {len(stock_concepts)} 个概念板块")
+            return stock_concepts
+            
+        except Exception as e:
+            logger.warning(f"获取股票概念板块信息失败: {str(e)}")
+            return []
+
+    def get_stock_concept_info_async(self, stock_code: str) -> list:
+        """
+        异步获取股票的概念板块信息
+        
+        Args:
+            stock_code: 股票代码
+            
+        Returns:
+            包含股票概念板块的列表
+        """
+        return asyncio.to_thread(self.get_stock_concept_info, stock_code)
