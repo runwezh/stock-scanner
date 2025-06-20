@@ -23,6 +23,9 @@ build_upload.log
 .env
 .env.*
 
+# Stock scanner results
+server/scanner/
+
 # frontend
 node_modules/
 npm-debug.log*
@@ -210,3 +213,5 @@ db/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+scanner/20250613_122937/error_log.txt
+scanner/20250613_123556/error_log.txt
