@@ -4,6 +4,7 @@ Stock Analysis System
 """
 
 import os
+from dotenv import load_dotenv
 import time
 import random
 import logging
@@ -15,7 +16,21 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-import akshare as ak
+import tushare as ts
+from ratelimit import limits, RateLimitException
+from backoff import on_exception, expo
+
+# Load environment variables from .env file
+load_dotenv()
+
+# --- 可配置的速率限制参数 ---
+# Tushare API 令牌 (强烈建议从环境变量或配置文件加载)
+TUSHARE_TOKEN = os.getenv('TUSHARE_TOKEN', '')
+
+# 每分钟最大调用次数
+CALLS_PER_MINUTE = 50
+# 时间周期（秒）
+PERIOD_SECONDS = 60
 from tqdm import tqdm
 
 # -------------------------------
@@ -49,14 +64,16 @@ class TechnicalParams:
 class StockAnalyzer:
     """股票分析引擎，计算各类技术指标"""
 
-    def __init__(self, params: Optional[TechnicalParams] = None):
+    def __init__(self, pro_api: ts.pro_api, params: Optional[TechnicalParams] = None):
         """
         初始化股票分析引擎
 
         Args:
+            pro_api: 初始化后的 Tushare Pro API 实例
             params: 技术指标配置参数
         """
         self._setup_logging()
+        self.pro = pro_api
         self.params = params or TechnicalParams.default()
 
     def _setup_logging(self) -> None:
@@ -68,6 +85,8 @@ class StockAnalyzer:
         )
         self.logger = logging.getLogger(__name__)
 
+    @on_exception(expo, RateLimitException, max_tries=5) # 添加指数退避和重试机制
+    @limits(calls=CALLS_PER_MINUTE, period=PERIOD_SECONDS) # 应用速率限制
     def get_stock_data(self, stock_code: str,
                        start_date: Optional[str] = None,
                        end_date: Optional[str] = None) -> pd.DataFrame:
@@ -88,26 +107,49 @@ class StockAnalyzer:
             if not end_date:
                 end_date = datetime.now().strftime('%Y%m%d')
 
-            code = stock_code[2:] if stock_code.startswith(('sz', 'sh')) else stock_code
+            # 确保 stock_code 包含市场后缀 .SZ 或 .SH
+            processed_ts_code = stock_code
+            if not (stock_code.endswith('.SZ') or stock_code.endswith('.SH') or 
+                    stock_code.endswith('.sz') or stock_code.endswith('.sh')):
+                if stock_code.startswith('6'):
+                    processed_ts_code = f"{stock_code}.SH"
+                elif stock_code.startswith('0') or stock_code.startswith('3'):
+                    processed_ts_code = f"{stock_code}.SZ"
+                elif stock_code.startswith('sz') or stock_code.startswith('sh'): # 处理 sz000001 类似格式
+                    market_prefix = stock_code[:2].upper()
+                    code_num = stock_code[2:]
+                    processed_ts_code = f"{code_num}.{market_prefix}"
+                else:
+                    # 对于无法确定市场的代码，可以记录日志或抛出更明确的错误
+                    # 暂时先尝试不加后缀，依赖Tushare的模糊匹配，但这可能导致问题
+                    self.logger.warning(f"无法确定股票代码 {stock_code} 的市场，将直接使用。建议使用带后缀的格式，如 000001.SZ")
+            else:
+                 # 如果已经有后缀，统一转为大写，例如 sz -> SZ
+                parts = stock_code.split('.')
+                if len(parts) == 2:
+                    processed_ts_code = f"{parts[0]}.{parts[1].upper()}"
 
-            df = ak.stock_zh_a_hist(
-                symbol=code,
-                start_date=start_date,
-                end_date=end_date,
-                adjust="qfq"
-            )
+
+            # 使用 pro_bar 获取前复权数据
+            df = self.pro.pro_bar(ts_code=processed_ts_code, adj='qfq', start_date=start_date, end_date=end_date)
+            # 或者使用 pro.daily() 获取日线数据 (未复权)
+            # df = self.pro.daily(ts_code=processed_ts_code, start_date=start_date, end_date=end_date)
+            
+            if df.empty:
+                 raise ValueError(f"未能从 Tushare 获取到股票 {stock_code} 的历史数据")
 
             self.logger.info(f"获取到 {len(df)} 行数据，列名：{df.columns.tolist()}")
 
             df = df.rename(columns={
-                "日期": "date",
-                "开盘": "open",
-                "收盘": "close",
-                "最高": "high",
-                "最低": "low",
-                "成交量": "volume",
-                "trade_date": "date"
+                "trade_date": "date", # pro_bar 和 daily 的日期字段均为 trade_date
+                "open": "open",
+                "close": "close",
+                "high": "high",
+                "low": "low",
+                "vol": "volume" # pro_bar 和 daily 的成交量字段均为 vol
             })
+            # 如果使用的是 pro.daily() 并且需要成交额，可以使用 amt 字段
+            # "amount": "amount" # pro_bar 返回的是成交额 (元)，daily 返回的是成交额 (千元)
 
             required_columns = {'date', 'open', 'close', 'high', 'low', 'volume'}
             missing_columns = required_columns - set(df.columns)
@@ -332,31 +374,41 @@ class TopStockScanner:
             max_workers: 并发线程数量（已增至20以加速分析）
             min_score: 高分最低阈值
         """
-        self.analyzer = StockAnalyzer()
+        self.logger = logging.getLogger(__name__)
+        # 初始化 Tushare API
+        if not TUSHARE_TOKEN:
+            self.logger.error("Tushare Token 未配置，请设置 TUSHARE_TOKEN 环境变量或直接在代码中提供。")
+            raise ValueError("Tushare Token not configured.")
+        ts.set_token(TUSHARE_TOKEN)
+        self.pro = ts.pro_api()
+        self.analyzer = StockAnalyzer(pro_api=self.pro) # 传递 pro 实例
         self.max_workers = max_workers
         self.min_score = min_score
         self.logger = logging.getLogger(__name__)
+        # 创建带时间戳的输出目录
+        self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        self.output_dir = f'scanner/{self.timestamp}'
 
-    def get_all_stocks(self) -> List[str]:
+    @on_exception(expo, RateLimitException, max_tries=5) # 添加指数退避和重试机制
+    @limits(calls=CALLS_PER_MINUTE, period=PERIOD_SECONDS) # 应用速率限制
+    def get_all_stocks(self) -> pd.DataFrame:
         """
         获取所有上市 A 股股票代码（全盘版）。
         使用 ak.stock_info_sh_name_code(symbol="主板A股") 与 ak.stock_info_sz_name_code(symbol="A股列表")，
         候选字段列表为：['A股代码', '证券代码', '股票代码', 'code'] 。
         """
         try:
-            sh_df = ak.stock_info_sh_name_code(symbol="主板A股")
-            sz_df = ak.stock_info_sz_name_code(symbol="A股列表")
-            candidate_cols = ['A股代码', '证券代码', '股票代码', 'code']
 
-            def get_codes(df: pd.DataFrame) -> set:
-                for col in candidate_cols:
-                    if col in df.columns:
-                        return {str(code).zfill(6) for code in df[col]}
-                raise KeyError(f"未能找到股票代码字段，现有字段：{df.columns.tolist()}")
 
-            sh_codes = get_codes(sh_df)
-            sz_codes = get_codes(sz_df)
-            all_codes = sorted(sh_codes | sz_codes)
+            # 获取所有A股列表
+            # fields 可以根据需要选择，这里选择了常用的字段
+            # self.pro.stock_basic() 返回所有股票的基本信息，包括上市和退市的
+            # list_status='L' 表示只获取上市状态的股票
+            all_stocks_df = self.pro.stock_basic(exchange='', list_status='L', fields='ts_code,symbol,name,area,industry,list_date')
+            if all_stocks_df.empty:
+                raise ValueError("未能从 Tushare 获取到股票列表数据")
+            
+            all_codes = sorted(all_stocks_df['ts_code'].tolist())
             self.logger.info(f"完整股票列表获取到 {len(all_codes)} 支股票信息")
             print(f"\n开始分析 {len(all_codes)} 支股票...")
             return all_codes
@@ -415,8 +467,8 @@ class TopStockScanner:
                     f"得分: {row['score']:.1f} | 价格: ¥{row['price']:.2f} | 涨跌幅: {row['price_change']:.2f}%"
                 ])
 
-            os.makedirs('scanner', exist_ok=True)
-            with open('scanner/temp_results.txt', 'w', encoding='utf-8') as f:
+            os.makedirs(self.output_dir, exist_ok=True)
+            with open(f'{self.output_dir}/temp_results.txt', 'w', encoding='utf-8') as f:
                 f.write('\n'.join(output_lines))
 
         except Exception as e:
@@ -474,10 +526,10 @@ def format_price_category(price: float) -> str:
     base = (price // 10) * 10
     return f"{int(base)}-{int(base+10)}"
 
-def save_results_by_price(results: List[Dict]) -> None:
+def save_results_by_price(results: List[Dict], output_dir: str = 'scanner') -> None:
     """按价格区间保存分析结果至文件"""
     try:
-        os.makedirs('scanner', exist_ok=True)
+        os.makedirs(output_dir, exist_ok=True)
         price_groups = {}
         for stock in results:
             price = float(stock['当前价格'].replace('¥', ''))
@@ -511,15 +563,15 @@ def save_results_by_price(results: List[Dict]) -> None:
                 f"4. 放量股票数: {sum(1 for stock in stocks if stock['成交量状态'] == '放量')}"
             ])
 
-            filename = f'scanner/price_{category.replace("-", "_")}.txt'
+            filename = f'{output_dir}/price_{category.replace("-", "_")}.txt'
             with open(filename, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(output_lines))
-        create_summary_file(price_groups)
+        create_summary_file(price_groups, output_dir)
     except Exception as e:
         logging.error(f"保存结果时发生错误: {str(e)}")
         raise
 
-def create_summary_file(price_groups: Dict[str, List[Dict]]) -> None:
+def create_summary_file(price_groups: Dict[str, List[Dict]], output_dir: str = 'scanner') -> None:
     """生成综合汇总报告"""
     try:
         output_lines = [
@@ -546,7 +598,7 @@ def create_summary_file(price_groups: Dict[str, List[Dict]]) -> None:
                 f"  - 平均评分: {np.mean([float(stock['评分']) for stock in stocks]):.1f}"
             ])
 
-        with open('scanner/summary.txt', 'w', encoding='utf-8') as f:
+        with open(f'{output_dir}/summary.txt', 'w', encoding='utf-8') as f:
             f.write('\n'.join(output_lines))
     except Exception as e:
         logging.error(f"生成汇总报告失败：{str(e)}")
@@ -569,13 +621,13 @@ def main():
             print("\n未找到得分大于等于85分的股票。")
             return
 
-        save_results_by_price(high_score_stocks)
+        save_results_by_price(high_score_stocks, scanner.output_dir)
 
-        print(f"\n分析完成！结果已保存至 scanner 文件夹中：")
+        print(f"\n分析完成！结果已保存至 {scanner.output_dir} 文件夹中：")
         print("1. 按价格区间保存的详细分析文件（price_XX_YY.txt）")
         print("2. 汇总报告（summary.txt）")
 
-        temp_file = 'scanner/temp_results.txt'
+        temp_file = f'{scanner.output_dir}/temp_results.txt'
         if os.path.exists(temp_file):
             os.remove(temp_file)
 
@@ -587,15 +639,18 @@ def main():
         print("=" * 80)
         print(error_msg)
         print("=" * 80)
-        os.makedirs('scanner', exist_ok=True)
-        with open('scanner/error_log.txt', 'w', encoding='utf-8') as f:
+        # 创建带时间戳的错误日志目录
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        error_dir = f'scanner/{timestamp}'
+        os.makedirs(error_dir, exist_ok=True)
+        with open(f'{error_dir}/error_log.txt', 'w', encoding='utf-8') as f:
             f.write("Stock Analysis System Error Report\n")
             f.write("=" * 80 + "\n")
             f.write(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"Error: {str(e)}\n")
             f.write("=" * 80 + "\n")
             f.write(f"详细堆栈信息:\n{traceback.format_exc()}")
-        print("错误日志已保存至 scanner/error_log.txt")
+        print(f"错误日志已保存至 {error_dir}/error_log.txt")
         input("\n按Enter键退出……")
 
 if __name__ == "__main__":

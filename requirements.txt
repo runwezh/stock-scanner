@@ -42,3 +42,4 @@ asyncpg
 passlib[bcrypt]
 slowapi>=0.1.7
 bcrypt==3.2.2
+ratelimit==2.2.1
