@@ -411,6 +411,218 @@ class StockDataProvider:
             stock_code: 股票代码
             
         Returns:
-            包含股票概念板块的列表
-        """
+            包含股票概念板块的列表        """
         return asyncio.to_thread(self.get_stock_concept_info, stock_code)
+
+    async def get_stock_minute_data(self, stock_code: str, period: str = '60', 
+                                  start_date: Optional[str] = None, 
+                                  end_date: Optional[str] = None,
+                                  market_type: str = 'A') -> pd.DataFrame:
+        """
+        异步获取股票分钟级别K线数据
+        
+        Args:
+            stock_code: 股票代码
+            period: 时间周期，支持 '1', '5', '15', '30', '60', '120', '240'
+            start_date: 开始日期时间，格式 'YYYY-MM-DD HH:MM:SS'
+            end_date: 结束日期时间，格式 'YYYY-MM-DD HH:MM:SS'
+            market_type: 市场类型，目前仅支持'A'股
+            
+        Returns:
+            包含分钟级别K线数据的DataFrame
+        """
+        return await asyncio.to_thread(
+            self._get_stock_minute_data_sync, 
+            stock_code, 
+            period, 
+            start_date, 
+            end_date,
+            market_type
+        )
+
+    def _get_stock_minute_data_sync(self, stock_code: str, period: str = '60',
+                                  start_date: Optional[str] = None, 
+                                  end_date: Optional[str] = None,
+                                  market_type: str = 'A') -> pd.DataFrame:
+        """
+        同步获取股票分钟级别K线数据的实现
+        """
+        import akshare as ak
+        from datetime import datetime, timedelta
+        
+        if market_type != 'A':
+            error_msg = f"分钟级别数据目前仅支持A股市场，不支持{market_type}市场"
+            logger.error(error_msg)
+            df = pd.DataFrame()
+            df.error = error_msg
+            return df
+              # 设置默认时间范围（最近7天）
+        if start_date is None:
+            start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+        if end_date is None:
+            end_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+        try:
+            # 如果请求120分钟数据，需要先获取60分钟数据然后合成
+            if period == '120':
+                logger.debug(f"获取60分钟数据用于合成120分钟K线: {stock_code}")
+                df = ak.stock_zh_a_minute(
+                    symbol=stock_code,
+                    period='60',
+                    adjust='qfq'
+                )
+                
+                # 合成120分钟K线数据
+                df = self._resample_to_120min(df)
+                logger.info(f"成功合成120分钟K线数据 {stock_code}, 数据点数: {len(df)}")
+                
+            elif period == '240':
+                logger.debug(f"获取60分钟数据用于合成240分钟K线: {stock_code}")
+                df = ak.stock_zh_a_minute(
+                    symbol=stock_code,
+                    period='60',
+                    adjust='qfq'
+                )
+                
+                # 合成240分钟K线数据
+                df = self._resample_to_240min(df)
+                logger.info(f"成功合成240分钟K线数据 {stock_code}, 数据点数: {len(df)}")
+                
+            else:
+                # 支持的原生分钟周期: 1, 5, 15, 30, 60
+                if period not in ['1', '5', '15', '30', '60']:
+                    error_msg = f"不支持的分钟周期: {period}，支持的周期: 1, 5, 15, 30, 60, 120, 240"
+                    logger.error(error_msg)
+                    df = pd.DataFrame()
+                    df.error = error_msg
+                    return df
+                    
+                logger.debug(f"获取{period}分钟K线数据: {stock_code}")
+                df = ak.stock_zh_a_minute(
+                    symbol=stock_code,
+                    period=period,
+                    adjust='qfq'
+                )
+                
+            # 标准化列名
+            if not df.empty:
+                # AkShare分钟数据列名通常是中文
+                column_mapping = {
+                    '时间': 'datetime',
+                    '开盘': 'open', 
+                    '收盘': 'close',
+                    '最高': 'high',
+                    '最低': 'low', 
+                    '成交量': 'volume',
+                    '成交额': 'amount'
+                }
+                
+                # 重命名列
+                df.rename(columns=column_mapping, inplace=True)
+                
+                # 确保datetime列是日期时间类型
+                if 'datetime' in df.columns:
+                    df['datetime'] = pd.to_datetime(df['datetime'])
+                    df.set_index('datetime', inplace=True)
+                    
+                # 按时间升序排序
+                df.sort_index(inplace=True)
+                
+                # 根据时间范围过滤数据
+                if start_date and end_date:
+                    start_dt = pd.to_datetime(start_date)
+                    end_dt = pd.to_datetime(end_date)
+                    df = df[(df.index >= start_dt) & (df.index <= end_dt)]
+                    
+            logger.info(f"成功获取{period}分钟K线数据 {stock_code}, 数据点数: {len(df)}")
+            return df
+            
+        except Exception as e:
+            error_msg = f"获取{period}分钟K线数据失败 {stock_code}: {str(e)}"
+            logger.error(error_msg)
+            logger.exception(e)
+            df = pd.DataFrame()
+            df.error = error_msg
+            return df
+
+    def _resample_to_120min(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        将60分钟K线数据重采样为120分钟K线数据
+        
+        Args:
+            df: 60分钟K线数据DataFrame
+            
+        Returns:
+            120分钟K线数据DataFrame
+        """
+        try:
+            if df.empty:
+                return df
+                
+            # 确保索引是datetime类型
+            if not isinstance(df.index, pd.DatetimeIndex):
+                if 'datetime' in df.columns:
+                    df.set_index('datetime', inplace=True)
+            
+            # 重采样规则：每2小时合并
+            agg_dict = {
+                'open': 'first',    # 开盘价取第一个
+                'high': 'max',      # 最高价取最大值
+                'low': 'min',       # 最低价取最小值  
+                'close': 'last',    # 收盘价取最后一个
+                'volume': 'sum',    # 成交量求和
+                'amount': 'sum'     # 成交额求和
+            }
+              # 使用2h频率进行重采样（修复FutureWarning）
+            df_120min = df.resample('2h').agg(agg_dict)
+            
+            # 移除全为NaN的行
+            df_120min = df_120min.dropna()
+            
+            logger.debug(f"60分钟数据重采样为120分钟，原数据点数: {len(df)}, 新数据点数: {len(df_120min)}")
+            return df_120min
+            
+        except Exception as e:
+            logger.error(f"重采样120分钟数据失败: {str(e)}")
+            return pd.DataFrame()
+        
+    def _resample_to_240min(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        将60分钟K线数据重采样为240分钟K线数据
+        
+        Args:
+            df: 60分钟K线数据DataFrame
+            
+        Returns:
+            240分钟K线数据DataFrame
+        """
+        try:
+            if df.empty:
+                return df
+                
+            # 确保索引是datetime类型
+            if not isinstance(df.index, pd.DatetimeIndex):
+                if 'datetime' in df.columns:
+                    df.set_index('datetime', inplace=True)
+            
+            # 重采样规则：每4小时合并
+            agg_dict = {
+                'open': 'first',    # 开盘价取第一个
+                'high': 'max',      # 最高价取最大值
+                'low': 'min',       # 最低价取最小值  
+                'close': 'last',    # 收盘价取最后一个
+                'volume': 'sum',    # 成交量求和
+                'amount': 'sum'     # 成交额求和
+            }
+              # 使用4h频率进行重采样（修复FutureWarning）
+            df_240min = df.resample('4h').agg(agg_dict)
+            
+            # 移除全为NaN的行
+            df_240min = df_240min.dropna()
+            
+            logger.debug(f"60分钟数据重采样为240分钟，原数据点数: {len(df)}, 新数据点数: {len(df_240min)}")
+            return df_240min
+            
+        except Exception as e:
+            logger.error(f"重采样240分钟数据失败: {str(e)}")
+            return pd.DataFrame()
