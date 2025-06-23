@@ -3,12 +3,19 @@ import type { RouteRecordRaw } from 'vue-router';
 import { apiService } from '@/services/api';
 import StockAnalysisApp from '@/components/StockAnalysisApp.vue';
 import LoginPage from '@/components/LoginPage.vue';
+import WatchlistPage from '@/components/WatchlistPage.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Home',
     component: StockAnalysisApp,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/watchlist',
+    name: 'Watchlist',
+    component: WatchlistPage,
     meta: { requiresAuth: true }
   },
   {
