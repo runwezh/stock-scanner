@@ -3,6 +3,7 @@ import type { RouteRecordRaw } from 'vue-router';
 import { apiService } from '@/services/api';
 import StockAnalysisApp from '@/components/StockAnalysisApp.vue';
 import LoginPage from '@/components/LoginPage.vue';
+import WatchlistManagement from '@/components/WatchlistManagement.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -16,6 +17,12 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Login',
     component: LoginPage,
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/watchlist',
+    name: 'Watchlist',
+    component: WatchlistManagement,
+    meta: { requiresAuth: true }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -86,4 +93,4 @@ router.beforeEach(async (to, from, next) => {
   }
 });
 
-export default router; 
+export default router;
