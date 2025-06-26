@@ -4,6 +4,13 @@
     <div class="slide-menu-container" :class="{ 'menu-open': isMenuOpen }">
       <div class="menu-overlay" @click="toggleMenu"></div>
       <div class="slide-menu">
+        <!-- 自选股管理入口 -->
+        <n-button class="menu-item" @click="navigateTo('/watchlist')">
+          <template #icon>
+            <n-icon><StarIcon /></n-icon>
+          </template>
+          自选股管理
+        </n-button>
         <n-button class="menu-item" @click="handleLogout">
           <template #icon>
             <n-icon><LogoutIcon /></n-icon>
@@ -51,7 +58,7 @@
               <div class="config-section">
                 <n-form-item label="选择市场类型">
                   <n-select
-                    v-model:value="marketType"
+                    v-model="marketType"
                     :options="marketOptions"
                     @update:value="handleMarketTypeChange"
                   />
@@ -63,7 +70,7 @@
                 
                 <n-form-item label="输入代码">
                   <n-input
-                    v-model:value="stockCodes"
+                    v-model="stockCodes"
                     type="textarea"
                     placeholder="输入股票、基金代码，多个代码用逗号、空格或换行分隔"
                     :autosize="{ minRows: 3, maxRows: 6 }"
@@ -98,7 +105,7 @@
                     <n-text>分析结果 ({{ analyzedStocks.length }})</n-text>
                     <n-space>
                       <n-select 
-                        v-model:value="displayMode" 
+                        v-model="displayMode" 
                         size="small" 
                         style="width: 120px"
                         :options="[
@@ -154,7 +161,7 @@
                       :columns="stockTableColumns"
                       :data="analyzedStocks"
                       :pagination="{ pageSize: 10 }"
-                      :row-key="(row: StockInfo) => row.code"
+                      :row-key="(row) => row.code"
                       :bordered="false"
                       :single-line="false"
                       striped
@@ -199,6 +206,7 @@ import {
   DownloadOutline as DownloadIcon,
   MenuOutline as MenuIcon,
   LogOutOutline as LogoutIcon,
+  StarOutline as StarIcon,
 } from '@vicons/ionicons5';
 
 import MarketTimeDisplay from './MarketTimeDisplay.vue';
@@ -211,10 +219,12 @@ import { apiService } from '@/services/api';
 import type { StockInfo, ApiConfig, StreamInitMessage, StreamAnalysisUpdate } from '@/types';
 import { loadApiConfig } from '@/utils';
 import { validateMultipleStockCodes, MarketType } from '@/utils/stockValidator';
+import { useRouter } from 'vue-router';
 
 // 使用Naive UI的组件API
 const message = useMessage();
 const { copy } = useClipboard();
+const router = useRouter();
 
 // 菜单状态
 const isMenuOpen = ref(false);
@@ -492,7 +502,7 @@ function processStreamData(text: string) {
       }
       message.success(summaryMessage.trim(),{ duration: 5000 });
       // 扫描完成消息
-      // message.success(`分析完成，共扫描 ${data.total_scanned} 只股票，符合条件 ${data.total_matched} 只`);
+      // message.success(`分析完成，共扫描 ${data.total_scanned} 只股票，符合条件 ${data.total.matched} 只`);
       
       // 将所有分析中的股票状态更新为已完成
       analyzedStocks.value = analyzedStocks.value.map(stock => {
@@ -1025,6 +1035,17 @@ onBeforeUnmount(() => {
 // 处理公告关闭事件
 function handleAnnouncementClose() {
   showAnnouncementBanner.value = false;
+}
+
+// 菜单导航
+function navigateTo(path: string) {
+  // 关闭菜单
+  isMenuOpen.value = false;
+  
+  // 路由跳转
+  if (path) {
+    router.push(path);
+  }
 }
 </script>
 

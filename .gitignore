@@ -3,6 +3,7 @@ logs/
 *.log
 
 # Custom
+.serena/
 .vs/
 .vscode/
 .idea/
