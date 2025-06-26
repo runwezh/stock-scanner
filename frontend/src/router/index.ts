@@ -24,12 +24,7 @@ const routes: Array<RouteRecordRaw> = [
     component: LoginPage,
     meta: { requiresAuth: false }
   },
-  {
-    path: '/watchlist',
-    name: 'Watchlist',
-    component: WatchlistManagement,
-    meta: { requiresAuth: true }
-  },
+
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'

@@ -4,11 +4,7 @@
       <div class="menu-overlay" @click="toggleMenu"></div>
       <div class="slide-menu">        
         <div class="menu-header">
-          <n-text strong>菜单 (调试: {{ isMenuOpen ? '打开' : '关闭' }})</n-text>
-        </div>
-        <!-- 调试信息 -->
-        <div style="padding: 10px; background: #f0f8ff; border: 1px solid #ccc; margin: 5px;">
-          <small>调试信息: 菜单状态 = {{ isMenuOpen }}, 按钮数量 = 3</small>
+          <n-text strong>菜单</n-text>
         </div>
         <n-button class="menu-item" @click="navigateToHome" style="background-color: #f0f0f0; margin: 4px 0;">
           <template #icon>
@@ -37,15 +33,7 @@
         <n-icon><MenuIcon /></n-icon>
       </template>
     </n-button>
-      <!-- 调试面板 -->
-    <div style="position: fixed; top: 70px; left: 20px; background: white; padding: 10px; border: 2px solid red; z-index: 1001; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
-      <div style="font-size: 12px; color: #333;">
-        <div>调试面板</div>
-        <div>菜单状态: {{ isMenuOpen ? '打开' : '关闭' }}</div>
-        <div>移动端: {{ isMobile ? '是' : '否' }}</div>
-        <button @click="isMenuOpen = !isMenuOpen" style="margin-top: 5px; padding: 2px 8px;">切换菜单</button>
-      </div>
-    </div>
+
     
     <!-- 公告横幅 -->
     <AnnouncementBanner 
@@ -90,7 +78,7 @@
                 
                 <n-form-item label="输入代码">
                   <n-input
-                    v-model="stockCodes"
+                    v-model:value="stockCodes"
                     type="textarea"
                     placeholder="输入股票、基金代码，多个代码用逗号、空格或换行分隔"
                     :autosize="{ minRows: 3, maxRows: 6 }"
@@ -201,17 +189,16 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router';
-import { 
-  NLayout, 
-  NLayoutContent, 
-  NCard, 
-  NIcon, 
-  NGrid, 
-  NGridItem, 
-  NFormItem, 
-  NSelect, 
-  NInput, 
+import {
+  NLayout,
+  NLayoutContent,
+  NCard,
+  NIcon,
+  NGrid,
+  NGridItem,
+  NFormItem,
+  NSelect,
+  NInput,
   NButton,
   NEmpty,
   useMessage,
@@ -223,7 +210,8 @@ import {
   type DataTableColumns
 } from 'naive-ui';
 import { useClipboard } from '@vueuse/core'
-import { 
+import { useRouter } from 'vue-router';
+import {
   DocumentTextOutline as DocumentTextIcon,
   DownloadOutline as DownloadIcon,
   MenuOutline as MenuIcon,
@@ -242,7 +230,6 @@ import { apiService } from '@/services/api';
 import type { StockInfo, ApiConfig, StreamInitMessage, StreamAnalysisUpdate } from '@/types';
 import { loadApiConfig } from '@/utils';
 import { validateMultipleStockCodes, MarketType } from '@/utils/stockValidator';
-import { useRouter } from 'vue-router';
 
 // 使用Naive UI的组件API
 const message = useMessage();
