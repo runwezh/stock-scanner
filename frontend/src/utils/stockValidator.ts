@@ -16,10 +16,18 @@ export enum MarketType {
 
 /**
  * 验证A股股票代码
+ * @param code 股票代码
  * @returns 是否为有效的A股代码
  */
-export const validateAStock = (): boolean => {
-  return true;
+export const validateAStock = (code: string): boolean => {
+  // A股代码验证规则：
+  // 沪市主板：600、601、603、605开头
+  // 深市主板：000-002开头
+  // 创业板：300开头
+  // 科创板：688开头
+  // 北交所：8开头（83、87、88等）和920开头
+  // 新三板：4开头（400、430等）
+  return /^(60[0135]\d{3}|0[0-2]\d{4}|30\d{4}|688\d{3}|[48]\d{5}|920\d{3})$/.test(code);
 };
 
 /**
@@ -72,10 +80,10 @@ export const validateStockCode = (
   
   switch (marketType) {
     case MarketType.A:
-      if (!validateAStock()) {
+      if (!validateAStock(code)) {
         return { 
           valid: false, 
-          errorMessage: "股票代码不能为空" // A股验证仅检查非空
+          errorMessage: `无效的A股代码格式: ${code}。支持格式：沪市主板(600、601、603、605开头)、深市主板(000-002开头)、创业板(300开头)、科创板(688开头)、北交所(8开头或920开头)、新三板(4开头)`
         };
       }
       break;
