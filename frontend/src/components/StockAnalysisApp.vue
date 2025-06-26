@@ -1,17 +1,29 @@
 <template>
-  <div class="app-container mobile-bottom-extend">
-    <!-- 滑动菜单 -->
+  <div class="app-container mobile-bottom-extend">    <!-- 滑动菜单 -->
     <div class="slide-menu-container" :class="{ 'menu-open': isMenuOpen }">
       <div class="menu-overlay" @click="toggleMenu"></div>
-      <div class="slide-menu">
-        <!-- 自选股管理入口 -->
-        <n-button class="menu-item" @click="navigateTo('/watchlist')">
+      <div class="slide-menu">        
+        <div class="menu-header">
+          <n-text strong>菜单 (调试: {{ isMenuOpen ? '打开' : '关闭' }})</n-text>
+        </div>
+        <!-- 调试信息 -->
+        <div style="padding: 10px; background: #f0f8ff; border: 1px solid #ccc; margin: 5px;">
+          <small>调试信息: 菜单状态 = {{ isMenuOpen }}, 按钮数量 = 3</small>
+        </div>
+        <n-button class="menu-item" @click="navigateToHome" style="background-color: #f0f0f0; margin: 4px 0;">
           <template #icon>
-            <n-icon><StarIcon /></n-icon>
+            <n-icon><HomeIcon /></n-icon>
+          </template>
+          首页
+        </n-button>
+        <n-button class="menu-item" @click="navigateToWatchlist" style="background-color: #e8f4fd; margin: 4px 0;">
+          <template #icon>
+            <n-icon><HeartIcon /></n-icon>
           </template>
           自选股管理
         </n-button>
-        <n-button class="menu-item" @click="handleLogout">
+        <n-divider class="menu-divider" />
+        <n-button class="menu-item" @click="handleLogout" style="background-color: #ffe6e6; margin: 4px 0;">
           <template #icon>
             <n-icon><LogoutIcon /></n-icon>
           </template>
@@ -19,13 +31,21 @@
         </n-button>
       </div>
     </div>
-    
-    <!-- 菜单按钮 -->
-    <n-button class="menu-button" circle @click="toggleMenu">
+      <!-- 菜单按钮 -->
+    <n-button class="menu-button" circle @click="toggleMenu" style="background: #18a058 !important;">
       <template #icon>
         <n-icon><MenuIcon /></n-icon>
       </template>
     </n-button>
+      <!-- 调试面板 -->
+    <div style="position: fixed; top: 70px; left: 20px; background: white; padding: 10px; border: 2px solid red; z-index: 1001; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+      <div style="font-size: 12px; color: #333;">
+        <div>调试面板</div>
+        <div>菜单状态: {{ isMenuOpen ? '打开' : '关闭' }}</div>
+        <div>移动端: {{ isMobile ? '是' : '否' }}</div>
+        <button @click="isMenuOpen = !isMenuOpen" style="margin-top: 5px; padding: 2px 8px;">切换菜单</button>
+      </div>
+    </div>
     
     <!-- 公告横幅 -->
     <AnnouncementBanner 
@@ -181,6 +201,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
 import { 
   NLayout, 
   NLayoutContent, 
@@ -198,6 +219,7 @@ import {
   NText,
   NDataTable,
   NDropdown,
+  NDivider,
   type DataTableColumns
 } from 'naive-ui';
 import { useClipboard } from '@vueuse/core'
@@ -206,7 +228,8 @@ import {
   DownloadOutline as DownloadIcon,
   MenuOutline as MenuIcon,
   LogOutOutline as LogoutIcon,
-  StarOutline as StarIcon,
+  HomeOutline as HomeIcon,
+  HeartOutline as HeartIcon,
 } from '@vicons/ionicons5';
 
 import MarketTimeDisplay from './MarketTimeDisplay.vue';
@@ -231,6 +254,7 @@ const isMenuOpen = ref(false);
 
 // 切换菜单
 function toggleMenu() {
+  console.log('切换菜单状态，当前状态:', isMenuOpen.value, '新状态:', !isMenuOpen.value);
   isMenuOpen.value = !isMenuOpen.value;
 }
 
@@ -238,6 +262,18 @@ function toggleMenu() {
 function handleLogout() {
   localStorage.removeItem('token');
   window.location.reload();
+}
+
+// 导航到首页
+function navigateToHome() {
+  toggleMenu();
+  // 当前就在首页，不需要跳转
+}
+
+// 导航到自选股管理
+function navigateToWatchlist() {
+  toggleMenu();
+  router.push('/watchlist');
 }
 
 // 从环境变量获取的默认配置
@@ -999,6 +1035,9 @@ onMounted(async () => {
     // 添加窗口大小变化监听
     window.addEventListener('resize', handleResize);
     
+    // 处理路由参数
+    handleRouteParams();
+    
     // 从API获取配置信息
     const config = await apiService.getConfig();
     
@@ -1019,8 +1058,7 @@ onMounted(async () => {
       // 使用通知显示公告
       showAnnouncement(config.announcement);
     }
-    
-    // 初始化后恢复本地保存的配置
+      // 初始化后恢复本地保存的配置
     restoreLocalApiConfig();
   } catch (error) {
     console.error('获取默认配置时出错:', error);
@@ -1037,14 +1075,22 @@ function handleAnnouncementClose() {
   showAnnouncementBanner.value = false;
 }
 
-// 菜单导航
-function navigateTo(path: string) {
-  // 关闭菜单
-  isMenuOpen.value = false;
+// 处理路由参数
+function handleRouteParams() {
+  const route = router.currentRoute.value;
+  const { codes, marketType: routeMarketType, source } = route.query;
   
-  // 路由跳转
-  if (path) {
-    router.push(path);
+  if (codes && routeMarketType && source === 'watchlist') {
+    // 从自选股跳转过来的分析请求
+    const codeList = (codes as string).split(',');
+    stockCodes.value = codeList.join(', ');
+    marketType.value = routeMarketType as string;
+    
+    // 显示提示信息
+    message.info(`已从自选股导入 ${codeList.length} 只股票，点击"开始分析"进行分析`);
+    
+    // 清除URL参数，避免重复处理
+    router.replace({ path: '/', query: {} });
   }
 }
 </script>
@@ -1060,6 +1106,10 @@ function navigateTo(path: string) {
   z-index: 999;
   pointer-events: none;
   transition: all 0.3s ease;
+}
+
+.menu-open {
+  pointer-events: auto;
 }
 
 .menu-open .menu-overlay {
@@ -1085,10 +1135,14 @@ function navigateTo(path: string) {
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid #ff0000; /* 调试：红色边框 */
 }
 
 .menu-open .slide-menu {
   left: 0;
+  border: 2px solid #00ff00; /* 调试：打开时绿色边框 */
 }
 
 .menu-button {
@@ -1096,12 +1150,35 @@ function navigateTo(path: string) {
   top: 20px;
   left: 20px;
   z-index: 1000;
+  background: #18a058 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid #0000ff; /* 调试：蓝色边框 */
+}
+
+.menu-header {
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
 }
 
 .menu-item {
   width: 100%;
   text-align: left;
   padding: 12px 20px;
+  border-radius: 0;
+  border: 2px solid #333 !important; /* 调试：黑色边框 */
+  justify-content: flex-start;
+  font-weight: bold !important;
+  font-size: 16px !important;
+}
+
+.menu-item:hover {
+  background: #f5f5f5;
+  border: 2px solid #ff6600 !important; /* 调试：悬停时橙色边框 */
+}
+
+.menu-divider {
+  margin: 8px 0;
 }
 
 /* 响应式调整 */

@@ -83,6 +83,31 @@ export interface TestApiResponse {
   status_code?: number;
 }
 
+// 自选股相关类型
+export interface WatchlistItem {
+  id: number;
+  code: string;
+  name?: string;
+  market_type: string;
+  price?: number;
+  price_change?: number;
+  change_percent?: number;
+  market_value?: number;
+  note?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AddWatchlistRequest {
+  code: string;
+  market_type: string;
+  note?: string;
+}
+
+export interface UpdateWatchlistRequest {
+  note?: string;
+}
+
 // 流式响应类型
 export interface StreamInitMessage {
   stream_type: 'single' | 'batch';
