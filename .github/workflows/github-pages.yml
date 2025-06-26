@@ -52,5 +52,11 @@ jobs:
     needs: build
     steps:
       - name: Deploy to GitHub Pages
+        on:
+          workflow_dispatch:  # 保留手动触发
+          # push:              # 注释掉自动触发
+          #   branches: [ main ]
+          #   paths:
+          #     - 'frontend/**'
         id: deployment
-        uses: actions/deploy-pages@v4 
+        uses: actions/deploy-pages@v4
