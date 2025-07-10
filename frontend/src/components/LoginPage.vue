@@ -9,29 +9,41 @@
     />
     
     <div class="login-background">
-      <div class="login-shape shape1"></div>
-      <div class="login-shape shape2"></div>
-      <div class="login-shape shape3"></div>
-      <div class="login-shape shape4"></div>
-      <div class="login-shape shape5"></div>
-      <div class="login-particle particle1"></div>
-      <div class="login-particle particle2"></div>
-      <div class="login-particle particle3"></div>
-      <div class="login-particle particle4"></div>
-      <div class="login-particle particle5"></div>
-      <div class="login-particle particle6"></div>
+      <div class="login-shape shape1" />
+      <div class="login-shape shape2" />
+      <div class="login-shape shape3" />
+      <div class="login-shape shape4" />
+      <div class="login-shape shape5" />
+      <div class="login-particle particle1" />
+      <div class="login-particle particle2" />
+      <div class="login-particle particle3" />
+      <div class="login-particle particle4" />
+      <div class="login-particle particle5" />
+      <div class="login-particle particle6" />
     </div>
     
-    <n-card class="login-card" :bordered="false">
+    <NCard
+      class="login-card"
+      :bordered="false"
+    >
       <div class="login-header">
         <div class="login-logo">
-          <n-icon :component="BarChartIcon" color="#2080f0" size="36" class="logo-icon" />
+          <NIcon
+            :component="BarChartIcon"
+            color="#2080f0"
+            size="36"
+            class="logo-icon"
+          />
         </div>
-        <h1 class="login-title">股票AI分析系统</h1>
-        <p class="login-subtitle">使用AI技术分析股票市场趋势</p>
+        <h1 class="login-title">
+          股票AI分析系统
+        </h1>
+        <p class="login-subtitle">
+          使用AI技术分析股票市场趋势
+        </p>
       </div>
       
-      <n-form
+      <NForm
         ref="formRef"
         :model="formValue"
         :rules="rules"
@@ -40,108 +52,112 @@
         require-mark-placement="right-hanging"
         class="login-form"
       >
-        <n-form-item path="username">
-          <n-input
+        <NFormItem path="username">
+          <NInput
             v-model:value="formValue.username"
             placeholder="请输入用户名"
-            @keyup.enter="handleLogin"
             size="large"
             class="login-input"
+            @keyup.enter="handleLogin"
           >
             <template #prefix>
-              <n-icon :component="BarChartIcon" />
+              <NIcon :component="BarChartIcon" />
             </template>
-          </n-input>
-        </n-form-item>
-        <n-form-item path="password">
-          <n-input
+          </NInput>
+        </NFormItem>
+        <NFormItem path="password">
+          <NInput
             v-model:value="formValue.password"
             type="password"
             placeholder="请输入密码"
-            @keyup.enter="handleLogin"
             size="large"
             class="login-input"
+            @keyup.enter="handleLogin"
           >
             <template #prefix>
-              <n-icon :component="LockClosedIcon" />
+              <NIcon :component="LockClosedIcon" />
             </template>
-          </n-input>
-        </n-form-item>
+          </NInput>
+        </NFormItem>
         
         <div class="login-button-container">
-          <n-button
+          <NButton
             type="primary"
             size="large"
             block
             :loading="loading"
-            @click="handleLogin"
             class="login-button"
+            @click="handleLogin"
           >
             {{ loading ? '登录中...' : '登 录' }}
-          </n-button>
+          </NButton>
         </div>
-      </n-form>
+      </NForm>
       
       <div class="login-footer">
-        <n-text depth="3">© {{ new Date().getFullYear() }} 股票AI分析系统</n-text>
+        <NText depth="3">
+          © {{ new Date().getFullYear() }} 股票AI分析系统
+        </NText>
       </div>
-    </n-card>
+    </NCard>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { 
-  NCard, 
-  NForm, 
-  NFormItem, 
-  NInput, 
-  NButton, 
+import AnnouncementBanner from "@/components/AnnouncementBanner.vue";
+import { apiService } from "@/services/api";
+import type { LoginRequest } from "@/types";
+import {
+  BarChartOutline as BarChartIcon,
+  LockClosedOutline as LockClosedIcon,
+} from "@vicons/ionicons5";
+import {
+  NButton,
+  NCard,
+  NForm,
+  NFormItem,
   NIcon,
+  NInput,
   NText,
   useMessage,
-} from 'naive-ui';
-import type { FormInst, FormRules } from 'naive-ui';
-import { 
-  BarChartOutline as BarChartIcon, 
-  LockClosedOutline as LockClosedIcon,
-} from '@vicons/ionicons5';
-import { apiService } from '@/services/api';
-import type { LoginRequest } from '@/types';
-import AnnouncementBanner from '@/components/AnnouncementBanner.vue';
+} from "naive-ui";
+import type { FormInst, FormRules } from "naive-ui";
+import { onMounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 
 const message = useMessage();
 const router = useRouter();
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
-const announcement = ref('');
+const announcement = ref("");
 const showAnnouncementBanner = ref(true);
 
 const formValue = reactive({
-  username: '',
-  password: ''
+  username: "",
+  password: "",
 });
 
 const rules: FormRules = {
   username: [
     {
       required: true,
-      message: '请输入用户名'
-    }
+      message: "请输入用户名",
+    },
   ],
   password: [
     {
       required: true,
-      message: '请输入密码'
-    }
-  ]
+      message: "请输入密码",
+    },
+  ],
 };
 
 // 显示系统公告
 const showAnnouncement = (content: string) => {
-  if (!content) return;
-  
+  if (!content) {
+    return;
+  }
+
   // 使用AnnouncementBanner组件显示公告
   announcement.value = content;
   showAnnouncementBanner.value = true;
@@ -160,24 +176,24 @@ onMounted(async () => {
     if (config.announcement) {
       showAnnouncement(config.announcement);
     }
-    
+
     // 不重复检查是否需要登录，因为路由守卫已经做了这个检查
     // 直接检查是否已登录
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
       return; // 没有token，停留在登录页
     }
-    
+
     const isAuthenticated = await apiService.checkAuth();
-    console.log('登录页面认证检查结果:', isAuthenticated);
-    
+    console.log("登录页面认证检查结果:", isAuthenticated);
+
     if (isAuthenticated) {
       // 已登录，跳转到主页
-      console.log('已登录，跳转到主页');
-      router.push('/');
+      console.log("已登录，跳转到主页");
+      router.push("/");
     }
   } catch (error) {
-    console.error('认证检查或获取配置失败:', error);
+    console.error("认证检查或获取配置失败:", error);
   }
 });
 
@@ -186,28 +202,27 @@ const handleLogin = () => {
     if (errors) {
       return;
     }
-    
+
     loading.value = true;
-    
+
     try {
       const loginRequest: LoginRequest = {
         username: formValue.username,
-        password: formValue.password
+        password: formValue.password,
       };
-      
+
       const response = await apiService.login(loginRequest);
-      
+
       if (response.access_token) {
-        message.success('登录成功');
+        message.success("登录成功");
         // 登录成功后跳转到主页
-        router.push('/');
+        router.push("/");
       } else {
-        message.error(response.message || '登录失败');
+        message.error(response.message || "登录失败");
       }
-    
     } catch (error: any) {
-      console.error('登录失败:', error);
-      message.error(error.message || '登录失败');
+      console.error("登录失败:", error);
+      message.error(error.message || "登录失败");
     } finally {
       loading.value = false;
     }
@@ -567,4 +582,4 @@ html, body {
     display: none;
   }
 }
-</style> 
+</style>

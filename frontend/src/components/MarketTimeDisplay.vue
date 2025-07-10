@@ -1,20 +1,27 @@
 <template>
-  <n-card
+  <NCard
     class="market-time-card mobile-card mobile-shadow mobile-market-time-card"
   >
-    <n-grid :x-gap="16" :y-gap="16" cols="1 s:2 m:4" responsive="screen">
+    <NGrid
+      :x-gap="16"
+      :y-gap="16"
+      cols="1 s:2 m:4"
+      responsive="screen"
+    >
       <!-- 当前时间 -->
-      <n-grid-item>
+      <NGridItem>
         <div class="time-block current-time-block mobile-time-block">
-          <p class="time-label mobile-time-label">当前时间</p>
+          <p class="time-label mobile-time-label">
+            当前时间
+          </p>
           <p class="current-time mobile-current-time">
             {{ marketInfo.currentTime }}
           </p>
         </div>
-      </n-grid-item>
+      </NGridItem>
 
       <!-- A股状态 -->
-      <n-grid-item>
+      <NGridItem>
         <div
           class="time-block market-block mobile-time-block"
           :class="{
@@ -24,37 +31,43 @@
               !marketInfo.cnMarket.isOpen,
           }"
         >
-          <p class="time-label mobile-time-label">A股市场</p>
+          <p class="time-label mobile-time-label">
+            A股市场
+          </p>
           <div
             class="market-status"
             :class="
               marketInfo.cnMarket.isOpen ? 'status-open' : 'status-closed'
             "
           >
-            <n-tag
+            <NTag
               v-if="marketInfo.cnMarket.isOpen"
               type="success"
               size="medium"
               round
               class="status-tag mobile-touch-target mobile-status-tag"
             >
-              <template #icon
-                ><n-icon size="18"><pulse-icon /></n-icon
-              ></template>
+              <template #icon>
+                <NIcon size="18">
+                  <pulse-icon />
+                </NIcon>
+              </template>
               交易中
-            </n-tag>
-            <n-tag
+            </NTag>
+            <NTag
               v-else
               type="default"
               size="medium"
               round
               class="status-tag mobile-touch-target mobile-status-tag"
             >
-              <template #icon
-                ><n-icon size="18"><time-icon /></n-icon
-              ></template>
+              <template #icon>
+                <NIcon size="18">
+                  <time-icon />
+                </NIcon>
+              </template>
               已休市
-            </n-tag>
+            </NTag>
           </div>
           <p class="time-counter mobile-time-counter">
             {{ marketInfo.cnMarket.nextTime }}
@@ -66,7 +79,7 @@
                 marketInfo.cnMarket.isOpen ? 'progress-open' : 'progress-closed'
               "
               :style="{ width: marketInfo.cnMarket.progressPercentage + '%' }"
-            ></div>
+            />
             <div
               class="progress-markers"
               :class="{ 'reverse-markers': !marketInfo.cnMarket.isOpen }"
@@ -86,10 +99,10 @@
             </div>
           </div>
         </div>
-      </n-grid-item>
+      </NGridItem>
 
       <!-- 港股状态 -->
-      <n-grid-item>
+      <NGridItem>
         <div
           class="time-block market-block"
           :class="{
@@ -97,39 +110,47 @@
             'market-closed-block': !marketInfo.hkMarket.isOpen,
           }"
         >
-          <p class="time-label">港股市场</p>
+          <p class="time-label">
+            港股市场
+          </p>
           <div
             class="market-status"
             :class="
               marketInfo.hkMarket.isOpen ? 'status-open' : 'status-closed'
             "
           >
-            <n-tag
+            <NTag
               v-if="marketInfo.hkMarket.isOpen"
               type="success"
               size="medium"
               round
               class="status-tag mobile-touch-target"
             >
-              <template #icon
-                ><n-icon size="18"><pulse-icon /></n-icon
-              ></template>
+              <template #icon>
+                <NIcon size="18">
+                  <pulse-icon />
+                </NIcon>
+              </template>
               交易中
-            </n-tag>
-            <n-tag
+            </NTag>
+            <NTag
               v-else
               type="default"
               size="medium"
               round
               class="status-tag mobile-touch-target"
             >
-              <template #icon
-                ><n-icon size="18"><time-icon /></n-icon
-              ></template>
+              <template #icon>
+                <NIcon size="18">
+                  <time-icon />
+                </NIcon>
+              </template>
               已休市
-            </n-tag>
+            </NTag>
           </div>
-          <p class="time-counter">{{ marketInfo.hkMarket.nextTime }}</p>
+          <p class="time-counter">
+            {{ marketInfo.hkMarket.nextTime }}
+          </p>
           <div class="market-progress-container">
             <div
               class="market-progress-bar"
@@ -137,7 +158,7 @@
                 marketInfo.hkMarket.isOpen ? 'progress-open' : 'progress-closed'
               "
               :style="{ width: marketInfo.hkMarket.progressPercentage + '%' }"
-            ></div>
+            />
             <div
               class="progress-markers"
               :class="{ 'reverse-markers': !marketInfo.hkMarket.isOpen }"
@@ -157,10 +178,10 @@
             </div>
           </div>
         </div>
-      </n-grid-item>
+      </NGridItem>
 
       <!-- 美股状态 -->
-      <n-grid-item>
+      <NGridItem>
         <div
           class="time-block market-block"
           :class="{
@@ -168,39 +189,47 @@
             'market-closed-block': !marketInfo.usMarket.isOpen,
           }"
         >
-          <p class="time-label">美股市场</p>
+          <p class="time-label">
+            美股市场
+          </p>
           <div
             class="market-status"
             :class="
               marketInfo.usMarket.isOpen ? 'status-open' : 'status-closed'
             "
           >
-            <n-tag
+            <NTag
               v-if="marketInfo.usMarket.isOpen"
               type="success"
               size="medium"
               round
               class="status-tag mobile-touch-target"
             >
-              <template #icon
-                ><n-icon size="18"><pulse-icon /></n-icon
-              ></template>
+              <template #icon>
+                <NIcon size="18">
+                  <pulse-icon />
+                </NIcon>
+              </template>
               交易中
-            </n-tag>
-            <n-tag
+            </NTag>
+            <NTag
               v-else
               type="default"
               size="medium"
               round
               class="status-tag mobile-touch-target"
             >
-              <template #icon
-                ><n-icon size="18"><time-icon /></n-icon
-              ></template>
+              <template #icon>
+                <NIcon size="18">
+                  <time-icon />
+                </NIcon>
+              </template>
               已休市
-            </n-tag>
+            </NTag>
           </div>
-          <p class="time-counter">{{ marketInfo.usMarket.nextTime }}</p>
+          <p class="time-counter">
+            {{ marketInfo.usMarket.nextTime }}
+          </p>
           <div class="market-progress-container">
             <div
               class="market-progress-bar"
@@ -208,7 +237,7 @@
                 marketInfo.usMarket.isOpen ? 'progress-open' : 'progress-closed'
               "
               :style="{ width: marketInfo.usMarket.progressPercentage + '%' }"
-            ></div>
+            />
             <div
               class="progress-markers"
               :class="{ 'reverse-markers': !marketInfo.usMarket.isOpen }"
@@ -228,154 +257,180 @@
             </div>
           </div>
         </div>
-      </n-grid-item>
-    </n-grid>
-  </n-card>
+      </NGridItem>
+    </NGrid>
+  </NCard>
 </template>
 
-<script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
-import { NCard, NGrid, NGridItem, NTag, NIcon } from "naive-ui";
+<script lang="ts">
+import type { MarketStatus, MarketTimeInfo } from "@/types";
+import { updateMarketTimeInfo } from "@/utils";
 import {
   PulseOutline as PulseIcon,
   TimeOutline as TimeIcon,
 } from "@vicons/ionicons5";
-import { updateMarketTimeInfo } from "@/utils";
-import type { MarketTimeInfo, MarketStatus } from "@/types";
+import { NCard, NGrid, NGridItem, NIcon, NTag } from "naive-ui";
+import { defineComponent, onBeforeUnmount, onMounted, ref } from "vue";
 
-const marketInfo = ref<MarketTimeInfo>({
-  currentTime: "",
-  cnMarket: { isOpen: false, nextTime: "" },
-  hkMarket: { isOpen: false, nextTime: "" },
-  usMarket: { isOpen: false, nextTime: "" },
-});
-
-let intervalId: number | null = null;
-
-function updateMarketTime() {
-  const baseInfo = updateMarketTimeInfo();
-
-  // 计算各市场的进度百分比
-  marketInfo.value = {
-    currentTime: baseInfo.currentTime,
-    cnMarket: {
-      ...baseInfo.cnMarket,
-      progressPercentage: calculateProgressPercentage(baseInfo.cnMarket),
+export default defineComponent({
+  name: "MarketTimeDisplay",
+  components: {
+    NCard,
+    NGrid,
+    NGridItem,
+    NTag,
+    NIcon,
+  },
+  props: {
+    isMobile: {
+      type: Boolean,
+      default: false,
     },
-    hkMarket: {
-      ...baseInfo.hkMarket,
-      progressPercentage: calculateProgressPercentage(baseInfo.hkMarket),
-    },
-    usMarket: {
-      ...baseInfo.usMarket,
-      progressPercentage: calculateProgressPercentage(baseInfo.usMarket),
-    },
-  };
-}
+  },
+  setup() {
+    const marketInfo = ref<MarketTimeInfo>({
+      currentTime: "",
+      cnMarket: { isOpen: false, nextTime: "" },
+      hkMarket: { isOpen: false, nextTime: "" },
+      usMarket: { isOpen: false, nextTime: "" },
+    });
 
-// 计算进度百分比的函数
-function calculateProgressPercentage(market: MarketStatus): number {
-  // 从nextTime中提取时间信息来计算进度
-  const timeText = market.nextTime;
+    let intervalId: number | null = null;
 
-  // 如果没有时间文本，返回默认值50%
-  if (!timeText) return 50;
+    function updateMarketTime() {
+      const baseInfo = updateMarketTimeInfo();
 
-  try {
-    // 特殊情况处理
-    if (timeText.includes("已休市") || timeText.includes("已闭市")) {
-      return market.isOpen ? 100 : 0; // 休市状态：开市时为100%，休市时为0%
+      // 计算各市场的进度百分比
+      marketInfo.value = {
+        currentTime: baseInfo.currentTime,
+        cnMarket: {
+          ...baseInfo.cnMarket,
+          progressPercentage: calculateProgressPercentage(baseInfo.cnMarket),
+        },
+        hkMarket: {
+          ...baseInfo.hkMarket,
+          progressPercentage: calculateProgressPercentage(baseInfo.hkMarket),
+        },
+        usMarket: {
+          ...baseInfo.usMarket,
+          progressPercentage: calculateProgressPercentage(baseInfo.usMarket),
+        },
+      };
     }
 
-    if (timeText.includes("即将开市") || timeText.includes("即将开盘")) {
-      return market.isOpen ? 5 : 95; // 即将开市：开市时为5%，休市时为95%
-    }
+    // 计算进度百分比的函数
+    function calculateProgressPercentage(market: MarketStatus): number {
+      // 从nextTime中提取时间信息来计算进度
+      const timeText = market.nextTime;
 
-    // 提取小时和分钟，支持多种格式
-    let hours = 0;
-    let minutes = 0;
-
-    // 匹配"XX小时XX分钟"格式
-    const hourMinuteMatch = timeText.match(/(\d+)\s*小时\s*(\d+)\s*分钟/);
-    if (hourMinuteMatch) {
-      hours = Number.parseInt(hourMinuteMatch[1]);
-      minutes = Number.parseInt(hourMinuteMatch[2]);
-    } else {
-      // 单独匹配小时和分钟
-      const hourMatch = timeText.match(/(\d+)\s*小时/);
-      const minuteMatch = timeText.match(/(\d+)\s*分钟/);
-
-      hours = hourMatch ? Number.parseInt(hourMatch[1]) : 0;
-      minutes = minuteMatch ? Number.parseInt(minuteMatch[1]) : 0;
-    }
-
-    // 总分钟数
-    const totalMinutes = hours * 60 + minutes;
-
-    // 根据市场类型设置不同的交易时长
-    let tradingMinutes = 240; // 默认交易时长4小时
-    let nonTradingMinutes = 1200; // 默认非交易时长20小时
-
-    // 根据市场调整时长
-    if (
-      timeText.includes("A股") ||
-      timeText.includes("沪深") ||
-      (!timeText.includes("港股") && !timeText.includes("美股"))
-    ) {
-      tradingMinutes = 240; // A股交易4小时
-      nonTradingMinutes = 1200; // 非交易20小时
-    } else if (timeText.includes("港股")) {
-      tradingMinutes = 390; // 港股交易6.5小时
-      nonTradingMinutes = 1050; // 非交易17.5小时
-    } else if (timeText.includes("美股")) {
-      tradingMinutes = 390; // 美股交易6.5小时
-      nonTradingMinutes = 1050; // 非交易17.5小时
-    }
-
-    // 根据市场状态计算进度
-    if (market.isOpen) {
-      // 市场开市状态 - 从开盘到收盘方向
-      if (
-        timeText.includes("距离收市") ||
-        timeText.includes("距离闭市") ||
-        timeText.includes("距离休市") ||
-        timeText.includes("距离收盘")
-      ) {
-        // 计算已经交易的时间比例
-        const tradedMinutes = tradingMinutes - totalMinutes;
-        const percentage = (tradedMinutes / tradingMinutes) * 100;
-        return Math.max(0, Math.min(100, percentage));
+      // 如果没有时间文本，返回默认值50%
+      if (!timeText) {
+        return 50;
       }
-      // 处理交易开始阶段但没有明确提示的情况
-      return 5; // 开盘初期设为5%
-    }
-    // 市场休市状态 - 从收盘到开盘方向
-    if (timeText.includes("距离开市") || timeText.includes("距离开盘")) {
-      // 计算接近开盘的时间比例
-      const closedMinutes = nonTradingMinutes - totalMinutes;
-      const percentage = (closedMinutes / nonTradingMinutes) * 100;
-      // 反转比例：0% 表示刚刚休市，100% 表示即将开盘
-      return Math.max(0, Math.min(100, 100 - percentage));
-    }
-    // 处理休市开始阶段但没有明确提示的情况
-    return 5; // 刚休市设为5%
-  } catch (error) {
-    console.error("计算市场进度时出错:", error);
-    // 出错时返回默认值
-    return market.isOpen ? 50 : 5;
-  }
-}
 
-onMounted(() => {
-  updateMarketTime(); // 立即更新一次
-  intervalId = window.setInterval(updateMarketTime, 1000);
-});
+      try {
+        // 特殊情况处理
+        if (timeText.includes("已休市") || timeText.includes("已闭市")) {
+          return market.isOpen ? 100 : 0; // 休市状态：开市时为100%，休市时为0%
+        }
 
-onBeforeUnmount(() => {
-  if (intervalId !== null) {
-    window.clearInterval(intervalId);
-    intervalId = null;
-  }
+        if (timeText.includes("即将开市") || timeText.includes("即将开盘")) {
+          return market.isOpen ? 5 : 95; // 即将开市：开市时为5%，休市时为95%
+        }
+
+        // 提取小时和分钟，支持多种格式
+        let hours = 0;
+        let minutes = 0;
+
+        // 匹配"XX小时XX分钟"格式
+        const hourMinuteMatch = timeText.match(/(\d+)\s*小时\s*(\d+)\s*分钟/);
+        if (hourMinuteMatch) {
+          hours = Number.parseInt(hourMinuteMatch[1]);
+          minutes = Number.parseInt(hourMinuteMatch[2]);
+        } else {
+          // 单独匹配小时和分钟
+          const hourMatch = timeText.match(/(\d+)\s*小时/);
+          const minuteMatch = timeText.match(/(\d+)\s*分钟/);
+
+          hours = hourMatch ? Number.parseInt(hourMatch[1]) : 0;
+          minutes = minuteMatch ? Number.parseInt(minuteMatch[1]) : 0;
+        }
+
+        // 总分钟数
+        const totalMinutes = hours * 60 + minutes;
+
+        // 根据市场类型设置不同的交易时长
+        let tradingMinutes = 240; // 默认交易时长4小时
+        let nonTradingMinutes = 1200; // 默认非交易时长20小时
+
+        // 根据市场调整时长
+        if (
+          timeText.includes("A股") ||
+          timeText.includes("沪深") ||
+          (!timeText.includes("港股") && !timeText.includes("美股"))
+        ) {
+          tradingMinutes = 240; // A股交易4小时
+          nonTradingMinutes = 1200; // 非交易20小时
+        } else if (timeText.includes("港股")) {
+          tradingMinutes = 390; // 港股交易6.5小时
+          nonTradingMinutes = 1050; // 非交易17.5小时
+        } else if (timeText.includes("美股")) {
+          tradingMinutes = 390; // 美股交易6.5小时
+          nonTradingMinutes = 1050; // 非交易17.5小时
+        }
+
+        // 根据市场状态计算进度
+        if (market.isOpen) {
+          // 市场开市状态 - 从开盘到收盘方向
+          if (
+            timeText.includes("距离收市") ||
+            timeText.includes("距离闭市") ||
+            timeText.includes("距离休市") ||
+            timeText.includes("距离收盘")
+          ) {
+            // 计算已经交易的时间比例
+            const tradedMinutes = tradingMinutes - totalMinutes;
+            const percentage = (tradedMinutes / tradingMinutes) * 100;
+            return Math.max(0, Math.min(100, percentage));
+          }
+          // 处理交易开始阶段但没有明确提示的情况
+          return 5; // 开盘初期设为5%
+        }
+        // 市场休市状态 - 从收盘到开盘方向
+        if (timeText.includes("距离开市") || timeText.includes("距离开盘")) {
+          // 计算接近开盘的时间比例
+          const closedMinutes = nonTradingMinutes - totalMinutes;
+          const percentage = (closedMinutes / nonTradingMinutes) * 100;
+          // 反转比例：0% 表示刚刚休市，100% 表示即将开盘
+          return Math.max(0, Math.min(100, 100 - percentage));
+        }
+        // 处理休市开始阶段但没有明确提示的情况
+        return 5; // 刚休市设为5%
+      } catch (error) {
+        console.error("计算市场进度时出错:", error);
+        // 出错时返回默认值
+        return market.isOpen ? 50 : 5;
+      }
+    }
+
+    onMounted(() => {
+      updateMarketTime(); // 立即更新一次
+      intervalId = window.setInterval(updateMarketTime, 1000);
+    });
+
+    onBeforeUnmount(() => {
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+    });
+
+    return {
+      PulseIcon,
+      TimeIcon,
+      marketInfo,
+    };
+  },
 });
 </script>
 

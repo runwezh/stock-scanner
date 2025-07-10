@@ -1,511 +1,734 @@
 <template>
-  <n-card class="stock-card mobile-card mobile-shadow mobile-stock-card" :bordered="false" :class="{ 'is-analyzing': isAnalyzing }">
+  <NCard
+    class="stock-card mobile-card mobile-shadow mobile-stock-card"
+    :bordered="false"
+    :class="{ 'is-analyzing': isAnalyzing }"
+  >
     <div class="card-header mobile-card-header">
       <div class="header-main">
         <div class="header-left">
           <div class="stock-info">
-            <div class="stock-code">{{ stock.code }}</div>
-            <div class="stock-name" v-if="stock.name">{{ stock.name }}</div>
+            <div class="stock-code">
+              {{ stock.code }}
+            </div>
+            <div
+              v-if="stock.name"
+              class="stock-name"
+            >
+              {{ stock.name }}
+            </div>
           </div>
-          <div class="stock-price-info" v-if="stock.price !== undefined">
+          <div
+            v-if="stock.price !== undefined"
+            class="stock-price-info"
+          >
             <div class="stock-price">
               <span class="label">当前价格:</span>
               <span class="value">{{ stock.price.toFixed(2) }}</span>
             </div>
-            <div class="stock-change" :class="{ 
-              'up': calculatedChangePercent && calculatedChangePercent > 0,
-              'down': calculatedChangePercent && calculatedChangePercent < 0
-            }">
+            <div
+              class="stock-change"
+              :class="{ 
+                'up': calculatedChangePercent && calculatedChangePercent > 0,
+                'down': calculatedChangePercent && calculatedChangePercent < 0
+              }"
+            >
               <span class="label">涨跌幅:</span>
               <span class="value">{{ formatChangePercent(calculatedChangePercent) }}</span>
             </div>
           </div>
         </div>
         <div class="header-right">
-          <n-button 
-            size="small" 
-            v-if="stock.analysisStatus === 'completed'"
-            @click="copyStockAnalysis"
+          <NButton 
+            v-if="stock.analysisStatus === 'completed'" 
+            size="small"
             class="copy-button"
             type="primary"
             secondary
             round
+            @click="copyStockAnalysis"
           >
             <template #icon>
-              <n-icon><CopyOutline /></n-icon>
+              <NIcon><CopyOutline /></NIcon>
             </template>
             复制结果
-          </n-button>
+          </NButton>
         </div>
       </div>
-      <div class="analysis-status" v-if="stock.analysisStatus !== 'completed'">
-        <n-tag 
+      <div
+        v-if="stock.analysisStatus !== 'completed'"
+        class="analysis-status"
+      >
+        <NTag 
           :type="getStatusType" 
           size="small" 
           round
           :bordered="false"
         >
           <template #icon>
-            <n-icon>
+            <NIcon>
               <component :is="getStatusIcon" />
-            </n-icon>
+            </NIcon>
           </template>
           {{ getStatusText }}
-        </n-tag>
+        </NTag>
       </div>
     </div>
     
-    <div class="stock-summary" v-if="stock.score !== undefined || stock.recommendation">
-      <div class="summary-item score-item" v-if="stock.score !== undefined">
-        <div class="summary-value" :class="getScoreClass(stock.score)">{{ stock.score }}</div>
-        <div class="summary-label">评分</div>
+    <div
+      v-if="stock.score !== undefined || stock.recommendation"
+      class="stock-summary"
+    >
+      <div
+        v-if="stock.score !== undefined"
+        class="summary-item score-item"
+      >
+        <div
+          class="summary-value"
+          :class="getScoreClass(stock.score)"
+        >
+          {{ stock.score }}
+        </div>
+        <div class="summary-label">
+          评分
+        </div>
       </div>
-      <div class="summary-item recommendation-item" v-if="stock.recommendation">
-        <div class="summary-value recommendation">{{ stock.recommendation }}</div>
-        <div class="summary-label">推荐</div>
+      <div
+        v-if="stock.recommendation"
+        class="summary-item recommendation-item"
+      >
+        <div class="summary-value recommendation">
+          {{ stock.recommendation }}
+        </div>
+        <div class="summary-label">
+          推荐
+        </div>
       </div>
     </div>
     
-    <div class="analysis-date" v-if="stock.analysis_date">
-      <n-tag type="info" size="small">
+    <div
+      v-if="stock.analysis_date"
+      class="analysis-date"
+    >
+      <NTag
+        type="info"
+        size="small"
+      >
         <template #icon>
-          <n-icon><CalendarOutline /></n-icon>
+          <NIcon><CalendarOutline /></NIcon>
         </template>
         分析日期: {{ formatDate(stock.analysis_date) }}
-      </n-tag>
+      </NTag>
     </div>
     
-    <div class="technical-indicators" v-if="hasAnyTechnicalIndicator">
-      <n-divider dashed style="margin: 12px 0 8px 0">技术指标</n-divider>
+    <div
+      v-if="hasAnyTechnicalIndicator"
+      class="technical-indicators"
+    >
+      <NDivider
+        dashed
+        style="margin: 12px 0 8px 0"
+      >
+        技术指标
+      </NDivider>
       
       <div class="indicators-grid">
-        <div class="indicator-item" v-if="stock.rsi !== undefined">
-          <div class="indicator-value" :class="getRsiClass(stock.rsi)">{{ stock.rsi.toFixed(2) }}</div>
-          <div class="indicator-label">RSI</div>
+        <div
+          v-if="stock.rsi !== undefined"
+          class="indicator-item"
+        >
+          <div
+            class="indicator-value"
+            :class="getRsiClass(stock.rsi)"
+          >
+            {{ stock.rsi.toFixed(2) }}
+          </div>
+          <div class="indicator-label">
+            RSI
+          </div>
         </div>
         
-        <div class="indicator-item" v-if="stock.price_change !== undefined">
-          <div class="indicator-value" :class="{ 
-            'up': stock.price_change > 0,
-            'down': stock.price_change < 0
-          }">{{ formatPriceChange(stock.price_change) }}</div>
-          <div class="indicator-label">涨跌额</div>
+        <div
+          v-if="stock.price_change !== undefined"
+          class="indicator-item"
+        >
+          <div
+            class="indicator-value"
+            :class="{ 
+              'up': stock.price_change > 0,
+              'down': stock.price_change < 0
+            }"
+          >
+            {{ formatPriceChange(stock.price_change) }}
+          </div>
+          <div class="indicator-label">
+            涨跌额
+          </div>
         </div>
         
-        <div class="indicator-item" v-if="stock.ma_trend">
-          <div class="indicator-value" :class="getTrendClass(stock.ma_trend)">
+        <div
+          v-if="stock.ma_trend"
+          class="indicator-item"
+        >
+          <div
+            class="indicator-value"
+            :class="getTrendClass(stock.ma_trend)"
+          >
             {{ getChineseTrend(stock.ma_trend) }}
           </div>
-          <div class="indicator-label">均线趋势</div>
+          <div class="indicator-label">
+            均线趋势
+          </div>
         </div>
         
-        <div class="indicator-item" v-if="stock.macd_signal">
-          <div class="indicator-value" :class="getSignalClass(stock.macd_signal)">
+        <div
+          v-if="stock.macd_signal"
+          class="indicator-item"
+        >
+          <div
+            class="indicator-value"
+            :class="getSignalClass(stock.macd_signal)"
+          >
             {{ getChineseSignal(stock.macd_signal) }}
           </div>
-          <div class="indicator-label">MACD信号</div>
+          <div class="indicator-label">
+            MACD信号
+          </div>
         </div>
         
-        <div class="indicator-item" v-if="stock.volume_status">
-          <div class="indicator-value" :class="getVolumeStatusClass(stock.volume_status)">
+        <div
+          v-if="stock.volume_status"
+          class="indicator-item"
+        >
+          <div
+            class="indicator-value"
+            :class="getVolumeStatusClass(stock.volume_status)"
+          >
             {{ getChineseVolumeStatus(stock.volume_status) }}
           </div>
-          <div class="indicator-label">成交量</div>
+          <div class="indicator-label">
+            成交量
+          </div>
         </div>
       </div>
     </div>
     
-    <n-divider />
+    <NDivider />
     
     <div class="card-content">
       <template v-if="stock.analysisStatus === 'error'">
         <div class="error-status">
-          <n-icon :component="AlertCircleIcon" class="error-icon" />
+          <NIcon
+            :component="AlertCircleIcon"
+            class="error-icon"
+          />
           <span>{{ stock.error || '未知错误' }}</span>
         </div>
       </template>
       
       <template v-else-if="stock.analysisStatus === 'analyzing'">
-        <div class="analysis-result analysis-streaming" 
-             ref="analysisResultRef"
-             v-html="parsedAnalysis">
-        </div>
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div
+          ref="analysisResultRef" 
+          class="analysis-result analysis-streaming"
+          v-html="parsedAnalysis"
+        />
       </template>
       
       <template v-else-if="stock.analysisStatus === 'completed'">
-        <div class="analysis-result analysis-completed" v-html="parsedAnalysis"></div>
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div
+          class="analysis-result analysis-completed"
+          v-html="parsedAnalysis"
+        />
       </template>
     </div>
-    
-  </n-card>
+  </NCard>
 </template>
 
-<script setup lang="ts">
-import { computed, watch, ref, nextTick, onMounted, onBeforeUnmount } from 'vue';
-import { NCard, NDivider, NIcon, NTag, NButton, useMessage } from 'naive-ui';
-import { 
+<script lang="ts">
+import type { StockInfo } from "@/types";
+import { parseMarkdown } from "@/utils";
+import {
   AlertCircleOutline as AlertCircleIcon,
   CalendarOutline,
   CopyOutline,
   HourglassOutline,
-  ReloadOutline
-} from '@vicons/ionicons5';
-import { parseMarkdown } from '@/utils';
-import type { StockInfo } from '@/types';
+  ReloadOutline,
+} from "@vicons/ionicons5";
+import { NButton, NCard, NDivider, NIcon, NTag, useMessage } from "naive-ui";
+import {
+  computed,
+  defineComponent,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 
-const props = defineProps<{
-  stock: StockInfo;
-}>();
+export default defineComponent({
+  name: "StockCard",
+  components: {
+    NCard,
+    NDivider,
+    NIcon,
+    NTag,
+    NButton,
+  },
+  props: {
+    stock: {
+      type: Object as () => StockInfo,
+      required: true,
+    },
+  },
+  setup(props) {
+    const message = useMessage();
 
-const isAnalyzing = computed(() => {
-  return props.stock.analysisStatus === 'analyzing';
-});
-
-const lastAnalysisLength = ref(0);
-const lastAnalysisText = ref('');
-
-// 监听分析内容变化
-watch(() => props.stock.analysis, (newVal) => {
-  if (newVal && props.stock.analysisStatus === 'analyzing') {
-    lastAnalysisLength.value = newVal.length;
-    lastAnalysisText.value = newVal;
-  }
-}, { immediate: true });
-
-// 分析内容的解析
-const parsedAnalysis = computed(() => {
-  if (props.stock.analysis) {
-    let result = parseMarkdown(props.stock.analysis);
-    
-    // 为关键词添加样式类
-    result = highlightKeywords(result);
-    
-    return result;
-  }
-  return '';
-});
-
-// 关键词高亮处理函数
-function highlightKeywords(html: string): string {
-  let result = html;
-  // 买入/卖出/持有信号
-  result = result.replace(/(<strong>)(买入|卖出|持有)(<\/strong>)/g, '$1<span class="buy">$2</span>$3');
-  
-  // 上涨/增长相关词
-  result = result.replace(/(<strong>)(上涨|看涨|增长|增加|上升)(<\/strong>)/g, '$1<span class="up">$2</span>$3');
-  
-  // 下跌/减少相关词
-  result = result.replace(/(<strong>)(下跌|看跌|减少|降低|下降)(<\/strong>)/g, '$1<span class="down">$2</span>$3');
-  
-  // 技术指标相关词
-  result = result.replace(/(<strong>)(RSI|MACD|MA|KDJ|均线|成交量|布林带|Bollinger|移动平均|相对强弱|背离)(<\/strong>)/g, 
-                      '$1<span class="indicator">$2</span>$3');
-  
-  // 高亮重要的百分比数字 (如 +12.34%, -12.34%)
-  result = result.replace(/([+-]?\d+\.?\d*\s*%)/g, '<span class="number">$1</span>');
-  
-  // 高亮重要的数值 (如带小数位的数字)
-  result = result.replace(/(\s|>)(\d+\.\d+)(\s|<)/g, '$1<span class="number">$2</span>$3');
-  
-  return result;
-}
-
-// 获取涨跌幅
-const calculatedChangePercent = computed(() => {
-  if (props.stock.changePercent !== undefined) {
-    return props.stock.changePercent;
-  }
-  return undefined;
-});
-
-const hasAnyTechnicalIndicator = computed(() => {
-  return props.stock.rsi !== undefined || 
-         props.stock.price_change !== undefined || 
-         props.stock.ma_trend !== undefined || 
-         props.stock.macd_signal !== undefined || 
-         props.stock.volume_status !== undefined;
-});
-
-function formatChangePercent(percent: number | undefined): string {
-  if (percent === undefined) return '--';
-  
-  const sign = percent > 0 ? '+' : '';
-  return `${sign}${percent.toFixed(2)}%`;
-}
-
-function formatPriceChange(change: number | undefined | null): string {
-  if (change === undefined || change === null) return '--';
-  const sign = change > 0 ? '+' : '';
-  return `${sign}${change.toFixed(2)}`;
-}
-
-function formatDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '--';
-  try {
-    const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) {
-      return dateStr;
-    }
-    return date.toISOString().split('T')[0];
-  } catch (e) {
-    return dateStr;
-  }
-}
-
-function getScoreClass(score: number): string {
-  if (score >= 80) return 'score-high';
-  if (score >= 70) return 'score-medium-high';
-  if (score >= 60) return 'score-medium';
-  if (score >= 40) return 'score-medium-low';
-  return 'score-low';
-}
-
-function getRsiClass(rsi: number): string {
-  if (rsi >= 70) return 'rsi-overbought';
-  if (rsi <= 30) return 'rsi-oversold';
-  return '';
-}
-
-function getTrendClass(trend: string): string {
-  if (trend === 'UP') return 'trend-up';
-  if (trend === 'DOWN') return 'trend-down';
-  return 'trend-neutral';
-}
-
-function getSignalClass(signal: string): string {
-  if (signal === 'BUY') return 'signal-buy';
-  if (signal === 'SELL') return 'signal-sell';
-  return 'signal-neutral';
-}
-
-function getVolumeStatusClass(status: string): string {
-  if (status === 'HIGH') return 'volume-high';
-  if (status === 'LOW') return 'volume-low';
-  return 'volume-normal';
-}
-
-function getChineseTrend(trend: string): string {
-  const trendMap: Record<string, string> = {
-    'UP': '上升',
-    'DOWN': '下降',
-    'NEUTRAL': '平稳'
-  };
-  
-  return trendMap[trend] || trend;
-}
-
-function getChineseSignal(signal: string): string {
-  const signalMap: Record<string, string> = {
-    'BUY': '买入',
-    'SELL': '卖出',
-    'HOLD': '持有',
-    'NEUTRAL': '中性'
-  };
-  
-  return signalMap[signal] || signal;
-}
-
-function getChineseVolumeStatus(status: string): string {
-  const statusMap: Record<string, string> = {
-    'HIGH': '放量',
-    'LOW': '缩量',
-    'NORMAL': '正常'
-  };
-  
-  return statusMap[status] || status;
-}
-
-const message = useMessage();
-
-// 添加复制功能
-async function copyStockAnalysis() {
-  if (!props.stock.analysis) {
-    message.warning('暂无分析结果可复制');
-    return;
-  }
-
-  try {
-    let result = `【${props.stock.code} ${props.stock.name || ''}】\n`;
-    
-    // 添加分析日期
-    if (props.stock.analysis_date) {
-      result += `分析日期: ${formatDate(props.stock.analysis_date)}\n`;
-    }
-    
-    // 添加评分和推荐信息
-    if (props.stock.score !== undefined) {
-      result += `评分: ${props.stock.score}\n`;
-    }
-    
-    if (props.stock.recommendation) {
-      result += `推荐: ${props.stock.recommendation}\n`;
-    }
-    
-    // 添加技术指标信息
-    if (props.stock.rsi !== undefined) {
-      result += `RSI: ${props.stock.rsi.toFixed(2)}\n`;
-    }
-    
-    if (props.stock.price_change !== undefined) {
-      const sign = props.stock.price_change > 0 ? '+' : '';
-      result += `涨跌额: ${sign}${props.stock.price_change.toFixed(2)}\n`;
-    }
-    
-    if (props.stock.ma_trend) {
-      result += `均线趋势: ${getChineseTrend(props.stock.ma_trend)}\n`;
-    }
-    
-    if (props.stock.macd_signal) {
-      result += `MACD信号: ${getChineseSignal(props.stock.macd_signal)}\n`;
-    }
-    
-    if (props.stock.volume_status) {
-      result += `成交量: ${getChineseVolumeStatus(props.stock.volume_status)}\n`;
-    }
-    
-    // 添加分析结果
-    result += `\n${props.stock.analysis}\n`;
-    
-    await navigator.clipboard.writeText(result);
-    message.success('已复制分析结果到剪贴板');
-  } catch (error) {
-    message.error('复制失败，请手动复制');
-    console.error('复制分析结果时出错:', error);
-  }
-}
-
-// 添加状态相关的计算属性
-const getStatusType = computed(() => {
-  switch (props.stock.analysisStatus) {
-    case 'waiting':
-      return 'default';
-    case 'analyzing':
-      return 'info';
-    case 'error':
-      return 'error';
-    default:
-      return 'default';
-  }
-});
-
-const getStatusIcon = computed(() => {
-  switch (props.stock.analysisStatus) {
-    case 'waiting':
-      return HourglassOutline;
-    case 'analyzing':
-      return ReloadOutline;
-    case 'error':
-      return AlertCircleIcon;
-    default:
-      return HourglassOutline;
-  }
-});
-
-const getStatusText = computed(() => {
-  switch (props.stock.analysisStatus) {
-    case 'waiting':
-      return '等待分析';
-    case 'analyzing':
-      return '正在分析';
-    case 'error':
-      return '分析出错';
-    default:
-      return '';
-  }
-});
-
-// 添加滚动控制相关变量
-const analysisResultRef = ref<HTMLElement | null>(null);
-const userScrolling = ref(false);
-const scrollPosition = ref(0);
-const scrollThreshold = 30; // 底部阈值，小于这个值认为用户已滚动到底部
-
-// 检测用户滚动行为
-function handleScroll() {
-  if (!analysisResultRef.value) return;
-  
-  const element = analysisResultRef.value;
-  const atBottom = element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold;
-  
-  // 记录当前滚动位置
-  scrollPosition.value = element.scrollTop;
-  
-  // 判断用户是否正在主动滚动
-  if (atBottom) {
-    // 用户滚动到底部，标记为非主动滚动状态
-    userScrolling.value = false;
-  } else {
-    // 用户未在底部，标记为主动滚动状态
-    userScrolling.value = true;
-  }
-}
-
-// 监听滚动事件
-onMounted(() => {
-  if (analysisResultRef.value) {
-    // 初始滚动到底部
-    analysisResultRef.value.scrollTop = analysisResultRef.value.scrollHeight;
-    analysisResultRef.value.addEventListener('scroll', handleScroll);
-  }
-});
-
-// 清理事件监听
-onBeforeUnmount(() => {
-  if (analysisResultRef.value) {
-    analysisResultRef.value.removeEventListener('scroll', handleScroll);
-  }
-});
-
-// 改进流式更新监听，更保守地控制滚动行为
-let isProcessingUpdate = false; // 防止重复处理更新
-watch(() => props.stock.analysis, (newVal, oldVal) => {
-  // 只在分析中且内容增加时处理
-  if (newVal && oldVal && newVal.length > oldVal.length && 
-      props.stock.analysisStatus === 'analyzing' && !isProcessingUpdate) {
-    
-    isProcessingUpdate = true; // 标记正在处理更新
-    
-    // 检查是否应该自动滚动
-    let shouldAutoScroll = false;
-    if (analysisResultRef.value) {
-      const element = analysisResultRef.value;
-      // 仅当滚动接近底部或用户尚未开始滚动时自动滚动
-      const atBottom = element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold;
-      shouldAutoScroll = atBottom || !userScrolling.value;
-    }
-    
-    // 使用nextTick确保DOM已更新
-    nextTick(() => {
-      if (analysisResultRef.value && shouldAutoScroll) {
-        // 使用smoothScroll而非直接设置scrollTop，减少视觉跳动
-        smoothScrollToBottom(analysisResultRef.value);
-      }
-      
-      // 重置处理标记
-      setTimeout(() => {
-        isProcessingUpdate = false;
-      }, 50); // 短暂延迟，防止过快连续处理
+    const isAnalyzing = computed(() => {
+      return props.stock.analysisStatus === "analyzing";
     });
-  }
-}, { immediate: false });
 
-// 平滑滚动到底部的辅助函数
-function smoothScrollToBottom(element: HTMLElement) {
-  const targetPosition = element.scrollHeight;
-  
-  // 如果已经很接近底部，直接跳转避免不必要的动画
-  const currentGap = targetPosition - element.scrollTop - element.clientHeight;
-  if (currentGap < 100) {
-    element.scrollTop = targetPosition;
-    return;
-  }
-  
-  // 否则使用平滑滚动
-  element.scrollTo({
-    top: targetPosition,
-    behavior: 'smooth'
-  });
-}
+    const lastAnalysisLength = ref(0);
+    const lastAnalysisText = ref("");
+
+    // 监听分析内容变化
+    watch(
+      () => props.stock.analysis,
+      (newVal) => {
+        if (newVal && props.stock.analysisStatus === "analyzing") {
+          lastAnalysisLength.value = newVal.length;
+          lastAnalysisText.value = newVal;
+        }
+      },
+      { immediate: true },
+    );
+
+    // 分析内容的解析
+    const parsedAnalysis = computed(() => {
+      if (props.stock.analysis) {
+        let result = parseMarkdown(props.stock.analysis);
+
+        // 为关键词添加样式类
+        result = highlightKeywords(result);
+
+        return result;
+      }
+      return "";
+    });
+
+    // 关键词高亮处理函数
+    function highlightKeywords(html: string): string {
+      let result = html;
+      // 买入/卖出/持有信号
+      result = result.replace(
+        /(<strong>)(买入|卖出|持有)(<\/strong>)/g,
+        "$1<span class=\"buy\">$2</span>$3",
+      );
+
+      // 上涨/增长相关词
+      result = result.replace(
+        /(<strong>)(上涨|看涨|增长|增加|上升)(<\/strong>)/g,
+        "$1<span class=\"up\">$2</span>$3",
+      );
+
+      // 下跌/减少相关词
+      result = result.replace(
+        /(<strong>)(下跌|看跌|减少|降低|下降)(<\/strong>)/g,
+        "$1<span class=\"down\">$2</span>$3",
+      );
+
+      // 技术指标相关词
+      result = result.replace(
+        /(<strong>)(RSI|MACD|MA|KDJ|均线|成交量|布林带|Bollinger|移动平均|相对强弱|背离)(<\/strong>)/g,
+        "$1<span class=\"indicator\">$2</span>$3",
+      );
+
+      // 高亮重要的百分比数字 (如 +12.34%, -12.34%)
+      result = result.replace(
+        /([+-]?\d+\.?\d*\s*%)/g,
+        "<span class=\"number\">$1</span>",
+      );
+
+      // 高亮重要的数值 (如带小数位的数字)
+      result = result.replace(
+        /(\s|>)(\d+\.\d+)(\s|<)/g,
+        "$1<span class=\"number\">$2</span>$3",
+      );
+
+      return result;
+    }
+
+    // 获取涨跌幅
+    const calculatedChangePercent = computed(() => {
+      if (props.stock.changePercent !== undefined) {
+        return props.stock.changePercent;
+      }
+      return undefined;
+    });
+
+    const hasAnyTechnicalIndicator = computed(() => {
+      return (
+        props.stock.rsi !== undefined ||
+        props.stock.price_change !== undefined ||
+        props.stock.ma_trend !== undefined ||
+        props.stock.macd_signal !== undefined ||
+        props.stock.volume_status !== undefined
+      );
+    });
+
+    function formatChangePercent(percent: number | undefined): string {
+      if (percent === undefined) {
+        return "--";
+      }
+
+      const sign = percent > 0 ? "+" : "";
+      return `${sign}${percent.toFixed(2)}%`;
+    }
+
+    function formatPriceChange(change: number | undefined | null): string {
+      if (change === undefined || change === null) {
+        return "--";
+      }
+      const sign = change > 0 ? "+" : "";
+      return `${sign}${change.toFixed(2)}`;
+    }
+
+    function formatDate(dateStr: string | undefined | null): string {
+      if (!dateStr) {
+        return "--";
+      }
+      try {
+        const date = new Date(dateStr);
+        if (Number.isNaN(date.getTime())) {
+          return dateStr;
+        }
+        return date.toISOString().split("T")[0];
+      } catch {
+        return dateStr;
+      }
+    }
+
+    function getScoreClass(score: number): string {
+      if (score >= 80) {
+        return "score-high";
+      }
+      if (score >= 70) {
+        return "score-medium-high";
+      }
+      if (score >= 60) {
+        return "score-medium";
+      }
+      if (score >= 40) {
+        return "score-medium-low";
+      }
+      return "score-low";
+    }
+
+    function getRsiClass(rsi: number): string {
+      if (rsi >= 70) {
+        return "rsi-overbought";
+      }
+      if (rsi <= 30) {
+        return "rsi-oversold";
+      }
+      return "";
+    }
+
+    function getTrendClass(trend: string): string {
+      if (trend === "UP") {
+        return "trend-up";
+      }
+      if (trend === "DOWN") {
+        return "trend-down";
+      }
+      return "trend-neutral";
+    }
+
+    function getSignalClass(signal: string): string {
+      if (signal === "BUY") {
+        return "signal-buy";
+      }
+      if (signal === "SELL") {
+        return "signal-sell";
+      }
+      return "signal-neutral";
+    }
+
+    function getVolumeStatusClass(status: string): string {
+      if (status === "HIGH") {
+        return "volume-high";
+      }
+      if (status === "LOW") {
+        return "volume-low";
+      }
+      return "volume-normal";
+    }
+
+    function getChineseTrend(trend: string): string {
+      const trendMap: Record<string, string> = {
+        UP: "上升",
+        DOWN: "下降",
+        NEUTRAL: "平稳",
+      };
+
+      return trendMap[trend] || trend;
+    }
+
+    function getChineseSignal(signal: string): string {
+      const signalMap: Record<string, string> = {
+        BUY: "买入",
+        SELL: "卖出",
+        HOLD: "持有",
+        NEUTRAL: "中性",
+      };
+
+      return signalMap[signal] || signal;
+    }
+
+    function getChineseVolumeStatus(status: string): string {
+      const statusMap: Record<string, string> = {
+        HIGH: "放量",
+        LOW: "缩量",
+        NORMAL: "正常",
+      };
+
+      return statusMap[status] || status;
+    }
+
+    // 添加复制功能
+    async function copyStockAnalysis() {
+      if (!props.stock.analysis) {
+        message.warning("暂无分析结果可复制");
+        return;
+      }
+
+      try {
+        let result = `【${props.stock.code} ${props.stock.name || ""}】\n`;
+
+        // 添加分析日期
+        if (props.stock.analysis_date) {
+          result += `分析日期: ${formatDate(props.stock.analysis_date)}\n`;
+        }
+
+        // 添加评分和推荐信息
+        if (props.stock.score !== undefined) {
+          result += `评分: ${props.stock.score}\n`;
+        }
+
+        if (props.stock.recommendation) {
+          result += `推荐: ${props.stock.recommendation}\n`;
+        }
+
+        // 添加技术指标信息
+        if (props.stock.rsi !== undefined) {
+          result += `RSI: ${props.stock.rsi.toFixed(2)}\n`;
+        }
+
+        if (props.stock.price_change !== undefined) {
+          const sign = props.stock.price_change > 0 ? "+" : "";
+          result += `涨跌额: ${sign}${props.stock.price_change.toFixed(2)}\n`;
+        }
+
+        if (props.stock.ma_trend) {
+          result += `均线趋势: ${getChineseTrend(props.stock.ma_trend)}\n`;
+        }
+
+        if (props.stock.macd_signal) {
+          result += `MACD信号: ${getChineseSignal(props.stock.macd_signal)}\n`;
+        }
+
+        if (props.stock.volume_status) {
+          result += `成交量: ${getChineseVolumeStatus(props.stock.volume_status)}\n`;
+        }
+
+        // 添加分析结果
+        result += `\n${props.stock.analysis}\n`;
+
+        await navigator.clipboard.writeText(result);
+        message.success("已复制分析结果到剪贴板");
+      } catch (error) {
+        message.error("复制失败，请手动复制");
+        console.error("复制分析结果时出错:", error);
+      }
+    }
+
+    // 添加状态相关的计算属性
+    const getStatusType = computed(() => {
+      switch (props.stock.analysisStatus) {
+      case "waiting":
+        return "default";
+      case "analyzing":
+        return "info";
+      case "error":
+        return "error";
+      default:
+        return "default";
+      }
+    });
+
+    const getStatusIcon = computed(() => {
+      switch (props.stock.analysisStatus) {
+      case "waiting":
+        return HourglassOutline;
+      case "analyzing":
+        return ReloadOutline;
+      case "error":
+        return AlertCircleIcon;
+      default:
+        return HourglassOutline;
+      }
+    });
+
+    const getStatusText = computed(() => {
+      switch (props.stock.analysisStatus) {
+      case "waiting":
+        return "等待分析";
+      case "analyzing":
+        return "正在分析";
+      case "error":
+        return "分析出错";
+      default:
+        return "";
+      }
+    });
+
+    // 添加滚动控制相关变量
+    const analysisResultRef = ref<HTMLElement | null>(null);
+    const userScrolling = ref(false);
+    const scrollPosition = ref(0);
+    const scrollThreshold = 30; // 底部阈值，小于这个值认为用户已滚动到底部
+
+    // 检测用户滚动行为
+    function handleScroll() {
+      if (!analysisResultRef.value) {
+        return;
+      }
+
+      const element = analysisResultRef.value;
+      const atBottom =
+        element.scrollHeight - element.scrollTop - element.clientHeight <
+        scrollThreshold;
+
+      // 记录当前滚动位置
+      scrollPosition.value = element.scrollTop;
+
+      // 判断用户是否正在主动滚动
+      if (atBottom) {
+        // 用户滚动到底部，标记为非主动滚动状态
+        userScrolling.value = false;
+      } else {
+        // 用户未在底部，标记为主动滚动状态
+        userScrolling.value = true;
+      }
+    }
+
+    // 监听滚动事件
+    onMounted(() => {
+      if (analysisResultRef.value) {
+        // 初始滚动到底部
+        analysisResultRef.value.scrollTop =
+          analysisResultRef.value.scrollHeight;
+        analysisResultRef.value.addEventListener("scroll", handleScroll);
+      }
+    });
+
+    // 清理事件监听
+    onBeforeUnmount(() => {
+      if (analysisResultRef.value) {
+        analysisResultRef.value.removeEventListener("scroll", handleScroll);
+      }
+    });
+
+    // 改进流式更新监听，更保守地控制滚动行为
+    let isProcessingUpdate = false; // 防止重复处理更新
+    watch(
+      () => props.stock.analysis,
+      (newVal, oldVal) => {
+        // 只在分析中且内容增加时处理
+        if (
+          newVal &&
+          oldVal &&
+          newVal.length > oldVal.length &&
+          props.stock.analysisStatus === "analyzing" &&
+          !isProcessingUpdate
+        ) {
+          isProcessingUpdate = true; // 标记正在处理更新
+
+          // 检查是否应该自动滚动
+          let shouldAutoScroll = false;
+          if (analysisResultRef.value) {
+            const element = analysisResultRef.value;
+            // 仅当滚动接近底部或用户尚未开始滚动时自动滚动
+            const atBottom =
+              element.scrollHeight - element.scrollTop - element.clientHeight <
+              scrollThreshold;
+            shouldAutoScroll = atBottom || !userScrolling.value;
+          }
+
+          // 使用nextTick确保DOM已更新
+          nextTick(() => {
+            if (analysisResultRef.value && shouldAutoScroll) {
+              // 使用smoothScroll而非直接设置scrollTop，减少视觉跳动
+              smoothScrollToBottom(analysisResultRef.value);
+            }
+
+            // 重置处理标记
+            setTimeout(() => {
+              isProcessingUpdate = false;
+            }, 50); // 短暂延迟，防止过快连续处理
+          });
+        }
+      },
+      { immediate: false },
+    );
+
+    // 平滑滚动到底部的辅助函数
+    function smoothScrollToBottom(element: HTMLElement) {
+      const targetPosition = element.scrollHeight;
+
+      // 如果已经很接近底部，直接跳转避免不必要的动画
+      const currentGap =
+        targetPosition - element.scrollTop - element.clientHeight;
+      if (currentGap < 100) {
+        element.scrollTop = targetPosition;
+        return;
+      }
+
+      // 否则使用平滑滚动
+      element.scrollTo({
+        top: targetPosition,
+        behavior: "smooth",
+      });
+    }
+
+    return {
+      AlertCircleIcon,
+      CalendarOutline,
+      CopyOutline,
+      isAnalyzing,
+      parsedAnalysis,
+      calculatedChangePercent,
+      hasAnyTechnicalIndicator,
+      formatChangePercent,
+      formatPriceChange,
+      formatDate,
+      getScoreClass,
+      getRsiClass,
+      getTrendClass,
+      getSignalClass,
+      getVolumeStatusClass,
+      getChineseTrend,
+      getChineseSignal,
+      getChineseVolumeStatus,
+      copyStockAnalysis,
+      getStatusType,
+      getStatusIcon,
+      getStatusText,
+      analysisResultRef,
+    };
+  },
+});
 </script>
 
 <style scoped>
@@ -660,33 +883,6 @@ function smoothScrollToBottom(element: HTMLElement) {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-.copy-button:active {
-  transform: translateY(0);
-}
-
-.analysis-status {
-  display: flex;
-  align-items: center;
-}
-
-.analysis-status :deep(.n-tag) {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.analysis-status :deep(.n-tag .n-icon) {
-  margin-right: 4px;
-}
-
-.up .value {
-  color: var(--n-error-color);
-}
-
-.down .value {
-  color: var(--n-success-color);
 }
 
 .stock-summary {
@@ -871,63 +1067,14 @@ function smoothScrollToBottom(element: HTMLElement) {
   overflow-x: hidden;
   display: block; /* 确保显示为块级元素 */
   box-sizing: border-box; /* 确保padding不增加宽度 */
-  
-  /* 自定义滚动条样式 */
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: rgba(32, 128, 240, 0.3) transparent; /* Firefox */
-  /* 改进滚动行为 */
-  scroll-behavior: smooth;
-  overflow-anchor: auto;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-  will-change: scroll-position;
-}
-
-/* Webkit浏览器的滚动条样式 */
-.analysis-result::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.analysis-result::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.analysis-result::-webkit-scrollbar-thumb {
-  background-color: rgba(32, 128, 240, 0.3);
-  border-radius: 3px;
-  transition: background-color 0.3s ease;
-}
-
-.analysis-result::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(32, 128, 240, 0.5);
-}
-
-/* 在不滚动时隐藏滚动条，滚动时显示 */
-.analysis-result:not(:hover)::-webkit-scrollbar-thumb {
-  background-color: rgba(32, 128, 240, 0.1);
 }
 
 .analysis-streaming {
   position: relative;
   border-left: 2px solid var(--n-info-color);
   animation: fadePulse 2s infinite;
-  /* 改进滚动行为 */
-  overflow-y: auto;
-  scroll-behavior: smooth;
-  will-change: scroll-position;
-  /* 防止内容更新时的布局抖动 */
-  contain: content;
-  scroll-padding-bottom: 20px;
 }
 
-/* 改进流式输出的动画效果，消除闪烁 */
-.analysis-streaming > :deep(*) {
-  animation: none;
-}
-
-/* 添加打字机光标效果 */
 .analysis-streaming::after {
   content: '|';
   display: inline-block;
@@ -953,863 +1100,50 @@ function smoothScrollToBottom(element: HTMLElement) {
   100% { border-left-color: var(--n-info-color); }
 }
 
-/* 优化标题样式，增加颜色显示 */
-.analysis-result :deep(h1), .analysis-result :deep(h2), .analysis-result :deep(h3) {
+/* 优化分析结果的显示样式 */
+.analysis-result :deep(h1), 
+.analysis-result :deep(h2), 
+.analysis-result :deep(h3) {
   margin: 1.25rem 0 0.75rem 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   padding-bottom: 0.4rem;
   font-weight: 600;
-}
-
-.analysis-result :deep(h1) {
-  font-size: 1.4rem;
   color: #2080f0;
 }
 
-.analysis-result :deep(h2) {
-  font-size: 1.2rem;
-  color: #2080f0;
-}
-
-.analysis-result :deep(h3) {
-  font-size: 1.1rem;
-  color: #2080f0;
-}
-
-/* 优化列表样式 */
-.analysis-result :deep(ul), .analysis-result :deep(ol) {
-  margin: 0.75rem 0;
-  padding-left: 1.5rem;
-}
-
-.analysis-result :deep(ul) li, .analysis-result :deep(ol) li {
-  margin-bottom: 0.3rem;
-}
-
-/* 优化段落样式 */
 .analysis-result :deep(p) {
   margin: 0.75rem 0;
   text-align: left;
 }
 
-/* 优化代码样式 */
-.analysis-result :deep(code) {
-  background: rgba(0, 0, 0, 0.05);
-  padding: 0.1rem 0.3rem;
-  border-radius: 3px;
-  font-family: monospace;
-  font-size: 0.85em;
-  white-space: pre-wrap; /* 允许代码内容自动换行 */
-  word-break: break-word; /* 确保长单词可以换行 */
-}
-
-.analysis-result :deep(pre) {
-  background: rgba(0, 0, 0, 0.05);
-  padding: 0.75rem;
-  border-radius: 4px;
-  overflow-x: auto;
-  margin: 0.75rem 0;
-  border-left: 3px solid #2080f0;
-  max-width: 100%;
-  width: 100%;
-  box-sizing: border-box;
-  white-space: pre-wrap; /* 允许代码块自动换行 */
-  word-break: break-word; /* 允许长单词换行 */
-}
-
-.analysis-result :deep(pre code) {
-  background: transparent;
-  padding: 0;
-  white-space: inherit; /* 继承pre的换行行为 */
-}
-
-/* 优化引用样式 */
-.analysis-result :deep(blockquote) {
-  margin: 0.75rem 0;
-  padding: 0.5rem 1rem;
-  border-left: 3px solid #f0a020;
-  background-color: rgba(240, 160, 32, 0.05);
-  color: var(--n-text-color-2);
-}
-
-/* 优化表格样式 */
-.analysis-result :deep(table) {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 0.75rem 0;
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  table-layout: fixed; /* 固定表格布局 */
-  max-width: 100%;
-  display: block; /* 使表格成为块级元素 */
-  overflow-x: auto; /* 允许表格滚动 */
-}
-
-.analysis-result :deep(th), .analysis-result :deep(td) {
-  padding: 0.6rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  word-break: break-word;
-  overflow-wrap: break-word;
-  max-width: 100%;
-}
-
-.analysis-result :deep(th) {
-  background-color: rgba(32, 128, 240, 0.1);
-  color: #2080f0;
-  font-weight: 600;
-  text-align: left;
-}
-
-.analysis-result :deep(tr:nth-child(even)) {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-/* 优化文本强调和术语显示 */
 .analysis-result :deep(strong) {
   font-weight: 600;
   color: #2080f0;
 }
 
-/* 特定指标和信号的样式 */
-.analysis-result :deep(.buy), 
-.analysis-result :deep(.sell), 
-.analysis-result :deep(.hold) {
-  color: #d03050;
-  background-color: rgba(208, 48, 80, 0.1);
-  padding: 0 0.3rem;
-  border-radius: 2px;
-  font-weight: 600;
-}
-
-.analysis-result :deep(.up), 
-.analysis-result :deep(.increase) {
-  color: #d03050;
-  font-weight: 600;
-}
-
-.analysis-result :deep(.down), 
-.analysis-result :deep(.decrease) {
-  color: #18a058;
-  font-weight: 600;
-}
-
-.analysis-result :deep(.indicator) {
-  color: #2080f0;
-  background-color: rgba(32, 128, 240, 0.1);
-  padding: 0 0.3rem;
-  border-radius: 2px;
-  font-weight: 600;
-}
-
-.analysis-result :deep(.number) {
-  font-family: 'Consolas', monospace;
-  font-weight: 600;
-  color: #f0a020;
-}
-
-/* 优化链接样式 */
-.analysis-result :deep(a) {
-  color: #2080f0;
-  text-decoration: none;
-  border-bottom: 1px dotted #2080f0;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  display: inline-block;
-  max-width: 100%;
-}
-
-.analysis-result :deep(a:hover) {
-  color: #36ad6a;
-  border-bottom: 1px solid #36ad6a;
-}
-
-/* 优化图片样式 */
-.analysis-result :deep(img) {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 0.75rem auto;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  object-fit: contain; /* 保持图片比例 */
-}
-
-/* 移动端适配样式 */
+/* 移动端适配 */
 @media (max-width: 768px) {
-  .stock-card {
-    margin-bottom: 0.75rem;
-  }
-  
-  .card-header {
-    padding: 0.75rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  }
-  
-  .header-main {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-  }
-  
-  .header-left {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
-  
-  .stock-info {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    min-width: auto;
-  }
-  
-  .stock-code {
-    font-size: 1.2rem;
-  }
-  
-  .stock-name {
-    font-size: 0.8rem;
-    max-width: 100px;
-  }
-  
-  .header-right {
-    margin-top: 0.5rem;
-    width: 320px;
-    display: flex;
-    justify-content: flex-end;
-  }
-  
-  .stock-price-info {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    margin-top: 0.5rem;
-    gap: 16px;
-    border-left: none;
-    border-top: 1px dashed rgba(0, 0, 0, 0.09);
-    padding-top: 8px;
-    padding-left: 0;
-    width: 100%;
-  }
-  
-  .stock-price, .stock-change {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
-    padding: 0;
-  }
-  
-  .stock-price .label,
-  .stock-change .label {
-    font-size: 0.75rem;
-  }
-  
-  .stock-price .value {
-    font-size: 1rem;
-  }
-  
-  .stock-change .value {
-    font-size: 0.9rem;
-  }
-  
-  .stock-summary {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  }
-  
-  .technical-indicators {
-    margin: 0.75rem 0.5rem;
-    background-color: rgba(240, 240, 245, 0.5);
-    border-radius: 0.5rem;
-    padding: 0.5rem;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
-  }
-  
   .indicators-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-    padding: 0.25rem;
-  }
-  
-  .indicator-item {
-    border-radius: 0.5rem;
-    padding: 0.625rem 0.5rem;
-    background-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
-  }
-  
-  .indicator-item:active {
-    transform: scale(0.98);
-    box-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
-  }
-  
-  .indicator-value {
-    font-size: 0.95rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-  }
-  
-  .indicator-label {
-    font-size: 0.7rem;
-    color: var(--n-text-color-3);
-    margin-top: 0.125rem;
-  }
-  
-  .actions-bar {
-    flex-direction: column;
     gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-  }
-  
-  .action-button {
-    width: 100%;
-    height: 36px !important;
-  }
-  
-  .card-content {
-    padding: 0.5rem 0.3rem;
   }
   
   .analysis-result {
     font-size: 0.85rem;
-    line-height: 1.65;
     padding: 0.6rem 0.5rem;
     max-height: 350px;
-    border-radius: 0.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.07);
-    margin: 0.4rem 0;
-    background-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    -webkit-overflow-scrolling: touch; /* 加强iOS滚动平滑性 */
-    overscroll-behavior: contain; /* 防止滚动传播 */
-    touch-action: pan-y; /* 优化触摸滚动体验 */
-    width: 100%; /* 占据全部可用宽度 */
-    box-sizing: border-box;
-    position: relative; /* 确保滚动提示正确定位 */
-    overflow-x: hidden !important; /* 强制禁止横向滚动 */
-  }
-  
-  /* 优化表格在移动端的显示 */
-  .analysis-result :deep(table) {
-    width: 100% !important;
-    max-width: 100% !important;
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    font-size: 0.8rem;
-    border: none;
-    border-radius: 0.4rem;
-    margin: 0.7rem 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-    position: relative;
-  }
-  
-  /* 优化代码块在移动端的显示 */
-  .analysis-result :deep(pre) {
-    font-size: 0.8rem;
-    padding: 0.75rem 0.5rem;
-    border-radius: 0.4rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin: 0.7rem 0;
-    background-color: rgba(0, 0, 0, 0.04);
-    border-left: 3px solid rgba(32, 128, 240, 0.5);
-    width: 100% !important;
-    box-sizing: border-box;
-    white-space: pre-wrap;
-    word-break: break-word;
-    position: relative;
-  }
-  
-  /* 拖动滚动提示效果 - 恢复并优化 */
-  .analysis-result :deep(pre)::after,
-  .analysis-result :deep(table)::after {
-    content: '⟷';
-    position: absolute;
-    right: 5px;
-    bottom: 5px;
-    color: rgba(32, 128, 240, 0.5);
-    font-size: 12px;
-    opacity: 0.6;
-    pointer-events: none;
-    z-index: 3;
-  }
-  
-  /* 改进链接触摸体验 */
-  .analysis-result :deep(a) {
-    padding: 0.1rem 0;
-    margin: 0 0.1rem;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    max-width: 100%;
-  }
-  
-  /* 改进按钮和交互元素触摸体验 */
-  .analysis-result :deep(button),
-  .analysis-result :deep(.interactive) {
-    min-height: 36px; /* 最小触摸高度 */
-    min-width: 36px; /* 最小触摸宽度 */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  /* 确保所有内容在移动端都能正确换行和显示 */
-  .analysis-result :deep(*) {
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-  }
-  
-  .analysis-streaming {
-    background-color: rgba(32, 128, 240, 0.03);
-  }
-  
-  .analysis-completed {
-    background-color: rgba(24, 160, 88, 0.02);
-  }
-  
-  /* 优化标题样式 */
-  .analysis-result :deep(h1), 
-  .analysis-result :deep(h2), 
-  .analysis-result :deep(h3) {
-    margin: 1rem 0 0.7rem 0;
-    line-height: 1.3;
-    padding-bottom: 0.4rem;
-  }
-  
-  .analysis-result :deep(h1) {
-    font-size: 1.3rem;
-  }
-  
-  .analysis-result :deep(h2) {
-    font-size: 1.15rem;
-  }
-  
-  .analysis-result :deep(h3) {
-    font-size: 1rem;
-  }
-  
-  /* 优化段落间距 */
-  .analysis-result :deep(p) {
-    margin: 0.6rem 0;
-  }
-  
-  /* 优化列表样式 */
-  .analysis-result :deep(ul), 
-  .analysis-result :deep(ol) {
-    padding-left: 1.2rem;
-    margin: 0.6rem 0;
-  }
-  
-  .analysis-result :deep(li) {
-    margin-bottom: 0.35rem;
-    padding-left: 0.3rem;
-  }
-  
-  /* 优化引用块 */
-  .analysis-result :deep(blockquote) {
-    margin: 0.7rem 0;
-    padding: 0.6rem 0.75rem;
-    border-left: 4px solid #f0a020;
-    background-color: rgba(240, 160, 32, 0.07);
-    border-radius: 0.25rem;
-  }
-  
-  /* 优化代码块 */
-  .analysis-result :deep(pre) {
-    font-size: 0.8rem;
-    padding: 0.75rem 0.5rem;
-    border-radius: 0.4rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin: 0.7rem 0;
-    background-color: rgba(0, 0, 0, 0.04);
-    border-left: 3px solid rgba(32, 128, 240, 0.5);
-    white-space: pre-wrap;
-  }
-  
-  .analysis-result :deep(code) {
-    font-size: 0.8rem;
-    padding: 0.15rem 0.3rem;
-    background-color: rgba(0, 0, 0, 0.05);
-    border-radius: 0.2rem;
-  }
-  
-  /* 优化表格显示 */
-  .analysis-result :deep(table) {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
-    border-radius: 0.4rem;
-    margin: 0.7rem 0;
-    font-size: 0.8rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-  }
-  
-  .analysis-result :deep(th), 
-  .analysis-result :deep(td) {
-    padding: 0.5rem 0.4rem;
-  }
-  
-  /* 优化强调文本 */
-  .analysis-result :deep(strong) {
-    font-weight: 600;
-  }
-  
-  /* 优化专业术语显示 */
-  .analysis-result :deep(.buy), 
-  .analysis-result :deep(.sell), 
-  .analysis-result :deep(.hold) {
-    padding: 0.1rem 0.3rem;
-    border-radius: 0.2rem;
-  }
-  
-  .analysis-result :deep(.indicator) {
-    padding: 0.1rem 0.3rem;
-    border-radius: 0.2rem;
-  }
-  
-  /* 优化图片显示 */
-  .analysis-result :deep(img) {
-    max-width: 100%;
-    height: auto;
-    border-radius: 0.4rem;
-    margin: 0.7rem auto;
-  }
-  
-  /* 优化滚动条样式 */
-  .analysis-result::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
-  
-  .analysis-result::-webkit-scrollbar-thumb {
-    background-color: rgba(32, 128, 240, 0.3);
-    border-radius: 2px;
-  }
-  
-  /* 滚动提示 */
-  .analysis-result::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 20px;
-    background: linear-gradient(to top, rgba(255, 255, 255, 0.7), transparent);
-    pointer-events: none;
-    opacity: 0.8;
-    border-radius: 0 0 0.5rem 0.5rem;
-    z-index: 2;
   }
 }
 
-/* 小屏幕手机适配 */
 @media (max-width: 480px) {
-  .stock-card {
-    margin-bottom: 0.5rem;
-    border-radius: 0.625rem !important;
-  }
-  
-  .stock-info {
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-  }
-  
-  .stock-code {
-    font-size: 1rem;
-  }
-  
-  .stock-name {
-    margin-left: 0;
-    margin-top: 0;
-    font-size: 0.75rem;
-    max-width: 80px;
-  }
-  
-  .stock-price-info {
-    gap: 12px;
-    padding-top: 6px;
-    margin-top: 6px;
-    flex-wrap: nowrap;
-  }
-  
-  .stock-price, .stock-change {
-    white-space: nowrap;
-  }
-  
-  .stock-price .label,
-  .stock-change .label {
-    font-size: 0.7rem;
-  }
-  
-  .stock-price .value {
-    font-size: 0.85rem;
-  }
-  
-  .stock-change .value {
-    font-size: 0.8rem;
-    padding: 1px 4px;
-  }
-  
-  .technical-indicators {
-    margin: 0.5rem 0.25rem;
-    border-radius: 0.45rem;
-    padding: 0.4rem 0.3rem;
-  }
-  
   .indicators-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-    padding: 0.2rem;
   }
   
-  .indicator-item {
-    border-radius: 0.45rem;
-    padding: 0.5rem 0.25rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    background-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  }
-  
-  .indicator-value {
-    font-size: 0.9rem;
-    margin-bottom: 0.15rem;
-  }
-  
-  .indicator-label {
-    font-size: 0.7rem;
-    margin-top: 0;
-  }
-  
-  .card-header {
-    padding: 0.625rem;
-  }
-  
-  /* 确保边框在小屏幕上清晰可见 */
-  .stock-card, .indicator-item, .analysis-result {
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  }
-  
-  /* 为不同类型的指标设置不同的边框颜色 */
-  .indicator-item .rsi-overbought {
-    border-bottom: 2px solid #d03050;
-  }
-  
-  .indicator-item .rsi-oversold {
-    border-bottom: 2px solid #18a058;
-  }
-  
-  .indicator-item .trend-up {
-    border-bottom: 2px solid #d03050;
-  }
-  
-  .indicator-item .trend-down {
-    border-bottom: 2px solid #18a058;
-  }
-  
-  .indicator-item .signal-buy {
-    border-bottom: 2px solid #d03050;
-  }
-  
-  .indicator-item .signal-sell {
-    border-bottom: 2px solid #18a058;
-  }
-  
-  /* 分析结果小屏幕样式 */
   .analysis-result {
-    font-size: 0.825rem;
-    line-height: 1.6;
+    font-size: 0.8rem;
     padding: 0.5rem 0.4rem;
-    margin: 0.2rem 0;
     max-height: 300px;
-    max-width: none; /* 移除宽度限制 */
-    width: 100%; /* 占据全部可用宽度 */
-    box-sizing: border-box;
   }
-  
-  .card-content {
-    padding: 0.3rem 0.1rem;
-  }
-  
-  .analysis-result :deep(h1) {
-    font-size: 1.2rem;
-    margin-top: 0.85rem;
-  }
-  
-  .analysis-result :deep(h2) {
-    font-size: 1.1rem;
-  }
-  
-  .analysis-result :deep(h3) {
-    font-size: 0.95rem;
-  }
-  
-  .analysis-result :deep(ul), 
-  .analysis-result :deep(ol) {
-    padding-left: 1rem;
-  }
-  
-  .analysis-result :deep(blockquote) {
-    padding: 0.5rem 0.625rem;
-  }
-  
-  .analysis-result :deep(pre) {
-    font-size: 0.75rem;
-    padding: 0.6rem 0.4rem;
-  }
-  
-  .analysis-result :deep(code) {
-    font-size: 0.75rem;
-  }
-  
-  .analysis-result :deep(th), 
-  .analysis-result :deep(td) {
-    padding: 0.4rem 0.3rem;
-  }
-}
-
-/* 超小屏幕适配 */
-@media (max-width: 375px) {
-  .indicators-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.4rem;
-  }
-  
-  .indicator-item {
-    padding: 0.4rem 0.2rem;
-  }
-  
-  .indicator-value {
-    font-size: 0.85rem;
-    margin-bottom: 0.1rem;
-  }
-  
-  .indicator-label {
-    font-size: 0.65rem;
-  }
-  
-  /* 分析结果超小屏幕样式 */
-  .analysis-result {
-    font-size: 0.8rem;
-    padding: 0.4rem 0.3rem;
-    margin: 0.1rem 0;
-    width: 100%; /* 占据全部可用宽度 */
-    box-sizing: border-box;
-  }
-  
-  .analysis-result :deep(h1) {
-    font-size: 1.15rem;
-  }
-  
-  .analysis-result :deep(h2) {
-    font-size: 1.05rem;
-  }
-  
-  .analysis-result :deep(h3) {
-    font-size: 0.9rem;
-  }
-  
-  .card-content {
-    padding: 0.2rem 0.05rem;
-  }
-}
-
-/* 添加PC端特定样式，确保纵向布局 */
-@media (min-width: 769px) {
-  .stock-card {
-    max-width: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .card-header {
-    flex-direction: column;
-  }
-  
-  .header-main {
-    flex-direction: row;
-    flex-wrap: nowrap;
-  }
-  
-  .header-left {
-    flex-direction: row;
-    flex-wrap: nowrap;
-  }
-  
-  .stock-price-info {
-    flex-direction: column;
-    flex-wrap: nowrap;
-  }
-  
-  .stock-summary {
-    flex-direction: row;
-    flex-wrap: nowrap;
-  }
-  
-  .card-content {
-    width: 100%;
-    overflow-x: hidden;
-  }
-  
-  .analysis-result {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-  
-  /* 优化技术指标在PC端的显示 */
-  .indicators-grid {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1rem;
-  }
-}
-
-/* 确保所有嵌套元素不会超出容器 */
-.analysis-result :deep(*) {
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-/* 对于图片特别控制 */
-.analysis-result :deep(img) {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 0.75rem auto;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  object-fit: contain; /* 保持图片比例 */
-}
-
-/* 修复长链接可能导致的溢出 */
-.analysis-result :deep(a) {
-  word-break: break-word;
-  overflow-wrap: break-word;
-  display: inline-block;
-  max-width: 100%;
-}
-
-/* 删除滚动控制面板样式 */
-.scroll-controls {
-  display: none;
 }
 </style>

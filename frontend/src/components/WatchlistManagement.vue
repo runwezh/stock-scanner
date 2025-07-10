@@ -1,42 +1,58 @@
 <template>
   <div class="watchlist-container">
-    <n-card title="自选股管理" class="watchlist-card">
+    <NCard
+      title="自选股管理"
+      class="watchlist-card"
+    >
       <template #header-extra>
-        <n-space>
-          <n-button type="primary" @click="showAddDialog = true">
+        <NSpace>
+          <NButton
+            type="primary"
+            @click="showAddDialog = true"
+          >
             <template #icon>
-              <n-icon><AddIcon /></n-icon>
+              <NIcon><AddIcon /></NIcon>
             </template>
             添加股票
-          </n-button>
-          <n-button @click="refreshWatchlist">
+          </NButton>
+          <NButton @click="refreshWatchlist">
             <template #icon>
-              <n-icon><RefreshIcon /></n-icon>
+              <NIcon><RefreshIcon /></NIcon>
             </template>
             刷新
-          </n-button>
-        </n-space>
+          </NButton>
+        </NSpace>
       </template>
 
       <!-- 自选股列表 -->
       <div class="watchlist-list">
         <template v-if="watchlist.length === 0 && !loading">
-          <n-empty description="暂无自选股">
+          <NEmpty description="暂无自选股">
             <template #icon>
-              <n-icon><HeartIcon /></n-icon>
+              <NIcon><HeartIcon /></NIcon>
             </template>
             <template #extra>
-              <n-button size="small" @click="showAddDialog = true">
+              <NButton
+                size="small"
+                @click="showAddDialog = true"
+              >
                 添加第一只股票
-              </n-button>
+              </NButton>
             </template>
-          </n-empty>
+          </NEmpty>
         </template>
 
         <template v-else>
-          <n-grid cols="1 s:2 m:3 l:4" :x-gap="12" :y-gap="12">
-            <n-grid-item v-for="stock in watchlist" :key="stock.id">
-              <n-card 
+          <NGrid
+            cols="1 s:2 m:3 l:4"
+            :x-gap="12"
+            :y-gap="12"
+          >
+            <NGridItem
+              v-for="stock in watchlist"
+              :key="stock.id"
+            >
+              <NCard 
                 size="small" 
                 class="stock-item-card"
                 :class="getPriceChangeClass(stock.price_change)"
@@ -47,17 +63,20 @@
                       <span class="stock-code">{{ stock.code }}</span>
                       <span class="stock-name">{{ stock.name }}</span>
                     </div>
-                    <n-dropdown
+                    <NDropdown
                       trigger="click"
                       :options="getStockMenuOptions(stock)"
                       @select="(key) => handleStockMenuSelect(key, stock)"
                     >
-                      <n-button text size="small">
+                      <NButton
+                        text
+                        size="small"
+                      >
                         <template #icon>
-                          <n-icon><MoreIcon /></n-icon>
+                          <NIcon><MoreIcon /></NIcon>
                         </template>
-                      </n-button>
-                    </n-dropdown>
+                      </NButton>
+                    </NDropdown>
                   </div>
                 </template>
 
@@ -75,143 +94,201 @@
                       </span>
                     </div>
                   </div>
-                    <div class="market-info">
-                    <n-tag size="small" :type="getMarketTagType(stock.market_type) as any">
+                  <div class="market-info">
+                    <NTag
+                      size="small"
+                      :type="getMarketTagType(stock.market_type) as any"
+                    >
                       {{ getMarketName(stock.market_type) }}
-                    </n-tag>
+                    </NTag>
                   </div>
                   
                   <div class="update-time">
-                    <n-text depth="3" style="font-size: 12px;">
+                    <NText
+                      depth="3"
+                      style="font-size: 12px;"
+                    >
                       {{ formatUpdateTime(stock.updated_at) }}
-                    </n-text>
+                    </NText>
                   </div>
                 </div>
-              </n-card>
-            </n-grid-item>
-          </n-grid>
+              </NCard>
+            </NGridItem>
+          </NGrid>
         </template>
       </div>
 
       <!-- 加载状态 -->
-      <n-spin :show="loading" style="min-height: 200px;" />
-    </n-card>
+      <NSpin
+        :show="loading"
+        style="min-height: 200px;"
+      />
+    </NCard>
 
     <!-- 添加股票对话框 -->
-    <n-modal v-model:show="showAddDialog" preset="dialog" title="添加自选股">
+    <NModal
+      v-model:show="showAddDialog"
+      preset="dialog"
+      title="添加自选股"
+    >
       <template #default>
-        <n-form ref="addFormRef" :model="addForm" :rules="addFormRules">
-          <n-form-item label="市场类型" path="marketType">
-            <n-select
+        <NForm
+          ref="addFormRef"
+          :model="addForm"
+          :rules="addFormRules"
+        >
+          <NFormItem
+            label="市场类型"
+            path="marketType"
+          >
+            <NSelect
               v-model:value="addForm.marketType"
               :options="marketOptions"
               @update:value="handleMarketTypeChange"
             />
-          </n-form-item>
+          </NFormItem>
           
-          <n-form-item label="股票搜索" v-if="showSearch">
+          <NFormItem
+            v-if="showSearch"
+            label="股票搜索"
+          >
             <StockSearch 
               :market-type="addForm.marketType" 
               @select="handleStockSelect"
             />
-          </n-form-item>
+          </NFormItem>
           
-          <n-form-item label="股票代码" path="code">
-            <n-input
+          <NFormItem
+            label="股票代码"
+            path="code"
+          >
+            <NInput
               v-model:value="addForm.code"
               placeholder="请输入股票代码"
               @keyup.enter="handleAddStock"
             />
-          </n-form-item>
+          </NFormItem>
           
-          <n-form-item label="备注" path="note">
-            <n-input
+          <NFormItem
+            label="备注"
+            path="note"
+          >
+            <NInput
               v-model:value="addForm.note"
               placeholder="可选：添加备注信息"
               type="textarea"
               :autosize="{ minRows: 2, maxRows: 4 }"
             />
-          </n-form-item>
-        </n-form>
+          </NFormItem>
+        </NForm>
       </template>
       
       <template #action>
-        <n-space>
-          <n-button @click="showAddDialog = false">取消</n-button>
-          <n-button type="primary" @click="handleAddStock" :loading="adding">
+        <NSpace>
+          <NButton @click="showAddDialog = false">
+            取消
+          </NButton>
+          <NButton
+            type="primary"
+            :loading="adding"
+            @click="handleAddStock"
+          >
             确定添加
-          </n-button>
-        </n-space>
+          </NButton>
+        </NSpace>
       </template>
-    </n-modal>
+    </NModal>
 
     <!-- 编辑股票对话框 -->
-    <n-modal v-model:show="showEditDialog" preset="dialog" title="编辑自选股">
+    <NModal
+      v-model:show="showEditDialog"
+      preset="dialog"
+      title="编辑自选股"
+    >
       <template #default>
-        <n-form ref="editFormRef" :model="editForm" :rules="editFormRules">
-          <n-form-item label="股票代码">
-            <n-input v-model:value="editForm.code" disabled />
-          </n-form-item>
+        <NForm
+          ref="editFormRef"
+          :model="editForm"
+          :rules="editFormRules"
+        >
+          <NFormItem label="股票代码">
+            <NInput
+              v-model:value="editForm.code"
+              disabled
+            />
+          </NFormItem>
           
-          <n-form-item label="股票名称">
-            <n-input v-model:value="editForm.name" disabled />
-          </n-form-item>
+          <NFormItem label="股票名称">
+            <NInput
+              v-model:value="editForm.name"
+              disabled
+            />
+          </NFormItem>
           
-          <n-form-item label="备注" path="note">
-            <n-input
+          <NFormItem
+            label="备注"
+            path="note"
+          >
+            <NInput
               v-model:value="editForm.note"
               placeholder="可选：添加备注信息"
               type="textarea"
               :autosize="{ minRows: 2, maxRows: 4 }"
             />
-          </n-form-item>
-        </n-form>
+          </NFormItem>
+        </NForm>
       </template>
       
       <template #action>
-        <n-space>
-          <n-button @click="showEditDialog = false">取消</n-button>
-          <n-button type="primary" @click="handleUpdateStock" :loading="updating">
+        <NSpace>
+          <NButton @click="showEditDialog = false">
+            取消
+          </NButton>
+          <NButton
+            type="primary"
+            :loading="updating"
+            @click="handleUpdateStock"
+          >
             保存修改
-          </n-button>
-        </n-space>
+          </NButton>
+        </NSpace>
       </template>
-    </n-modal>
+    </NModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import {
-  NCard,
-  NButton,
-  NIcon,
-  NEmpty,
-  NGrid,
-  NGridItem,
-  NTag,
-  NText,
-  NSpin,
-  NModal,
-  NForm,
-  NFormItem,
-  NInput,
-  NSelect,
-  NSpace,
-  NDropdown,
-  useMessage,
-  type FormInst,
-  type FormRules
-} from 'naive-ui';
 import {
   Add as AddIcon,
-  Refresh as RefreshIcon,
   Heart as HeartIcon,
-  EllipsisHorizontal as MoreIcon
-} from '@vicons/ionicons5';
+  EllipsisHorizontal as MoreIcon,
+  Refresh as RefreshIcon,
+} from "@vicons/ionicons5";
+import {
+  type FormInst,
+  type FormRules,
+  NButton,
+  NCard,
+  NDropdown,
+  NEmpty,
+  NForm,
+  NFormItem,
+  NGrid,
+  NGridItem,
+  NIcon,
+  NInput,
+  NModal,
+  NSelect,
+  NSpace,
+  NSpin,
+  NTag,
+  NText,
+  useMessage,
+} from "naive-ui";
+import { computed, onMounted, ref } from "vue";
 
-import StockSearch from './StockSearch.vue';
-import { watchlistService, type WatchlistItem } from '@/services/watchlist';
+import { type WatchlistItem, watchlistService } from "@/services/watchlist";
+import StockSearch from "./StockSearch.vue";
 
 const message = useMessage();
 
@@ -229,112 +306,126 @@ const editFormRef = ref<FormInst | null>(null);
 
 // 添加表单数据
 const addForm = ref({
-  marketType: 'A',
-  code: '',
-  note: ''
+  marketType: "A",
+  code: "",
+  note: "",
 });
 
 // 编辑表单数据
 const editForm = ref({
   id: 0,
-  code: '',
-  name: '',
-  note: ''
+  code: "",
+  name: "",
+  note: "",
 });
 
 // 市场选项
 const marketOptions = [
-  { label: 'A股', value: 'A' },
-  { label: '港股', value: 'HK' },
-  { label: '美股', value: 'US' },
-  { label: 'ETF', value: 'ETF' },
-  { label: 'LOF', value: 'LOF' }
+  { label: "A股", value: "A" },
+  { label: "港股", value: "HK" },
+  { label: "美股", value: "US" },
+  { label: "ETF", value: "ETF" },
+  { label: "LOF", value: "LOF" },
 ];
 
 // 表单验证规则
 const addFormRules: FormRules = {
-  code: [
-    { required: true, message: '请输入股票代码', trigger: 'blur' }
-  ]
+  code: [{ required: true, message: "请输入股票代码", trigger: "blur" }],
 };
 
 const editFormRules: FormRules = {
-  note: [
-    { max: 200, message: '备注长度不能超过200字符', trigger: 'blur' }
-  ]
+  note: [{ max: 200, message: "备注长度不能超过200字符", trigger: "blur" }],
 };
 
 // 计算属性
-const showSearch = computed(() => 
-  ['US', 'ETF', 'LOF'].includes(addForm.value.marketType)
+const showSearch = computed(() =>
+  ["US", "ETF", "LOF"].includes(addForm.value.marketType),
 );
 
 // 发送自选股分析事件
 const emit = defineEmits<{
-  analyzeWatchlist: [codes: string[], marketType: string]
+  analyzeWatchlist: [codes: string[], marketType: string];
 }>();
 
 // 获取价格变动样式类
 function getPriceChangeClass(priceChange?: number) {
-  if (priceChange === undefined) return '';
-  if (priceChange > 0) return 'price-up';
-  if (priceChange < 0) return 'price-down';
-  return '';
+  if (priceChange === undefined) {
+    return "";
+  }
+  if (priceChange > 0) {
+    return "price-up";
+  }
+  if (priceChange < 0) {
+    return "price-down";
+  }
+  return "";
 }
 
 // 格式化价格变动
 function formatPriceChange(priceChange?: number) {
-  if (priceChange === undefined) return '--';
-  const sign = priceChange > 0 ? '+' : '';
+  if (priceChange === undefined) {
+    return "--";
+  }
+  const sign = priceChange > 0 ? "+" : "";
   return `${sign}${priceChange.toFixed(2)}`;
 }
 
 // 格式化百分比变动
 function formatPercentChange(changePercent?: number) {
-  if (changePercent === undefined) return '--';
-  const sign = changePercent > 0 ? '+' : '';
+  if (changePercent === undefined) {
+    return "--";
+  }
+  const sign = changePercent > 0 ? "+" : "";
   return `${sign}${changePercent.toFixed(2)}%`;
 }
 
 // 获取市场标签类型
 function getMarketTagType(marketType: string) {
   const typeMap: Record<string, string> = {
-    'A': 'default',
-    'HK': 'info',
-    'US': 'warning',
-    'ETF': 'success',
-    'LOF': 'error'
+    A: "default",
+    HK: "info",
+    US: "warning",
+    ETF: "success",
+    LOF: "error",
   };
-  return typeMap[marketType] || 'default';
+  return typeMap[marketType] || "default";
 }
 
 // 获取市场名称
 function getMarketName(marketType: string) {
   const nameMap: Record<string, string> = {
-    'A': 'A股',
-    'HK': '港股',
-    'US': '美股',
-    'ETF': 'ETF',
-    'LOF': 'LOF'
+    A: "A股",
+    HK: "港股",
+    US: "美股",
+    ETF: "ETF",
+    LOF: "LOF",
   };
   return nameMap[marketType] || marketType;
 }
 
 // 格式化更新时间
 function formatUpdateTime(updateTime?: string) {
-  if (!updateTime) return '未更新';
-  
+  if (!updateTime) {
+    return "未更新";
+  }
+
   try {
     const date = new Date(updateTime);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
-    if (diff < 60000) return '刚才';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-    
+
+    if (diff < 60000) {
+      return "刚才";
+    }
+    if (diff < 3600000) {
+      return `${Math.floor(diff / 60000)}分钟前`;
+    }
+    if (diff < 86400000) {
+      return `${Math.floor(diff / 3600000)}小时前`;
+    }
+
     return date.toLocaleDateString();
-  } catch (e) {
+  } catch {
     return updateTime;
   }
 }
@@ -343,43 +434,43 @@ function formatUpdateTime(updateTime?: string) {
 function getStockMenuOptions(_stock: WatchlistItem) {
   return [
     {
-      label: '分析',
-      key: 'analyze'
+      label: "分析",
+      key: "analyze",
     },
     {
-      label: '编辑',
-      key: 'edit'
+      label: "编辑",
+      key: "edit",
     },
     {
-      label: '删除',
-      key: 'delete'
-    }
+      label: "删除",
+      key: "delete",
+    },
   ];
 }
 
 // 处理股票菜单选择
 function handleStockMenuSelect(key: string, stock: WatchlistItem) {
   switch (key) {
-    case 'analyze':
-      handleAnalyzeStock(stock);
-      break;
-    case 'edit':
-      handleEditStock(stock);
-      break;
-    case 'delete':
-      handleDeleteStock(stock);
-      break;
+  case "analyze":
+    handleAnalyzeStock(stock);
+    break;
+  case "edit":
+    handleEditStock(stock);
+    break;
+  case "delete":
+    handleDeleteStock(stock);
+    break;
   }
 }
 
 // 处理市场类型变更
 function handleMarketTypeChange() {
-  addForm.value.code = '';
+  addForm.value.code = "";
 }
 
 // 处理股票选择
 function handleStockSelect(symbol: string) {
-  addForm.value.code = symbol.trim().replace(/^\d+\.\s*/, '');
+  addForm.value.code = symbol.trim().replace(/^\d+\.\s*/, "");
 }
 
 // 处理编辑股票
@@ -387,15 +478,15 @@ function handleEditStock(stock: WatchlistItem) {
   editForm.value = {
     id: stock.id,
     code: stock.code,
-    name: stock.name || '',
-    note: stock.note || ''
+    name: stock.name || "",
+    note: stock.note || "",
   };
   showEditDialog.value = true;
 }
 
 // 处理分析股票
 function handleAnalyzeStock(stock: WatchlistItem) {
-  emit('analyzeWatchlist', [stock.code], stock.market_type);
+  emit("analyzeWatchlist", [stock.code], stock.market_type);
   message.info(`开始分析 ${stock.code}`);
 }
 
@@ -412,28 +503,30 @@ async function handleDeleteStock(stock: WatchlistItem) {
 
 // 添加股票
 async function handleAddStock() {
-  if (!addFormRef.value) return;
-  
+  if (!addFormRef.value) {
+    return;
+  }
+
   try {
     await addFormRef.value.validate();
     adding.value = true;
-    
+
     await watchlistService.addStock({
       code: addForm.value.code.trim().toUpperCase(),
       market_type: addForm.value.marketType,
-      note: addForm.value.note.trim() || undefined
+      note: addForm.value.note.trim() || undefined,
     });
-    
-    message.success('添加成功');
+
+    message.success("添加成功");
     showAddDialog.value = false;
-    
+
     // 重置表单
     addForm.value = {
-      marketType: 'A',
-      code: '',
-      note: ''
+      marketType: "A",
+      code: "",
+      note: "",
     };
-    
+
     // 重新加载列表
     await loadWatchlist();
   } catch (error: any) {
@@ -445,19 +538,21 @@ async function handleAddStock() {
 
 // 更新股票
 async function handleUpdateStock() {
-  if (!editFormRef.value) return;
-  
+  if (!editFormRef.value) {
+    return;
+  }
+
   try {
     await editFormRef.value.validate();
     updating.value = true;
-    
+
     await watchlistService.updateStock(editForm.value.id, {
-      note: editForm.value.note.trim() || undefined
+      note: editForm.value.note.trim() || undefined,
     });
-    
-    message.success('更新成功');
+
+    message.success("更新成功");
     showEditDialog.value = false;
-    
+
     // 重新加载列表
     await loadWatchlist();
   } catch (error: any) {
@@ -482,7 +577,7 @@ async function loadWatchlist() {
 // 刷新自选股
 async function refreshWatchlist() {
   await loadWatchlist();
-  message.success('已刷新');
+  message.success("已刷新");
 }
 
 // 组件初始化
@@ -493,7 +588,7 @@ onMounted(() => {
 // 暴露方法给父组件
 defineExpose({
   refreshWatchlist,
-  loadWatchlist
+  loadWatchlist,
 });
 </script>
 

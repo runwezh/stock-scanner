@@ -1,47 +1,73 @@
 <template>
   <div class="api-config-section mobile-api-config-section">
-    <n-button
+    <NButton
       class="toggle-button mobile-touch-target mobile-toggle-button"
       size="small"
-      @click="toggleConfig"
       :quaternary="true"
       :type="expanded ? 'primary' : 'default'"
+      @click="toggleConfig"
     >
       <template #icon>
-        <n-icon :component="expanded ? ChevronUpIcon : ChevronDownIcon" />
+        <NIcon :component="expanded ? ChevronUpIcon : ChevronDownIcon" />
       </template>
       <span class="toggle-text mobile-toggle-text">API配置 {{ expanded ? '收起' : '展开' }}</span>
-    </n-button>
+    </NButton>
     
-    <n-collapse-transition :show="expanded">
-      <n-card class="api-config-card mobile-card mobile-shadow mobile-api-config-card" :bordered="false">
-        <n-alert title="OpenAI API配置" type="info" v-if="isApiInfoVisible" class="api-info-alert mobile-api-info-alert mobile-api-info-alert-small">
+    <NCollapseTransition :show="expanded">
+      <NCard
+        class="api-config-card mobile-card mobile-shadow mobile-api-config-card"
+        :bordered="false"
+      >
+        <NAlert
+          v-if="isApiInfoVisible"
+          title="OpenAI API配置"
+          type="info"
+          class="api-info-alert mobile-api-info-alert mobile-api-info-alert-small"
+        >
           <template #icon>
-            <n-icon :component="InformationCircleIcon" />
+            <NIcon :component="InformationCircleIcon" />
           </template>
           <p>您可以配置自己的API，也可以使用系统默认配置。API密钥仅在您的浏览器中使用，不会发送到服务器存储。</p>
           <div class="alert-actions">
-            <n-button text @click="isApiInfoVisible = false">
+            <NButton
+              text
+              @click="isApiInfoVisible = false"
+            >
               <template #icon>
-                <n-icon :component="CloseIcon" />
+                <NIcon :component="CloseIcon" />
               </template>
-            </n-button>
+            </NButton>
           </div>
-        </n-alert>
+        </NAlert>
 
-        <n-grid :cols="24" :x-gap="16" :y-gap="16" responsive="screen" class="mobile-grid mobile-grid-small">
-          <n-grid-item :span="24" :md-span="14" :lg-span="14" class="mobile-grid-item mobile-grid-item-small">
-            <n-form-item label="API URL" path="apiUrl" class="mobile-form-item">
-              <n-input 
+        <NGrid
+          :cols="24"
+          :x-gap="16"
+          :y-gap="16"
+          responsive="screen"
+          class="mobile-grid mobile-grid-small"
+        >
+          <NGridItem
+            :span="24"
+            :md-span="14"
+            :lg-span="14"
+            class="mobile-grid-item mobile-grid-item-small"
+          >
+            <NFormItem
+              label="API URL"
+              path="apiUrl"
+              class="mobile-form-item"
+            >
+              <NInput 
                 v-model:value="apiConfig.apiUrl" 
                 placeholder="https://api.openai.com/v1/chat/completions"
-                @update:value="handleConfigChange"
                 round
+                @update:value="handleConfigChange"
               >
                 <template #prefix>
-                  <n-icon :component="GlobeIcon" />
+                  <NIcon :component="GlobeIcon" />
                 </template>
-              </n-input>
+              </NInput>
               <template #feedback>
                 <div class="url-feedback mobile-url-feedback">
                   <span class="formatted-url">实际请求地址: {{ formattedUrl }}</span>
@@ -51,418 +77,543 @@
                   </div>
                 </div>
               </template>
-            </n-form-item>
-          </n-grid-item>
+            </NFormItem>
+          </NGridItem>
 
-          <n-grid-item :span="24" :md-span="10" :lg-span="10" class="mobile-grid-item mobile-grid-item-small">
-            <n-form-item label="API Key" path="apiKey" class="mobile-form-item">
-              <n-input 
+          <NGridItem
+            :span="24"
+            :md-span="10"
+            :lg-span="10"
+            class="mobile-grid-item mobile-grid-item-small"
+          >
+            <NFormItem
+              label="API Key"
+              path="apiKey"
+              class="mobile-form-item"
+            >
+              <NInput 
                 v-model:value="apiConfig.apiKey" 
                 type="password" 
                 placeholder="sk-..."
                 show-password-on="click"
-                @update:value="handleConfigChange"
                 round
+                @update:value="handleConfigChange"
               >
                 <template #prefix>
-                  <n-icon :component="KeyIcon" />
+                  <NIcon :component="KeyIcon" />
                 </template>
-              </n-input>
-            </n-form-item>
-          </n-grid-item>
+              </NInput>
+            </NFormItem>
+          </NGridItem>
 
-          <n-grid-item :span="12" :md-span="12" :lg-span="12" class="mobile-grid-item mobile-grid-item-small">
-            <n-form-item label="模型" path="apiModel" class="mobile-form-item">
-              <n-input
+          <NGridItem
+            :span="12"
+            :md-span="12"
+            :lg-span="12"
+            class="mobile-grid-item mobile-grid-item-small"
+          >
+            <NFormItem
+              label="模型"
+              path="apiModel"
+              class="mobile-form-item"
+            >
+              <NInput
                 v-model:value="apiConfig.apiModel"
                 placeholder="输入或选择模型名称"
-                @update:value="handleConfigChange"
                 round
+                @update:value="handleConfigChange"
               >
                 <template #prefix>
-                  <n-icon :component="CodeIcon" />
+                  <NIcon :component="CodeIcon" />
                 </template>
                 <template #suffix>
-                  <n-dropdown
+                  <NDropdown
                     trigger="click"
                     :options="modelOptions"
-                    @select="selectModel"
                     placement="bottom-end"
+                    @select="selectModel"
                   >
-                    <n-button quaternary circle size="small" class="model-dropdown-btn">
+                    <NButton
+                      quaternary
+                      circle
+                      size="small"
+                      class="model-dropdown-btn"
+                    >
                       <template #icon>
-                        <n-icon :component="ChevronDownIcon" />
+                        <NIcon :component="ChevronDownIcon" />
                       </template>
-                    </n-button>
-                  </n-dropdown>
+                    </NButton>
+                  </NDropdown>
                 </template>
-              </n-input>
+              </NInput>
               <template #feedback>
                 <div class="model-suggestions">
-                  <div class="model-tip">您可以直接输入模型名称，或点击右侧按钮从下拉菜单选择</div>
+                  <div class="model-tip">
+                    您可以直接输入模型名称，或点击右侧按钮从下拉菜单选择
+                  </div>
                   <span>常用模型:</span>
                   <div class="model-chips mobile-model-chips">
-                    <n-tag 
+                    <NTag 
                       v-for="model in commonModels" 
                       :key="model.key"
                       size="small"
                       round
                       clickable
-                      @click="selectModel(model.key)"
                       class="mobile-model-tag"
+                      @click="selectModel(model.key)"
                     >
                       {{ model.label }}
-                    </n-tag>
+                    </NTag>
                   </div>
                 </div>
               </template>
-            </n-form-item>
-          </n-grid-item>
+            </NFormItem>
+          </NGridItem>
 
-          <n-grid-item :span="12" :md-span="12" :lg-span="12" class="mobile-grid-item mobile-grid-item-small">
-            <n-form-item label="超时时间(秒)" path="apiTimeout" class="mobile-form-item">
-              <n-input-number 
+          <NGridItem
+            :span="12"
+            :md-span="12"
+            :lg-span="12"
+            class="mobile-grid-item mobile-grid-item-small"
+          >
+            <NFormItem
+              label="超时时间(秒)"
+              path="apiTimeout"
+              class="mobile-form-item"
+            >
+              <NInputNumber 
                 v-model:value="apiTimeout" 
                 placeholder="60"
                 :min="1"
                 :max="300"
-                @update:value="handleTimeoutChange"
                 :show-button="false"
                 class="timeout-input"
+                @update:value="handleTimeoutChange"
               >
                 <template #suffix>
                   <div class="timeout-controls">
-                    <n-button size="tiny" quaternary @click="decreaseTimeout">
-                      <template #icon><n-icon :component="RemoveIcon" /></template>
-                    </n-button>
-                    <n-button size="tiny" quaternary @click="increaseTimeout">
-                      <template #icon><n-icon :component="AddIcon" /></template>
-                    </n-button>
+                    <NButton
+                      size="tiny"
+                      quaternary
+                      @click="decreaseTimeout"
+                    >
+                      <template #icon>
+                        <NIcon :component="RemoveIcon" />
+                      </template>
+                    </NButton>
+                    <NButton
+                      size="tiny"
+                      quaternary
+                      @click="increaseTimeout"
+                    >
+                      <template #icon>
+                        <NIcon :component="AddIcon" />
+                      </template>
+                    </NButton>
                   </div>
                 </template>
-              </n-input-number>
-            </n-form-item>
-          </n-grid-item>
-        </n-grid>
+              </NInputNumber>
+            </NFormItem>
+          </NGridItem>
+        </NGrid>
 
         <div class="api-actions mobile-api-actions">
           <div class="api-save-option mobile-api-save-option">
-            <n-button 
+            <NButton 
               tertiary
               size="small"
-              @click="saveConfig"
               round
               class="mobile-api-save-option-button"
+              @click="saveConfig"
             >
               <template #icon>
-                <n-icon :component="SaveIcon" />
+                <NIcon :component="SaveIcon" />
               </template>
               保存配置到本地
-            </n-button>
+            </NButton>
           </div>
           
           <div class="api-buttons mobile-api-buttons mobile-api-buttons-small">
-            <n-button 
+            <NButton 
               type="primary" 
               :loading="testingConnection" 
               :disabled="!isConfigValid"
-              @click="testConnection"
               round
               class="mobile-api-button"
+              @click="testConnection"
             >
               <template #icon>
-                <n-icon :component="CheckmarkIcon" />
+                <NIcon :component="CheckmarkIcon" />
               </template>
               测试连接
-            </n-button>
+            </NButton>
 
-            <n-button @click="resetConfig" round class="mobile-api-button">
+            <NButton
+              round
+              class="mobile-api-button"
+              @click="resetConfig"
+            >
               <template #icon>
-                <n-icon :component="RefreshIcon" />
+                <NIcon :component="RefreshIcon" />
               </template>
               重置
-            </n-button>
+            </NButton>
           </div>
         </div>
         
-        <n-divider v-if="connectionStatus" style="margin: 16px 0 12px" />
+        <NDivider
+          v-if="connectionStatus"
+          style="margin: 16px 0 12px"
+        />
         
-        <div v-if="connectionStatus" class="connection-status mobile-connection-status" :class="connectionStatus.type">
-          <n-icon :component="connectionStatus.icon" class="status-icon" />
+        <div
+          v-if="connectionStatus"
+          class="connection-status mobile-connection-status"
+          :class="connectionStatus.type"
+        >
+          <NIcon
+            :component="connectionStatus.icon"
+            class="status-icon"
+          />
           <span class="status-message">{{ connectionStatus.message }}</span>
         </div>
-      </n-card>
-    </n-collapse-transition>
+      </NCard>
+    </NCollapseTransition>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, onMounted, markRaw } from 'vue';
-import { 
-  NButton, 
-  NIcon, 
-  NCard, 
-  NCollapseTransition, 
-  NGrid, 
-  NGridItem, 
-  NFormItem, 
-  NInput,
-  NInputNumber,
+<script lang="ts">
+import { apiService } from "@/services/api";
+import type { ApiConfig } from "@/types";
+import { loadApiConfig, saveApiConfigToLocalStorage } from "@/utils";
+import {
+  AddOutline as AddIcon,
+  CheckmarkCircleOutline as CheckmarkIcon,
+  ChevronDown as ChevronDownIcon,
+  ChevronUp as ChevronUpIcon,
+  Close as CloseIcon,
+  CodeSlashOutline as CodeIcon,
+  CloseCircle as ErrorIcon,
+  Globe as GlobeIcon,
+  InformationCircleOutline as InformationCircleIcon,
+  Key as KeyIcon,
+  RefreshOutline as RefreshIcon,
+  RemoveOutline as RemoveIcon,
+  SaveOutline as SaveIcon,
+  CheckmarkCircle as SuccessIcon,
+} from "@vicons/ionicons5";
+import {
   NAlert,
+  NButton,
+  NCard,
+  NCollapseTransition,
   NDivider,
   NDropdown,
+  NFormItem,
+  NGrid,
+  NGridItem,
+  NIcon,
+  NInput,
+  NInputNumber,
   NTag,
-  useMessage
-} from 'naive-ui';
-import { 
-  ChevronDown as ChevronDownIcon, 
-  ChevronUp as ChevronUpIcon,
-  InformationCircleOutline as InformationCircleIcon,
-  Close as CloseIcon,
-  Globe as GlobeIcon,
-  Key as KeyIcon,
-  CheckmarkCircleOutline as CheckmarkIcon,
-  RefreshOutline as RefreshIcon,
-  AddOutline as AddIcon,
-  RemoveOutline as RemoveIcon,
-  CheckmarkCircle as SuccessIcon,
-  CloseCircle as ErrorIcon,
-  CodeSlashOutline as CodeIcon,
-  SaveOutline as SaveIcon
-} from '@vicons/ionicons5';
-import { apiService } from '@/services/api';
-import { saveApiConfigToLocalStorage, loadApiConfig } from '@/utils';
-import type { ApiConfig } from '@/types';
+  useMessage,
+} from "naive-ui";
+import { computed, defineComponent, markRaw, onMounted, ref } from "vue";
 
-// 出于安全考虑，API KEY不会显示在前端
-const props = defineProps<{
-  defaultApiUrl?: string;
-  defaultApiModel?: string;
-  defaultApiTimeout?: string;
-}>();
+export default defineComponent({
+  name: "ApiConfigPanel",
+  components: {
+    NButton,
+    NIcon,
+    NCard,
+    NCollapseTransition,
+    NGrid,
+    NGridItem,
+    NFormItem,
+    NInput,
+    NInputNumber,
+    NAlert,
+    NDivider,
+    NDropdown,
+    NTag,
+  },
+  props: {
+    defaultApiUrl: {
+      type: String,
+      default: "",
+    },
+    defaultApiModel: {
+      type: String,
+      default: "",
+    },
+    defaultApiTimeout: {
+      type: String,
+      default: "60",
+    },
+  },
+  emits: ["update:apiConfig"],
+  setup(props, { emit }) {
+    const message = useMessage();
+    const expanded = ref(false);
+    const testingConnection = ref(false);
+    const isApiInfoVisible = ref(true);
 
-const emit = defineEmits<(e: 'update:apiConfig', value: ApiConfig) => void>();
+    // 连接状态
+    const connectionStatus = ref<{
+      type: "success" | "error";
+      message: string;
+      icon: any;
+    } | null>(null);
 
-const message = useMessage();
-const expanded = ref(false);
-const testingConnection = ref(false);
-const isApiInfoVisible = ref(true);
+    // 模型选项
+    const modelOptions = [
+      { label: "GPT-3.5", key: "gpt-3.5-turbo" },
+      { label: "GPT-4o", key: "gpt-4o" },
+      { label: "DeepSeek V3", key: "deepseek-chat" },
+      { label: "DeepSeek R1", key: "deepseek-reasoner" },
+      { label: "Claude 3.5 Sonnet", key: "claude-3-5-sonnet" },
+      {
+        label: "Claude 3.5 Sonnet 20241022",
+        key: "claude-3-5-sonnet-20241022",
+      },
+      { label: "Gemini 1.5 Pro", key: "gemini-1.5-pro" },
+      { label: "Gemini 1.5 Flash", key: "gemini-1.5-flash" },
+      { label: "Gemini 2.0 Pro", key: "gemini-2.0-pro" },
+      { label: "Gemini 2.0 Flash", key: "gemini-2.0-flash" },
+    ];
 
-// 连接状态
-const connectionStatus = ref<{
-  type: 'success' | 'error';
-  message: string;
-  icon: any;
-} | null>(null);
+    // 常用模型（用于快速选择）
+    const commonModels = [
+      { label: "GPT-3.5", key: "gpt-3.5-turbo" },
+      { label: "GPT-4o", key: "gpt-4o" },
+      { label: "Claude 3.5", key: "claude-3-5-sonnet" },
+      { label: "Gemini 2.0", key: "gemini-2.0-flash" },
+      { label: "DeepSeek V3", key: "deepseek-chat" },
+    ];
 
-// 模型选项
-const modelOptions = [
-  { label: 'GPT-3.5', key: 'gpt-3.5-turbo' },
-  { label: 'GPT-4o', key: 'gpt-4o' },
-  { label: 'DeepSeek V3', key: 'deepseek-chat' },
-  { label: 'DeepSeek R1', key: 'deepseek-reasoner' },
-  { label: 'Claude 3.5 Sonnet', key: 'claude-3-5-sonnet' },
-  { label: 'Claude 3.5 Sonnet 20241022', key: 'claude-3-5-sonnet-20241022' },
-  { label: 'Gemini 1.5 Pro', key: 'gemini-1.5-pro' },
-  { label: 'Gemini 1.5 Flash', key: 'gemini-1.5-flash' },
-  { label: 'Gemini 2.0 Pro', key: 'gemini-2.0-pro' },
-  { label: 'Gemini 2.0 Flash', key: 'gemini-2.0-flash' }
-];
-
-// 常用模型（用于快速选择）
-const commonModels = [
-  { label: 'GPT-3.5', key: 'gpt-3.5-turbo' },
-  { label: 'GPT-4o', key: 'gpt-4o' },
-  { label: 'Claude 3.5', key: 'claude-3-5-sonnet' },
-  { label: 'Gemini 2.0', key: 'gemini-2.0-flash' },
-  { label: 'DeepSeek V3', key: 'deepseek-chat' },
-];
-
-// API配置
-const apiConfig = ref<ApiConfig>({
-  apiUrl: props.defaultApiUrl || '',
-  apiKey: '',
-  apiModel: props.defaultApiModel || '',
-  apiTimeout: props.defaultApiTimeout || '60',
-  saveApiConfig: true // 默认启用保存配置
-});
-
-const apiTimeout = computed({
-  get: () => Number.parseInt(apiConfig.value.apiTimeout) || 60,
-  set: (val: number) => {
-    apiConfig.value.apiTimeout = val.toString();
-  }
-});
-
-const isConfigValid = computed(() => {
-  return apiConfig.value.apiUrl && apiConfig.value.apiKey;
-});
-
-const formattedUrl = computed(() => {
-  return formatApiUrl(apiConfig.value.apiUrl);
-});
-
-function toggleConfig() {
-  expanded.value = !expanded.value;
-}
-
-function handleConfigChange() {
-  console.log('API配置变更:', apiConfig.value);
-  
-  // 不再在每次配置变更时自动保存
-  // 仅向父组件发送更新事件
-  emit('update:apiConfig', { ...apiConfig.value });
-}
-
-function handleTimeoutChange(value: number | null) {
-  if (value !== null) {
-    apiConfig.value.apiTimeout = value.toString();
-    
-    // 仅通知父组件更新，不自动保存
-    emit('update:apiConfig', { ...apiConfig.value });
-  }
-}
-
-function increaseTimeout() {
-  if (apiTimeout.value < 300) {
-    apiTimeout.value += 10;
-    
-    // 通知父组件
-    emit('update:apiConfig', { ...apiConfig.value });
-  }
-}
-
-function decreaseTimeout() {
-  if (apiTimeout.value > 10) {
-    apiTimeout.value -= 10;
-    
-    // 通知父组件
-    emit('update:apiConfig', { ...apiConfig.value });
-  }
-}
-
-function formatApiUrl(url: string): string {
-  if (!url) return '';
-  
-  try {
-    // 使用与后端一致的URL格式化逻辑
-    if (url.endsWith('/')) {
-      return `${url}chat/completions`;
-    } 
-    if (url.endsWith('#')) {
-      return url.replace('#', '');
-    } 
-      
-    return `${url}/v1/chat/completions`;
-  
-  } catch (e) {
-    // 如果URL格式错误，则返回原始字符串
-    return url;
-  }
-}
-
-async function testConnection() {
-  if (!isConfigValid.value) {
-    message.error('请填写完整的API配置信息');
-    return;
-  }
-  
-  testingConnection.value = true;
-  connectionStatus.value = null;
-  
-  try {
-    const response = await apiService.testApiConnection({
-      api_url: apiConfig.value.apiUrl,
-      api_key: apiConfig.value.apiKey,
-      api_model: apiConfig.value.apiModel || undefined,
-      api_timeout: Number.parseInt(apiConfig.value.apiTimeout) || 60
+    // API配置
+    const apiConfig = ref<ApiConfig>({
+      apiUrl: props.defaultApiUrl || "",
+      apiKey: "",
+      apiModel: props.defaultApiModel || "",
+      apiTimeout: props.defaultApiTimeout || "60",
+      saveApiConfig: true, // 默认启用保存配置
     });
-    
-    if (response.success) {
-      message.success('API连接测试成功');
-      connectionStatus.value = {
-        type: 'success',
-        message: '连接成功！API配置有效。',
-        icon: markRaw(SuccessIcon)
-      };
-    } else {
-      message.error(`API连接测试失败: ${response.message}`);
-      connectionStatus.value = {
-        type: 'error',
-        message: `连接失败: ${response.message}`,
-        icon: markRaw(ErrorIcon)
-      };
+
+    const apiTimeout = computed({
+      get: () => Number.parseInt(apiConfig.value.apiTimeout) || 60,
+      set: (val: number) => {
+        apiConfig.value.apiTimeout = val.toString();
+      },
+    });
+
+    const isConfigValid = computed(() => {
+      return apiConfig.value.apiUrl && apiConfig.value.apiKey;
+    });
+
+    const formattedUrl = computed(() => {
+      return formatApiUrl(apiConfig.value.apiUrl);
+    });
+
+    function toggleConfig() {
+      expanded.value = !expanded.value;
     }
-  } catch (error: any) {
-    message.error(`测试连接出错: ${error.message || '未知错误'}`);
-    connectionStatus.value = {
-      type: 'error',
-      message: `连接错误: ${error.message || '未知错误'}`,
-      icon: markRaw(ErrorIcon)
+
+    function handleConfigChange() {
+      console.log("API配置变更:", apiConfig.value);
+
+      // 不再在每次配置变更时自动保存
+      // 仅向父组件发送更新事件
+      emit("update:apiConfig", { ...apiConfig.value });
+    }
+
+    function handleTimeoutChange(value: number | null) {
+      if (value !== null) {
+        apiConfig.value.apiTimeout = value.toString();
+
+        // 仅通知父组件更新，不自动保存
+        emit("update:apiConfig", { ...apiConfig.value });
+      }
+    }
+
+    function increaseTimeout() {
+      if (apiTimeout.value < 300) {
+        apiTimeout.value += 10;
+
+        // 通知父组件
+        emit("update:apiConfig", { ...apiConfig.value });
+      }
+    }
+
+    function decreaseTimeout() {
+      if (apiTimeout.value > 10) {
+        apiTimeout.value -= 10;
+
+        // 通知父组件
+        emit("update:apiConfig", { ...apiConfig.value });
+      }
+    }
+
+    function formatApiUrl(url: string): string {
+      if (!url) {
+        return "";
+      }
+
+      try {
+        // 使用与后端一致的URL格式化逻辑
+        if (url.endsWith("/")) {
+          return `${url}chat/completions`;
+        }
+        if (url.endsWith("#")) {
+          return url.replace("#", "");
+        }
+
+        return `${url}/v1/chat/completions`;
+      } catch {
+        // 如果URL格式错误，则返回原始字符串
+        return url;
+      }
+    }
+
+    async function testConnection() {
+      if (!isConfigValid.value) {
+        message.error("请填写完整的API配置信息");
+        return;
+      }
+
+      testingConnection.value = true;
+      connectionStatus.value = null;
+
+      try {
+        const response = await apiService.testApiConnection({
+          api_url: apiConfig.value.apiUrl,
+          api_key: apiConfig.value.apiKey,
+          api_model: apiConfig.value.apiModel || undefined,
+          api_timeout: Number.parseInt(apiConfig.value.apiTimeout) || 60,
+        });
+
+        if (response.success) {
+          message.success("API连接测试成功");
+          connectionStatus.value = {
+            type: "success",
+            message: "连接成功！API配置有效。",
+            icon: markRaw(SuccessIcon),
+          };
+        } else {
+          message.error(`API连接测试失败: ${response.message}`);
+          connectionStatus.value = {
+            type: "error",
+            message: `连接失败: ${response.message}`,
+            icon: markRaw(ErrorIcon),
+          };
+        }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "未知错误";
+        message.error(`测试连接出错: ${errorMessage}`);
+        connectionStatus.value = {
+          type: "error",
+          message: `连接错误: ${errorMessage}`,
+          icon: markRaw(ErrorIcon),
+        };
+      } finally {
+        testingConnection.value = false;
+      }
+    }
+
+    function resetConfig() {
+      apiConfig.value = {
+        apiUrl: props.defaultApiUrl || "",
+        apiKey: "",
+        apiModel: props.defaultApiModel || "",
+        apiTimeout: props.defaultApiTimeout || "60",
+        saveApiConfig: true,
+      };
+
+      // 清除本地存储
+      if (window.localStorage) {
+        localStorage.removeItem("apiConfig");
+        message.success("已重置API配置并清除本地存储");
+      } else {
+        message.success("已重置API配置");
+      }
+
+      connectionStatus.value = null;
+      emit("update:apiConfig", { ...apiConfig.value });
+    }
+
+    // 选择模型
+    function selectModel(key: string) {
+      console.log("选择模型:", key);
+      apiConfig.value.apiModel = key;
+
+      // 通知父组件
+      emit("update:apiConfig", { ...apiConfig.value });
+    }
+
+    // 显式保存配置的函数
+    function saveConfig() {
+      saveApiConfigToLocalStorage({
+        apiUrl: apiConfig.value.apiUrl,
+        apiKey: apiConfig.value.apiKey,
+        apiModel: apiConfig.value.apiModel,
+        apiTimeout: apiConfig.value.apiTimeout,
+        saveApiConfig: true,
+      });
+      message.success("已将配置保存到本地");
+    }
+
+    onMounted(() => {
+      // 加载保存的配置
+      const savedConfig = loadApiConfig();
+
+      if (savedConfig.saveApiConfig) {
+        apiConfig.value = {
+          apiUrl: savedConfig.apiUrl || props.defaultApiUrl || "",
+          apiKey: savedConfig.apiKey || "",
+          apiModel: savedConfig.apiModel || props.defaultApiModel || "",
+          apiTimeout: savedConfig.apiTimeout || props.defaultApiTimeout || "60",
+          saveApiConfig: true,
+        };
+
+        // 通知父组件配置已加载
+        emit("update:apiConfig", { ...apiConfig.value });
+      }
+    });
+
+    return {
+      ChevronDownIcon,
+      ChevronUpIcon,
+      InformationCircleIcon,
+      CloseIcon,
+      GlobeIcon,
+      KeyIcon,
+      CheckmarkIcon,
+      RefreshIcon,
+      AddIcon,
+      RemoveIcon,
+      CodeIcon,
+      SaveIcon,
+      expanded,
+      testingConnection,
+      isApiInfoVisible,
+      connectionStatus,
+      modelOptions,
+      commonModels,
+      apiConfig,
+      apiTimeout,
+      isConfigValid,
+      formattedUrl,
+      toggleConfig,
+      handleConfigChange,
+      handleTimeoutChange,
+      increaseTimeout,
+      decreaseTimeout,
+      testConnection,
+      resetConfig,
+      selectModel,
+      saveConfig,
     };
-  } finally {
-    testingConnection.value = false;
-  }
-}
-
-function resetConfig() {
-  apiConfig.value = {
-    apiUrl: props.defaultApiUrl || '',
-    apiKey: '',
-    apiModel: props.defaultApiModel || '',
-    apiTimeout: props.defaultApiTimeout || '60',
-    saveApiConfig: true
-  };
-  
-  // 清除本地存储
-  if (window.localStorage) {
-    localStorage.removeItem('apiConfig');
-    message.success('已重置API配置并清除本地存储');
-  } else {
-    message.success('已重置API配置');
-  }
-  
-  connectionStatus.value = null;
-  emit('update:apiConfig', { ...apiConfig.value });
-}
-
-// 选择模型
-function selectModel(key: string) {
-  console.log('选择模型:', key);
-  apiConfig.value.apiModel = key;
-  
-  // 通知父组件
-  emit('update:apiConfig', { ...apiConfig.value });
-}
-
-// 显式保存配置的函数
-function saveConfig() {
-  saveApiConfigToLocalStorage({
-    apiUrl: apiConfig.value.apiUrl,
-    apiKey: apiConfig.value.apiKey,
-    apiModel: apiConfig.value.apiModel,
-    apiTimeout: apiConfig.value.apiTimeout,
-    saveApiConfig: true
-  });
-  message.success('已将配置保存到本地');
-}
-
-onMounted(() => {
-  // 加载保存的配置
-  const savedConfig = loadApiConfig();
-  
-  if (savedConfig.saveApiConfig) {
-    apiConfig.value = {
-      apiUrl: savedConfig.apiUrl || props.defaultApiUrl || '',
-      apiKey: savedConfig.apiKey || '',
-      apiModel: savedConfig.apiModel || props.defaultApiModel || '',
-      apiTimeout: savedConfig.apiTimeout || props.defaultApiTimeout || '60',
-      saveApiConfig: true
-    };
-    
-    // 通知父组件配置已加载
-    emit('update:apiConfig', { ...apiConfig.value });
-  }
+  },
 });
 </script>
 

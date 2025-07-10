@@ -1,30 +1,39 @@
 <template>
   <div class="stock-search-container">
-    <n-input
+    <NInput
+      ref="searchInputRef"
       v-model:value="searchKeyword"
       placeholder="输入代码或名称搜索"
       @input="handleSearchInput"
       @blur="handleBlur"
       @focus="handleFocus"
-      ref="searchInputRef"
     >
       <template #prefix>
-        <n-icon :component="SearchIcon" />
+        <NIcon :component="SearchIcon" />
       </template>
-    </n-input>
+    </NInput>
     
-    <div class="search-results mobile-search-results" v-show="showResults">
-      <div v-if="loading" class="loading-results">
-        <n-spin size="small" />
+    <div
+      v-show="showResults"
+      class="search-results mobile-search-results"
+    >
+      <div
+        v-if="loading"
+        class="loading-results"
+      >
+        <NSpin size="small" />
         <span>搜索中...</span>
       </div>
       
-      <div v-else-if="results.length === 0 && searchKeyword" class="no-results">
+      <div
+        v-else-if="results.length === 0 && searchKeyword"
+        class="no-results"
+      >
         未找到相关数据
       </div>
       
       <template v-else>
-        <n-scrollbar style="max-height: 300px;">
+        <NScrollbar style="max-height: 300px;">
           <div
             v-for="item in results"
             :key="item.symbol"
@@ -37,114 +46,143 @@
             </div>
             <div class="result-meta">
               <span class="result-market">{{ item.market }}</span>
-              <span v-if="item.market_value" class="result-market-value">
+              <span
+                v-if="item.market_value"
+                class="result-market-value"
+              >
                 市值: {{ formatMarketValue(item.market_value) }}
               </span>
             </div>
           </div>
-        </n-scrollbar>
+        </NScrollbar>
       </template>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { NInput, NIcon, NSpin, NScrollbar } from 'naive-ui';
-import { Search as SearchIcon } from '@vicons/ionicons5';
-import { apiService } from '@/services/api';
-import { debounce, formatMarketValue as formatMarketValueFn } from '@/utils';
-import type { SearchResult } from '@/types';
+<script lang="ts">
+import { apiService } from "@/services/api";
+import type { SearchResult } from "@/types";
+import { debounce, formatMarketValue as formatMarketValueFn } from "@/utils";
+import { Search as SearchIcon } from "@vicons/ionicons5";
+import { NIcon, NInput, NScrollbar, NSpin } from "naive-ui";
+import { defineComponent, onBeforeUnmount, onMounted, ref } from "vue";
 
-const props = defineProps<{
-  marketType: string;
-}>();
+export default defineComponent({
+  name: "StockSearch",
+  components: {
+    NInput,
+    NIcon,
+    NSpin,
+    NScrollbar,
+  },
+  props: {
+    marketType: {
+      type: String,
+      required: true,
+    },
+  },
+  emits: ["select"],
+  setup(props, { emit }) {
+    const searchKeyword = ref("");
+    const results = ref<SearchResult[]>([]);
+    const loading = ref(false);
+    const showResults = ref(false);
+    const searchInputRef = ref<any>(null);
 
-const emit = defineEmits<(e: 'select', symbol: string) => void>();
+    // 创建防抖搜索函数
+    const debouncedSearch = debounce(async (keyword: string) => {
+      if (!keyword) {
+        results.value = [];
+        loading.value = false;
+        return;
+      }
 
-const searchKeyword = ref('');
-const results = ref<SearchResult[]>([]);
-const loading = ref(false);
-const showResults = ref(false);
-const searchInputRef = ref<any>(null);
+      loading.value = true;
 
-// 创建防抖搜索函数
-const debouncedSearch = debounce(async (keyword: string) => {
-  if (!keyword) {
-    results.value = [];
-    loading.value = false;
-    return;
-  }
+      try {
+        if (props.marketType === "US") {
+          // 美股搜索
+          const searchResults = await apiService.searchUsStocks(keyword);
+          // 限制只显示前10个结果
+          results.value = searchResults.slice(0, 10);
+        } else {
+          // 基金搜索
+          const searchResults = await apiService.searchFunds(keyword);
+          // 限制只显示前10个结果
+          results.value = searchResults.slice(0, 10);
+        }
+      } catch (error) {
+        console.error("搜索数据时出错:", error);
+        results.value = [];
+      } finally {
+        loading.value = false;
+      }
+    }, 300);
 
-  loading.value = true;
-  
-  try {
-    if (props.marketType === 'US') {
-      // 美股搜索
-      const searchResults = await apiService.searchUsStocks(keyword);
-      // 限制只显示前10个结果
-      results.value = searchResults.slice(0, 10);
-    } else {
-      // 基金搜索
-      const searchResults = await apiService.searchFunds(keyword);
-      // 限制只显示前10个结果
-      results.value = searchResults.slice(0, 10);
+    function handleSearchInput() {
+      showResults.value = true;
+      debouncedSearch(searchKeyword.value);
     }
-  } catch (error) {
-    console.error('搜索数据时出错:', error);
-    results.value = [];
-  } finally {
-    loading.value = false;
-  }
-}, 300);
 
-function handleSearchInput() {
-  showResults.value = true;
-  debouncedSearch(searchKeyword.value);
-}
+    function selectStock(item: SearchResult) {
+      // 处理symbol，确保不包含序号
+      // 假设symbol格式可能是"1. AAPL"这样的格式，我们只需要"AAPL"部分
+      const cleanSymbol = item.symbol.replace(/^\d+\.\s*/, "");
+      emit("select", cleanSymbol);
+      searchKeyword.value = "";
+      showResults.value = false;
+    }
 
-function selectStock(item: SearchResult) {
-  // 处理symbol，确保不包含序号
-  // 假设symbol格式可能是"1. AAPL"这样的格式，我们只需要"AAPL"部分
-  const cleanSymbol = item.symbol.replace(/^\d+\.\s*/, '');
-  emit('select', cleanSymbol);
-  searchKeyword.value = '';
-  showResults.value = false;
-}
+    function handleBlur() {
+      // 延迟隐藏，以便可以点击结果项
+      setTimeout(() => {
+        showResults.value = false;
+      }, 200);
+    }
 
-function handleBlur() {
-  // 延迟隐藏，以便可以点击结果项
-  setTimeout(() => {
-    showResults.value = false;
-  }, 200);
-}
+    function handleFocus() {
+      if (searchKeyword.value) {
+        showResults.value = true;
+      }
+    }
 
-function handleFocus() {
-  if (searchKeyword.value) {
-    showResults.value = true;
-  }
-}
+    function formatMarketValue(value: number): string {
+      return formatMarketValueFn(value);
+    }
 
-function formatMarketValue(value: number): string {
-  return formatMarketValueFn(value);
-}
+    // 点击外部时隐藏搜索结果
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        searchInputRef.value &&
+        !searchInputRef.value.$el.contains(event.target as Node)
+      ) {
+        showResults.value = false;
+      }
+    }
 
-// 点击外部时隐藏搜索结果
-function handleClickOutside(event: MouseEvent) {
-  if (
-    searchInputRef.value &&
-    !searchInputRef.value.$el.contains(event.target as Node)
-  ) {
-    showResults.value = false;
-  }
-}
+    onMounted(() => {
+      document.addEventListener("click", handleClickOutside);
+    });
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
-});
+    onBeforeUnmount(() => {
+      document.removeEventListener("click", handleClickOutside);
+    });
 
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside);
+    return {
+      SearchIcon,
+      searchKeyword,
+      results,
+      loading,
+      showResults,
+      searchInputRef,
+      handleSearchInput,
+      selectStock,
+      handleBlur,
+      handleFocus,
+      formatMarketValue,
+    };
+  },
 });
 </script>
 
@@ -248,6 +286,5 @@ onBeforeUnmount(() => {
     padding: 0.75rem;
     font-size: 0.75rem;
   }
-
 }
 </style>

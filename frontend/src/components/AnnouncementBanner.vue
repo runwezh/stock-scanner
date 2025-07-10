@@ -1,41 +1,63 @@
 <template>
-  <div v-if="showAnnouncement" class="announcement-container mobile-announcement-container" :class="{ 'login-page-announcement mobile-login-announcement': isLoginPage }">
-    <n-card class="announcement-card mobile-card" :class="{ 'login-card-style': isLoginPage }">
+  <div
+    v-if="showAnnouncement"
+    class="announcement-container mobile-announcement-container"
+    :class="{ 'login-page-announcement mobile-login-announcement': isLoginPage }"
+  >
+    <NCard
+      class="announcement-card mobile-card"
+      :class="{ 'login-card-style': isLoginPage }"
+    >
       <template #header>
         <div class="announcement-header mobile-announcement-header">
-          <n-icon size="18" :component="InformationCircleIcon" class="info-icon" />
+          <NIcon
+            size="18"
+            :component="InformationCircleIcon"
+            class="info-icon"
+          />
           <span>系统公告</span>
         </div>
       </template>
-      <div class="announcement-content mobile-announcement-content" v-html="processedContent"></div>
-      <div class="announcement-timer mobile-announcement-timer">{{ remainingTimeText }}</div>
+      <div
+        class="announcement-content mobile-announcement-content"
+        v-html="processedContent"
+      />
+      <div class="announcement-timer mobile-announcement-timer">
+        {{ remainingTimeText }}
+      </div>
       <template #action>
-        <n-button quaternary circle size="small" @click="closeAnnouncement" class="mobile-touch-target">
+        <NButton
+          quaternary
+          circle
+          size="small"
+          class="mobile-touch-target"
+          @click="closeAnnouncement"
+        >
           <template #icon>
-            <n-icon :component="CloseIcon" />
+            <NIcon :component="CloseIcon" />
           </template>
-        </n-button>
+        </NButton>
       </template>
-    </n-card>
+    </NCard>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { NCard, NIcon, NButton } from 'naive-ui';
-import { InformationCircleOutline as InformationCircleIcon } from '@vicons/ionicons5';
-import { Close as CloseIcon } from '@vicons/ionicons5';
-import { useRoute } from 'vue-router';
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { NCard, NIcon, NButton } from "naive-ui";
+import { InformationCircleOutline as InformationCircleIcon } from "@vicons/ionicons5";
+import { Close as CloseIcon } from "@vicons/ionicons5";
+import { useRoute } from "vue-router";
 
 const props = defineProps<{
   content: string;
   autoCloseTime?: number;
 }>();
 
-const emit = defineEmits<(e: 'close') => void>();
+const emit = defineEmits<(e: "close") => void>();
 
 const route = useRoute();
-const isLoginPage = computed(() => route.path === '/login');
+const isLoginPage = computed(() => route.path === "/login");
 
 const showAnnouncement = ref(true);
 const remainingTime = ref(props.autoCloseTime || 5);
@@ -49,8 +71,8 @@ const processedContent = computed(() => {
   // 处理文本中的URL
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   return props.content.replace(
-    urlRegex, 
-    '<a href="$1" target="_blank" class="announcement-link">$1</a>'
+    urlRegex,
+    "<a href=\"$1\" target=\"_blank\" class=\"announcement-link\">$1</a>",
   );
 });
 
@@ -60,7 +82,7 @@ function closeAnnouncement() {
     window.clearInterval(timer.value);
     timer.value = null;
   }
-  emit('close');
+  emit("close");
 }
 
 function updateTimer() {
@@ -132,6 +154,7 @@ onBeforeUnmount(() => {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -152,4 +175,45 @@ onBeforeUnmount(() => {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .mobile-announcement-container {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    max-width: none;
+    z-index: 50;
+  }
+
+  .mobile-card {
+    margin: 0;
+    border-radius: 0.375rem;
+  }
+
+  .mobile-announcement-header {
+    font-size: 0.875rem;
+  }
+
+  .mobile-announcement-content {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .mobile-announcement-timer {
+    font-size: 0.75rem;
+  }
+
+  .mobile-touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mobile-login-announcement {
+    z-index: 1000;
+    top: 1rem;
+    left: 1rem;
+    right: 1rem;
+  }
+}
 </style>

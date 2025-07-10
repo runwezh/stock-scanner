@@ -1,38 +1,64 @@
 <template>
-  <div class="app-container mobile-bottom-extend">    <!-- 滑动菜单 -->
-    <div class="slide-menu-container" :class="{ 'menu-open': isMenuOpen }">
-      <div class="menu-overlay" @click="toggleMenu"></div>
+  <div class="app-container mobile-bottom-extend">
+    <!-- 滑动菜单 -->
+    <div
+      class="slide-menu-container"
+      :class="{ 'menu-open': isMenuOpen }"
+    >
+      <div
+        class="menu-overlay"
+        @click="toggleMenu"
+      />
       <div class="slide-menu">        
         <div class="menu-header">
-          <n-text strong>菜单</n-text>
+          <NText strong>
+            菜单
+          </NText>
         </div>
-        <n-button class="menu-item" @click="navigateToHome" style="background-color: #f0f0f0; margin: 4px 0;">
+        <NButton
+          class="menu-item"
+          style="background-color: #f0f0f0; margin: 4px 0;"
+          @click="navigateToHome"
+        >
           <template #icon>
-            <n-icon><HomeIcon /></n-icon>
+            <NIcon><HomeIcon /></NIcon>
           </template>
           首页
-        </n-button>
-        <n-button class="menu-item" @click="navigateToWatchlist" style="background-color: #e8f4fd; margin: 4px 0;">
+        </NButton>
+        <NButton
+          class="menu-item"
+          style="background-color: #e8f4fd; margin: 4px 0;"
+          @click="navigateToWatchlist"
+        >
           <template #icon>
-            <n-icon><HeartIcon /></n-icon>
+            <NIcon><HeartIcon /></NIcon>
           </template>
           自选股管理
-        </n-button>
-        <n-divider class="menu-divider" />
-        <n-button class="menu-item" @click="handleLogout" style="background-color: #ffe6e6; margin: 4px 0;">
+        </NButton>
+        <NDivider class="menu-divider" />
+        <NButton
+          class="menu-item"
+          style="background-color: #ffe6e6; margin: 4px 0;"
+          @click="handleLogout"
+        >
           <template #icon>
-            <n-icon><LogoutIcon /></n-icon>
+            <NIcon><LogoutIcon /></NIcon>
           </template>
           登出
-        </n-button>
+        </NButton>
       </div>
     </div>
-      <!-- 菜单按钮 -->
-    <n-button class="menu-button" circle @click="toggleMenu" style="background: #18a058 !important;">
+    <!-- 菜单按钮 -->
+    <NButton
+      class="menu-button"
+      circle
+      style="background: #18a058 !important;"
+      @click="toggleMenu"
+    >
       <template #icon>
-        <n-icon><MenuIcon /></n-icon>
+        <NIcon><MenuIcon /></NIcon>
       </template>
-    </n-button>
+    </NButton>
 
     
     <!-- 公告横幅 -->
@@ -43,9 +69,8 @@
       @close="handleAnnouncementClose"
     />
     
-    <n-layout class="main-layout">
-      <n-layout-content class="main-content mobile-content-container">
-        
+    <NLayout class="main-layout">
+      <NLayoutContent class="main-content mobile-content-container">
         <!-- 市场时间显示 -->
         <MarketTimeDisplay :is-mobile="isMobile" />
         
@@ -58,61 +83,74 @@
         />
         
         <!-- 主要内容 -->
-        <n-card class="analysis-container mobile-card mobile-card-spacing mobile-shadow">
-          
-          <n-grid cols="1 xl:24" :x-gap="16" :y-gap="16" responsive="screen">
+        <NCard class="analysis-container mobile-card mobile-card-spacing mobile-shadow">
+          <NGrid
+            cols="1 xl:24"
+            :x-gap="16"
+            :y-gap="16"
+            responsive="screen"
+          >
             <!-- 左侧配置区域 -->
-            <n-grid-item span="1 xl:8">
+            <NGridItem span="1 xl:8">
               <div class="config-section">
-                <n-form-item label="选择市场类型">
-                  <n-select
+                <NFormItem label="选择市场类型">
+                  <NSelect
                     v-model="marketType"
                     :options="marketOptions"
                     @update:value="handleMarketTypeChange"
                   />
-                </n-form-item>
+                </NFormItem>
                 
-                <n-form-item :label='marketType === "US" ? "股票搜索" : "基金搜索"' v-if="showSearch">
-                  <StockSearch :market-type="marketType" @select="addSelectedStock" />
-                </n-form-item>
+                <NFormItem
+                  v-if="showSearch"
+                  :label="marketType === 'US' ? '股票搜索' : '基金搜索'"
+                >
+                  <StockSearch
+                    :market-type="marketType"
+                    @select="addSelectedStock"
+                  />
+                </NFormItem>
                 
-                <n-form-item label="输入代码">
-                  <n-input
+                <NFormItem label="输入代码">
+                  <NInput
                     v-model:value="stockCodes"
                     type="textarea"
                     placeholder="输入股票、基金代码，多个代码用逗号、空格或换行分隔"
                     :autosize="{ minRows: 3, maxRows: 6 }"
                   />
-                </n-form-item>
+                </NFormItem>
                 
                 <div class="action-buttons">
-                  <n-button
+                  <NButton
                     type="primary"
                     :loading="isAnalyzing"
                     :disabled="!stockCodes.trim()"
                     @click="analyzeStocks"
                   >
                     {{ isAnalyzing ? '分析中...' : '开始分析' }}
-                  </n-button>
+                  </NButton>
                   
-                  <n-button
+                  <NButton
                     :disabled="analyzedStocks.length === 0"
                     @click="copyAnalysisResults"
                   >
                     复制结果
-                  </n-button>
+                  </NButton>
                 </div>
               </div>
-            </n-grid-item>
+            </NGridItem>
             
             <!-- 右侧结果区域 -->
-            <n-grid-item span="1 xl:16">
+            <NGridItem span="1 xl:16">
               <div class="results-section">
                 <div class="results-header">
-                  <n-space align="center" justify="space-between">
-                    <n-text>分析结果 ({{ analyzedStocks.length }})</n-text>
-                    <n-space>
-                      <n-select 
+                  <NSpace
+                    align="center"
+                    justify="space-between"
+                  >
+                    <NText>分析结果 ({{ analyzedStocks.length }})</NText>
+                    <NSpace>
+                      <NSelect 
                         v-model="displayMode" 
                         size="small" 
                         style="width: 120px"
@@ -121,51 +159,65 @@
                           { label: '表格视图', value: 'table' }
                         ]"
                       />
-                      <n-button 
+                      <NButton 
                         size="small" 
                         :disabled="analyzedStocks.length === 0"
                         @click="copyAnalysisResults"
                       >
                         复制结果
-                      </n-button>
-                      <n-dropdown 
+                      </NButton>
+                      <NDropdown 
                         trigger="click" 
                         :disabled="analyzedStocks.length === 0"
                         :options="exportOptions"
                         @select="handleExportSelect"
                       >
-                        <n-button size="small" :disabled="analyzedStocks.length === 0">
+                        <NButton
+                          size="small"
+                          :disabled="analyzedStocks.length === 0"
+                        >
                           导出
                           <template #icon>
-                            <n-icon>
+                            <NIcon>
                               <DownloadIcon />
-                            </n-icon>
+                            </NIcon>
                           </template>
-                        </n-button>
-                      </n-dropdown>
-                    </n-space>
-                  </n-space>
+                        </NButton>
+                      </NDropdown>
+                    </NSpace>
+                  </NSpace>
                 </div>
                 
                 <template v-if="analyzedStocks.length === 0 && !isAnalyzing">
-                  <n-empty description="尚未分析股票" size="large">
+                  <NEmpty
+                    description="尚未分析股票"
+                    size="large"
+                  >
                     <template #icon>
-                      <n-icon :component="DocumentTextIcon" />
+                      <NIcon :component="DocumentTextIcon" />
                     </template>
-                  </n-empty>
+                  </NEmpty>
                 </template>
                 
                 <template v-else-if="displayMode === 'card'">
-                  <n-grid cols="1" :x-gap="8" :y-gap="8" responsive="screen">
-                    <n-grid-item v-for="stock in analyzedStocks" :key="stock.code">
+                  <NGrid
+                    cols="1"
+                    :x-gap="8"
+                    :y-gap="8"
+                    responsive="screen"
+                  >
+                    <NGridItem
+                      v-for="stock in analyzedStocks"
+                      :key="stock.code"
+                    >
                       <StockCard :stock="stock" />
-                    </n-grid-item>
-                  </n-grid>
+                    </NGridItem>
+                  </NGrid>
                 </template>
                 
                 <template v-else>
                   <div class="table-container">
-                    <n-data-table
+                    <NDataTable
                       :columns="stockTableColumns"
                       :data="analyzedStocks"
                       :pagination="{ pageSize: 10 }"
@@ -178,58 +230,62 @@
                   </div>
                 </template>
               </div>
-            </n-grid-item>
-          </n-grid>
-        </n-card>
-
-      </n-layout-content>
-    </n-layout>
+            </NGridItem>
+          </NGrid>
+        </NCard>
+      </NLayoutContent>
+    </NLayout>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
-import {
-  NLayout,
-  NLayoutContent,
-  NCard,
-  NIcon,
-  NGrid,
-  NGridItem,
-  NFormItem,
-  NSelect,
-  NInput,
-  NButton,
-  NEmpty,
-  useMessage,
-  NSpace,
-  NText,
-  NDataTable,
-  NDropdown,
-  NDivider,
-  type DataTableColumns
-} from 'naive-ui';
-import { useClipboard } from '@vueuse/core'
-import { useRouter } from 'vue-router';
 import {
   DocumentTextOutline as DocumentTextIcon,
   DownloadOutline as DownloadIcon,
-  MenuOutline as MenuIcon,
-  LogOutOutline as LogoutIcon,
-  HomeOutline as HomeIcon,
   HeartOutline as HeartIcon,
-} from '@vicons/ionicons5';
+  HomeOutline as HomeIcon,
+  LogOutOutline as LogoutIcon,
+  MenuOutline as MenuIcon,
+} from "@vicons/ionicons5";
+import { useClipboard } from "@vueuse/core";
+import {
+  type DataTableColumns,
+  NButton,
+  NCard,
+  NDataTable,
+  NDivider,
+  NDropdown,
+  NEmpty,
+  NFormItem,
+  NGrid,
+  NGridItem,
+  NIcon,
+  NInput,
+  NLayout,
+  NLayoutContent,
+  NSelect,
+  NSpace,
+  NText,
+  useMessage,
+} from "naive-ui";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 
-import MarketTimeDisplay from './MarketTimeDisplay.vue';
-import ApiConfigPanel from './ApiConfigPanel.vue';
-import StockSearch from './StockSearch.vue';
-import StockCard from './StockCard.vue';
-import AnnouncementBanner from './AnnouncementBanner.vue';
+import AnnouncementBanner from "./AnnouncementBanner.vue";
+import ApiConfigPanel from "./ApiConfigPanel.vue";
+import MarketTimeDisplay from "./MarketTimeDisplay.vue";
+import StockCard from "./StockCard.vue";
+import StockSearch from "./StockSearch.vue";
 
-import { apiService } from '@/services/api';
-import type { StockInfo, ApiConfig, StreamInitMessage, StreamAnalysisUpdate } from '@/types';
-import { loadApiConfig } from '@/utils';
-import { validateMultipleStockCodes, MarketType } from '@/utils/stockValidator';
+import { apiService } from "@/services/api";
+import type {
+  ApiConfig,
+  StockInfo,
+  StreamAnalysisUpdate,
+  StreamInitMessage,
+} from "@/types";
+import { loadApiConfig } from "@/utils";
+import { MarketType, validateMultipleStockCodes } from "@/utils/stockValidator";
 
 // 使用Naive UI的组件API
 const message = useMessage();
@@ -241,13 +297,18 @@ const isMenuOpen = ref(false);
 
 // 切换菜单
 function toggleMenu() {
-  console.log('切换菜单状态，当前状态:', isMenuOpen.value, '新状态:', !isMenuOpen.value);
+  console.log(
+    "切换菜单状态，当前状态:",
+    isMenuOpen.value,
+    "新状态:",
+    !isMenuOpen.value,
+  );
   isMenuOpen.value = !isMenuOpen.value;
 }
 
 // 处理登出
 function handleLogout() {
-  localStorage.removeItem('token');
+  localStorage.removeItem("token");
   window.location.reload();
 }
 
@@ -260,30 +321,30 @@ function navigateToHome() {
 // 导航到自选股管理
 function navigateToWatchlist() {
   toggleMenu();
-  router.push('/watchlist');
+  router.push("/watchlist");
 }
 
 // 从环境变量获取的默认配置
-const defaultApiUrl = ref('');
-const defaultApiModel = ref('');
-const defaultApiTimeout = ref('60');
-const announcement = ref('');
+const defaultApiUrl = ref("");
+const defaultApiModel = ref("");
+const defaultApiTimeout = ref("60");
+const announcement = ref("");
 const showAnnouncementBanner = ref(true);
 
 // 股票分析配置
-const marketType = ref('A');
-const stockCodes = ref('');
+const marketType = ref("A");
+const stockCodes = ref("");
 const isAnalyzing = ref(false);
 const analyzedStocks = ref<StockInfo[]>([]);
-const displayMode = ref<'card' | 'table'>('card');
+const displayMode = ref<"card" | "table">("card");
 
 // API配置
 const apiConfig = ref<ApiConfig>({
-  apiUrl: '',
-  apiKey: '',
-  apiModel: '',
-  apiTimeout: '60',
-  saveApiConfig: false
+  apiUrl: "",
+  apiKey: "",
+  apiModel: "",
+  apiTimeout: "60",
+  saveApiConfig: false,
 });
 
 // 移动端检测
@@ -299,8 +360,10 @@ function handleResize() {
 
 // 显示系统公告
 const showAnnouncement = (content: string) => {
-  if (!content) return;
-  
+  if (!content) {
+    return;
+  }
+
   // 使用AnnouncementBanner组件显示公告
   announcement.value = content;
   showAnnouncementBanner.value = true;
@@ -308,56 +371,58 @@ const showAnnouncement = (content: string) => {
 
 // 市场选项
 const marketOptions = [
-  { label: 'A股', value: 'A' },
-  { label: '港股', value: 'HK' },
-  { label: '美股', value: 'US', showSearch: true },
-  { label: 'ETF', value: 'ETF', showSearch: true  },
-  { label: 'LOF', value: 'LOF', showSearch: true  }
+  { label: "A股", value: "A" },
+  { label: "港股", value: "HK" },
+  { label: "美股", value: "US", showSearch: true },
+  { label: "ETF", value: "ETF", showSearch: true },
+  { label: "LOF", value: "LOF", showSearch: true },
 ];
 
 // 表格列定义
 const stockTableColumns = ref<DataTableColumns<StockInfo>>([
   {
-    title: '代码',
-    key: 'code',
+    title: "代码",
+    key: "code",
     width: 100,
-    fixed: 'left'
+    fixed: "left",
   },
   {
-    title: '状态',
-    key: 'analysisStatus',
+    title: "状态",
+    key: "analysisStatus",
     width: 100,
     render(row: StockInfo) {
       const statusMap = {
-        'waiting': '等待分析',
-        'analyzing': '分析中',
-        'completed': '已完成',
-        'error': '出错'
+        waiting: "等待分析",
+        analyzing: "分析中",
+        completed: "已完成",
+        error: "出错",
       };
       return statusMap[row.analysisStatus] || row.analysisStatus;
-    }
+    },
   },
   {
-    title: '价格',
-    key: 'price',
+    title: "价格",
+    key: "price",
     width: 100,
     render(row: StockInfo) {
-      return row.price !== undefined ? row.price.toFixed(2) : '--';
-    }
+      return row.price !== undefined ? row.price.toFixed(2) : "--";
+    },
   },
   {
-    title: '涨跌额',
-    key: 'price_change',
+    title: "涨跌额",
+    key: "price_change",
     width: 100,
     render(row: StockInfo) {
-      if (row.price_change === undefined) return '--';
-      const sign = row.price_change > 0 ? '+' : '';
+      if (row.price_change === undefined) {
+        return "--";
+      }
+      const sign = row.price_change > 0 ? "+" : "";
       return `${sign}${row.price_change.toFixed(2)}`;
-    }
+    },
   },
   {
-    title: '涨跌幅',
-    key: 'changePercent',
+    title: "涨跌幅",
+    key: "changePercent",
     width: 100,
     render(row: StockInfo) {
       if (row.changePercent === undefined) {
@@ -366,110 +431,116 @@ const stockTableColumns = ref<DataTableColumns<StockInfo>>([
           const basePrice = row.price - row.price_change;
           if (basePrice !== 0) {
             const calculatedPercent = (row.price_change / basePrice) * 100;
-            const sign = calculatedPercent > 0 ? '+' : '';
+            const sign = calculatedPercent > 0 ? "+" : "";
             return `${sign}${calculatedPercent.toFixed(2)}%`;
           }
         }
-        return '--';
+        return "--";
       }
-      const sign = row.changePercent > 0 ? '+' : '';
+      const sign = row.changePercent > 0 ? "+" : "";
       return `${sign}${row.changePercent.toFixed(2)}%`;
-    }
+    },
   },
   {
-    title: 'RSI',
-    key: 'rsi',
+    title: "RSI",
+    key: "rsi",
     width: 80,
     render(row: StockInfo) {
-      return row.rsi !== undefined ? row.rsi.toFixed(2) : '--';
-    }
+      return row.rsi !== undefined ? row.rsi.toFixed(2) : "--";
+    },
   },
   {
-    title: '均线趋势',
-    key: 'ma_trend',
+    title: "均线趋势",
+    key: "ma_trend",
     width: 100,
     render(row: StockInfo) {
       const trendMap: Record<string, string> = {
-        'UP': '上升',
-        'DOWN': '下降',
-        'NEUTRAL': '平稳'
+        UP: "上升",
+        DOWN: "下降",
+        NEUTRAL: "平稳",
       };
-      return row.ma_trend ? trendMap[row.ma_trend] || row.ma_trend : '--';
-    }
+      return row.ma_trend ? trendMap[row.ma_trend] || row.ma_trend : "--";
+    },
   },
   {
-    title: 'MACD信号',
-    key: 'macd_signal',
+    title: "MACD信号",
+    key: "macd_signal",
     width: 100,
     render(row: StockInfo) {
       const signalMap: Record<string, string> = {
-        'BUY': '买入',
-        'SELL': '卖出',
-        'HOLD': '持有',
-        'NEUTRAL': '中性'
+        BUY: "买入",
+        SELL: "卖出",
+        HOLD: "持有",
+        NEUTRAL: "中性",
       };
-      return row.macd_signal ? signalMap[row.macd_signal] || row.macd_signal : '--';
-    }
+      return row.macd_signal
+        ? signalMap[row.macd_signal] || row.macd_signal
+        : "--";
+    },
   },
   {
-    title: '评分',
-    key: 'score',
+    title: "评分",
+    key: "score",
     width: 80,
     render(row: StockInfo) {
-      return row.score !== undefined ? row.score : '--';
-    }
+      return row.score !== undefined ? row.score : "--";
+    },
   },
   {
-    title: '推荐',
-    key: 'recommendation',
-    width: 100
+    title: "推荐",
+    key: "recommendation",
+    width: 100,
   },
   {
-    title: '分析日期',
-    key: 'analysis_date',
+    title: "分析日期",
+    key: "analysis_date",
     width: 120,
     render(row: StockInfo) {
-      if (!row.analysis_date) return '--';
+      if (!row.analysis_date) {
+        return "--";
+      }
       try {
         const date = new Date(row.analysis_date);
         if (Number.isNaN(date.getTime())) {
           return row.analysis_date;
         }
-        return date.toISOString().split('T')[0];
-      } catch (e) {
+        return date.toISOString().split("T")[0];
+      } catch {
         return row.analysis_date;
       }
-    }
+    },
   },
   {
-    title: '分析结果',
-    key: 'analysis',
+    title: "分析结果",
+    key: "analysis",
     ellipsis: {
-      tooltip: true
+      tooltip: true,
     },
     width: 300,
-    className: 'analysis-cell'
-  }
+    className: "analysis-cell",
+  },
 ]);
 
 // 导出选项
 const exportOptions = [
   {
-    label: '导出为CSV',
-    key: 'csv'
+    label: "导出为CSV",
+    key: "csv",
   },
   {
-    label: '导出为Excel',
-    key: 'excel'
+    label: "导出为Excel",
+    key: "excel",
   },
   {
-    label: '导出为PDF',
-    key: 'pdf'
-  }
+    label: "导出为PDF",
+    key: "pdf",
+  },
 ];
 
-const showSearch = computed(() => 
-  marketOptions.find(option => option.value === marketType.value)?.showSearch
+const showSearch = computed(
+  () =>
+    marketOptions.find((option) => option.value === marketType.value)
+      ?.showSearch,
 );
 
 // 更新API配置
@@ -479,15 +550,15 @@ function updateApiConfig(config: ApiConfig) {
 
 // 处理市场类型变更
 function handleMarketTypeChange() {
-  stockCodes.value = '';
+  stockCodes.value = "";
   analyzedStocks.value = [];
 }
 
 // 添加选择的股票
 function addSelectedStock(symbol: string) {
   // 确保symbol不包含序号或其他不需要的信息
-  const cleanSymbol = symbol.trim().replace(/^\d+\.\s*/, '');
-  
+  const cleanSymbol = symbol.trim().replace(/^\d+\.\s*/, "");
+
   if (stockCodes.value) {
     stockCodes.value += `, ${cleanSymbol}`;
   } else {
@@ -500,83 +571,97 @@ function processStreamData(text: string) {
   try {
     // 尝试解析为JSON
     const data = JSON.parse(text);
-    
+
     // 判断是初始消息还是更新消息
-    if (data.stream_type === 'single' || data.stream_type === 'batch') {
+    if (data.stream_type === "single" || data.stream_type === "batch") {
       // 初始消息
       handleStreamInit(data as StreamInitMessage);
     } else if (data.stock_code) {
       // 更新消息
       handleStreamUpdate(data as StreamAnalysisUpdate);
     } else if (data.scan_completed) {
-       // 批量扫描完成的总结消息
+      // 批量扫描完成的总结消息
       let summaryMessage = "批量分析完成。";
       if (data.original_codes_count !== undefined) {
         summaryMessage += ` 原始请求 ${data.original_codes_count} 个代码。`;
       }
-      if (data.duplicates_excluded_count !== undefined && data.duplicates_excluded_count > 0) {
+      if (
+        data.duplicates_excluded_count !== undefined &&
+        data.duplicates_excluded_count > 0
+      ) {
         summaryMessage += ` 已排除 ${data.duplicates_excluded_count} 个重复代码。`;
       }
-      if (data.unique_codes_processed_count !== undefined) { // Changed from total_scanned
+      if (data.unique_codes_processed_count !== undefined) {
+        // Changed from total_scanned
         summaryMessage += ` 实际分析 ${data.unique_codes_processed_count} 个唯一代码。`;
       }
-      if (data.total_analyzed_successfully !== undefined) { // Changed from total_matched
+      if (data.total_analyzed_successfully !== undefined) {
+        // Changed from total_matched
         summaryMessage += ` 成功分析 ${data.total_analyzed_successfully} 个。`;
       }
-      message.success(summaryMessage.trim(),{ duration: 5000 });
+      message.success(summaryMessage.trim(), { duration: 5000 });
       // 扫描完成消息
       // message.success(`分析完成，共扫描 ${data.total_scanned} 只股票，符合条件 ${data.total.matched} 只`);
-      
+
       // 将所有分析中的股票状态更新为已完成
-      analyzedStocks.value = analyzedStocks.value.map(stock => {
-        if (stock.analysisStatus === 'analyzing') {
-          return { 
-            ...stock, 
-            analysisStatus: 'completed' as const 
+      analyzedStocks.value = analyzedStocks.value.map((stock) => {
+        if (stock.analysisStatus === "analyzing") {
+          return {
+            ...stock,
+            analysisStatus: "completed" as const,
           };
         }
         return stock;
       });
-      
+
       isAnalyzing.value = false;
     }
   } catch (e) {
-    console.error('解析流数据出错:', e);
+    console.error("解析流数据出错:", e);
   }
 }
 
 // 处理流式初始化消息
 function handleStreamInit(data: StreamInitMessage) {
-  if (data.stream_type === 'single' && data.stock_code) {
+  if (data.stream_type === "single" && data.stock_code) {
     // 单个股票分析
-    analyzedStocks.value = [{
-      code: data.stock_code,
-      name: '',
-      marketType: marketType.value,
-      analysisStatus: 'waiting'
-    }];
-  } else if (data.stream_type === 'batch' && data.stock_codes) {
+    analyzedStocks.value = [
+      {
+        code: data.stock_code,
+        name: "",
+        marketType: marketType.value,
+        analysisStatus: "waiting",
+      },
+    ];
+  } else if (data.stream_type === "batch" && data.stock_codes) {
     // 批量分析
-    analyzedStocks.value = data.stock_codes.map(code => ({
+    analyzedStocks.value = data.stock_codes.map((code) => ({
       code,
-      name: '',
+      name: "",
       marketType: marketType.value,
-      analysisStatus: 'waiting'
+      analysisStatus: "waiting",
     }));
   }
 }
 
 // 处理流式更新消息
 function handleStreamUpdate(data: StreamAnalysisUpdate) {
-  const stockIndex = analyzedStocks.value.findIndex((s: StockInfo) => s.code === data.stock_code);
-  
+  const stockIndex = analyzedStocks.value.findIndex(
+    (s: StockInfo) => s.code === data.stock_code,
+  );
+
   if (stockIndex >= 0) {
     const stock = { ...analyzedStocks.value[stockIndex] };
-    
+
     // 确保所有数值类型的字段都有默认值
     stock.price = data.price ?? stock.price ?? undefined;
-    stock.price_change = data.price_change_value ?? data.price_change ?? stock.price_change ?? undefined;
-    stock.changePercent = data.change_percent ?? stock.changePercent ?? undefined;
+    stock.price_change =
+      data.price_change_value ??
+      data.price_change ??
+      stock.price_change ??
+      undefined;
+    stock.changePercent =
+      data.change_percent ?? stock.changePercent ?? undefined;
     stock.marketValue = data.market_value ?? stock.marketValue ?? undefined;
     stock.score = data.score ?? stock.score ?? undefined;
     stock.rsi = data.rsi ?? stock.rsi ?? undefined;
@@ -585,49 +670,49 @@ function handleStreamUpdate(data: StreamAnalysisUpdate) {
     if (data.status) {
       stock.analysisStatus = data.status;
     }
-    
+
     // 如果有分析结果，则更新
     if (data.analysis !== undefined) {
       stock.analysis = data.analysis;
     }
-    
+
     // 处理AI分析片段
     if (data.ai_analysis_chunk !== undefined) {
-      stock.analysis = (stock.analysis || '') + data.ai_analysis_chunk;
-      stock.analysisStatus = 'analyzing';
+      stock.analysis = (stock.analysis || "") + data.ai_analysis_chunk;
+      stock.analysisStatus = "analyzing";
     }
-    
+
     // 如果有错误，则更新
     if (data.error !== undefined) {
       stock.error = data.error;
-      stock.analysisStatus = 'error';
+      stock.analysisStatus = "error";
     }
-    
+
     // 更新其他字段
     if (data.name !== undefined) {
       stock.name = data.name;
     }
-    
+
     if (data.recommendation !== undefined) {
       stock.recommendation = data.recommendation;
     }
-    
+
     if (data.ma_trend !== undefined) {
       stock.ma_trend = data.ma_trend;
     }
-    
+
     if (data.macd_signal !== undefined) {
       stock.macd_signal = data.macd_signal;
     }
-    
+
     if (data.volume_status !== undefined) {
       stock.volume_status = data.volume_status;
     }
-    
+
     if (data.analysis_date !== undefined) {
       stock.analysis_date = data.analysis_date;
     }
-    
+
     // 使用Vue的响应式API更新数组
     analyzedStocks.value[stockIndex] = stock;
   }
@@ -636,159 +721,167 @@ function handleStreamUpdate(data: StreamAnalysisUpdate) {
 // 分析股票
 async function analyzeStocks() {
   if (!stockCodes.value.trim()) {
-    message.warning('请输入股票代码');
+    message.warning("请输入股票代码");
     return;
   }
-  
+
   // 解析股票代码
   const codes = stockCodes.value
     .split(/[,\s\n]+/)
     .map((code: string) => code.trim())
     .filter((code: string) => code);
-  
+
   if (codes.length === 0) {
-    message.warning('未找到有效的股票代码');
+    message.warning("未找到有效的股票代码");
     return;
   }
-  
+
   // 去除重复的股票代码
   const uniqueCodes = Array.from(new Set(codes));
-  
+
   // 检查是否有重复代码被移除
   if (uniqueCodes.length < codes.length) {
-    message.info(`已自动去除${codes.length - uniqueCodes.length}个重复的股票代码`);
+    message.info(
+      `已自动去除${codes.length - uniqueCodes.length}个重复的股票代码`,
+    );
   }
-  
+
   // 在前端验证股票代码
   const marketTypeEnum = marketType.value as keyof typeof MarketType;
   const invalidCodes = validateMultipleStockCodes(
-    uniqueCodes, 
-    MarketType[marketTypeEnum]
+    uniqueCodes,
+    MarketType[marketTypeEnum],
   );
-  
+
   // 如果有无效代码，显示错误信息并返回
   if (invalidCodes.length > 0) {
-    const errorMessages = invalidCodes.map(item => item.errorMessage).join('\n');
+    const errorMessages = invalidCodes
+      .map((item) => item.errorMessage)
+      .join("\n");
     message.error(`股票代码验证失败:${errorMessages}`);
     return;
   }
-  
+
   isAnalyzing.value = true;
   analyzedStocks.value = [];
-  
+
   try {
     // 构建请求参数
     const requestData = {
       stock_codes: uniqueCodes,
-      market_type: marketType.value
+      market_type: marketType.value,
     } as any;
-    
+
     // 添加自定义API配置
     if (apiConfig.value.apiUrl) {
       requestData.api_url = apiConfig.value.apiUrl;
     }
-    
+
     if (apiConfig.value.apiKey) {
       requestData.api_key = apiConfig.value.apiKey;
     }
-    
+
     if (apiConfig.value.apiModel) {
       requestData.api_model = apiConfig.value.apiModel;
     }
-    
+
     if (apiConfig.value.apiTimeout) {
       requestData.api_timeout = apiConfig.value.apiTimeout;
     }
-    
+
     // 获取身份验证令牌
-    const token = localStorage.getItem('token');
-    
+    const token = localStorage.getItem("token");
+
     // 构建请求头
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
+      "Content-Type": "application/json",
     };
-    
+
     // 如果有令牌，添加到请求头
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
-    
+
     // 发送分析请求
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
+    const response = await fetch("/api/analyze", {
+      method: "POST",
       headers,
-      body: JSON.stringify(requestData)
+      body: JSON.stringify(requestData),
     });
-    
+
     if (!response.ok) {
       if (response.status === 401) {
-        message.error('未授权访问，请登录后再试');
+        message.error("未授权访问，请登录后再试");
         // 可以在这里触发登录流程
         return;
       }
       if (response.status === 404) {
-        throw new Error('服务器接口未找到，请检查服务是否正常运行');
+        throw new Error("服务器接口未找到，请检查服务是否正常运行");
       }
       throw new Error(`服务器响应错误: ${response.status}`);
     }
-    
+
     // 处理流式响应
     const reader = response.body?.getReader();
     if (!reader) {
-      throw new Error('无法读取响应流');
+      throw new Error("无法读取响应流");
     }
-    
+
     const decoder = new TextDecoder();
-    let buffer = '';
-    
+    let buffer = "";
+
     while (true) {
       const { done, value } = await reader.read();
-      
+
       if (done) {
         break;
       }
-      
+
       // 解码并处理数据
       const text = decoder.decode(value, { stream: true });
       buffer += text;
-      
+
       // 按行处理数据
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // 最后一行可能不完整，保留到下一次
-      
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || ""; // 最后一行可能不完整，保留到下一次
+
       for (const line of lines) {
         if (line.trim()) {
           try {
             processStreamData(line);
-          } catch (e:  unknown) {
-            console.error('处理数据流时出错:', e);
-            message.error(`处理数据时出错: ${e instanceof Error ? e.message : '未知错误'}`);
+          } catch (e: unknown) {
+            console.error("处理数据流时出错:", e);
+            message.error(
+              `处理数据时出错: ${e instanceof Error ? e.message : "未知错误"}`,
+            );
           }
         }
       }
     }
-    
+
     // 处理最后可能剩余的数据
     if (buffer.trim()) {
       try {
         processStreamData(buffer);
       } catch (e: unknown) {
-        console.error('处理最后的数据块时出错:', e);
-        message.error(`处理数据时出错: ${e instanceof Error ? e.message : '未知错误'}`);
+        console.error("处理最后的数据块时出错:", e);
+        message.error(
+          `处理数据时出错: ${e instanceof Error ? e.message : "未知错误"}`,
+        );
       }
     }
-    
-    message.success('分析完成',{ duration: 3000 });
+
+    message.success("分析完成", { duration: 3000 });
   } catch (error: any) {
-    let errorMessage = '分析出错: ';
-    if (error.message.includes('404')) {
-      errorMessage += '服务器接口未找到，请确保后端服务正常运行';
+    let errorMessage = "分析出错: ";
+    if (error.message.includes("404")) {
+      errorMessage += "服务器接口未找到，请确保后端服务正常运行";
     } else {
-      errorMessage += error.message || '未知错误';
+      errorMessage += error.message || "未知错误";
     }
     message.error(errorMessage);
-    console.error('分析股票时出错:', error);
-    
+    console.error("分析股票时出错:", error);
+
     // 清空分析状态
     analyzedStocks.value = [];
   } finally {
@@ -799,99 +892,99 @@ async function analyzeStocks() {
 // 复制分析结果
 async function copyAnalysisResults() {
   if (analyzedStocks.value.length === 0) {
-    message.warning('没有可复制的分析结果');
+    message.warning("没有可复制的分析结果");
     return;
   }
-  
+
   try {
     // 格式化分析结果
     const formattedResults = analyzedStocks.value
-      .filter((stock: StockInfo) => stock.analysisStatus === 'completed')
+      .filter((stock: StockInfo) => stock.analysisStatus === "completed")
       .map((stock: StockInfo) => {
-        let result = `【${stock.code} ${stock.name || ''}】\n`;
-        
+        let result = `【${stock.code} ${stock.name || ""}】\n`;
+
         // 添加分析日期
         if (stock.analysis_date) {
           try {
             const date = new Date(stock.analysis_date);
             if (!Number.isNaN(date.getTime())) {
-              result += `分析日期: ${date.toISOString().split('T')[0]}\n`;
+              result += `分析日期: ${date.toISOString().split("T")[0]}\n`;
             } else {
               result += `分析日期: ${stock.analysis_date}\n`;
             }
-          } catch (e) {
+          } catch {
             result += `分析日期: ${stock.analysis_date}\n`;
           }
         }
-        
+
         // 添加评分和推荐信息
         if (stock.score !== undefined) {
           result += `评分: ${stock.score}\n`;
         }
-        
+
         if (stock.recommendation) {
           result += `推荐: ${stock.recommendation}\n`;
         }
-        
+
         // 添加技术指标信息
         if (stock.rsi !== undefined) {
           result += `RSI: ${stock.rsi.toFixed(2)}\n`;
         }
-        
+
         if (stock.price_change !== undefined) {
-          const sign = stock.price_change > 0 ? '+' : '';
+          const sign = stock.price_change > 0 ? "+" : "";
           result += `涨跌额: ${sign}${stock.price_change.toFixed(2)}\n`;
         }
-        
+
         if (stock.ma_trend) {
           const trendMap: Record<string, string> = {
-            'UP': '上升',
-            'DOWN': '下降',
-            'NEUTRAL': '平稳'
+            UP: "上升",
+            DOWN: "下降",
+            NEUTRAL: "平稳",
           };
           const trend = trendMap[stock.ma_trend] || stock.ma_trend;
           result += `均线趋势: ${trend}\n`;
         }
-        
+
         if (stock.macd_signal) {
           const signalMap: Record<string, string> = {
-            'BUY': '买入',
-            'SELL': '卖出',
-            'HOLD': '持有',
-            'NEUTRAL': '中性'
+            BUY: "买入",
+            SELL: "卖出",
+            HOLD: "持有",
+            NEUTRAL: "中性",
           };
           const signal = signalMap[stock.macd_signal] || stock.macd_signal;
           result += `MACD信号: ${signal}\n`;
         }
-        
+
         if (stock.volume_status) {
           const statusMap: Record<string, string> = {
-            'HIGH': '放量',
-            'LOW': '缩量',
-            'NORMAL': '正常'
+            HIGH: "放量",
+            LOW: "缩量",
+            NORMAL: "正常",
           };
           const status = statusMap[stock.volume_status] || stock.volume_status;
           result += `成交量: ${status}\n`;
         }
-        
+
         // 添加分析结果
-        result += `\n${stock.analysis || '无分析结果'}\n`;
-        
+        result += `\n${stock.analysis || "无分析结果"}\n`;
+
         return result;
       })
-      .join('\n');
-    
+      .join("\n");
+
     if (!formattedResults) {
-      message.warning('没有已完成的分析结果可复制');
+      message.warning("没有已完成的分析结果可复制");
       return;
     }
-    
+
     // 复制到剪贴板
     await copy(formattedResults);
-    message.success('已复制分析结果到剪贴板');
+    message.success("已复制分析结果到剪贴板");
   } catch (error) {
-    message.error('复制失败，请手动复制');
-    console.error('复制分析结果时出错:', error);
+    message.error("复制失败，请手动复制");
+    console.error("复制分析结果时出错:", error);
   }
 }
 
@@ -901,13 +994,13 @@ function restoreLocalApiConfig() {
   //  if (savedConfig && savedConfig.saveApiConfig) {
   if (savedConfig?.saveApiConfig) {
     apiConfig.value = {
-      apiUrl: savedConfig.apiUrl || '',
-      apiKey: savedConfig.apiKey || '',
+      apiUrl: savedConfig.apiUrl || "",
+      apiKey: savedConfig.apiKey || "",
       apiModel: savedConfig.apiModel || defaultApiModel.value,
       apiTimeout: savedConfig.apiTimeout || defaultApiTimeout.value,
-      saveApiConfig: savedConfig.saveApiConfig
+      saveApiConfig: savedConfig.saveApiConfig,
     };
-    
+
     // 通知父组件配置已更新
     updateApiConfig(apiConfig.value);
   }
@@ -916,81 +1009,98 @@ function restoreLocalApiConfig() {
 // 处理导出选择
 function handleExportSelect(key: string) {
   switch (key) {
-    case 'csv':
-      exportToCSV();
-      break;
-    case 'excel':
-      message.info('Excel导出功能即将推出');
-      break;
-    case 'pdf':
-      message.info('PDF导出功能即将推出');
-      break;
+  case "csv":
+    exportToCSV();
+    break;
+  case "excel":
+    message.info("Excel导出功能即将推出");
+    break;
+  case "pdf":
+    message.info("PDF导出功能即将推出");
+    break;
   }
 }
 
 // 导出为CSV
 function exportToCSV() {
   if (analyzedStocks.value.length === 0) {
-    message.warning('没有可导出的分析结果');
+    message.warning("没有可导出的分析结果");
     return;
   }
-  
+
   try {
     // 创建CSV内容
-    const headers = ['代码', '名称', '价格', '涨跌幅', 'RSI', '均线趋势', 'MACD信号', '成交量状态', '评分', '推荐', '分析日期'];
-    let csvContent = `${headers.join(',')}\n`;
-    
+    const headers = [
+      "代码",
+      "名称",
+      "价格",
+      "涨跌幅",
+      "RSI",
+      "均线趋势",
+      "MACD信号",
+      "成交量状态",
+      "评分",
+      "推荐",
+      "分析日期",
+    ];
+    let csvContent = `${headers.join(",")}\n`;
+
     // 添加数据行
-    
-    analyzedStocks.value.forEach(stock => {
+
+    analyzedStocks.value.forEach((stock) => {
       const row = [
         `"${stock.code}"`,
-        `"${stock.name || ''}"`,
-        stock.price !== undefined ? stock.price.toFixed(2) : '',
-        stock.changePercent !== undefined ? `${stock.changePercent > 0 ? '+' : ''}${stock.changePercent.toFixed(2)}%` : '',
-        stock.rsi !== undefined ? stock.rsi.toFixed(2) : '',
-        stock.ma_trend ? getChineseTrend(stock.ma_trend) : '',
-        stock.macd_signal ? getChineseSignal(stock.macd_signal) : '',
-        stock.volume_status ? getChineseVolumeStatus(stock.volume_status) : '',
-        stock.score !== undefined ? stock.score : '',
-        `"${stock.recommendation || ''}"`,
-        stock.analysis_date || ''
+        `"${stock.name || ""}"`,
+        stock.price !== undefined ? stock.price.toFixed(2) : "",
+        stock.changePercent !== undefined
+          ? `${stock.changePercent > 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%`
+          : "",
+        stock.rsi !== undefined ? stock.rsi.toFixed(2) : "",
+        stock.ma_trend ? getChineseTrend(stock.ma_trend) : "",
+        stock.macd_signal ? getChineseSignal(stock.macd_signal) : "",
+        stock.volume_status ? getChineseVolumeStatus(stock.volume_status) : "",
+        stock.score !== undefined ? stock.score : "",
+        `"${stock.recommendation || ""}"`,
+        stock.analysis_date || "",
       ];
-      
-      csvContent += `${row.join(',')}\n`;
+
+      csvContent += `${row.join(",")}\n`;
     });
-    
+
     // 创建Blob对象
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    
+
     // 创建下载链接
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `股票分析结果_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `股票分析结果_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
+
     // 添加到文档并触发点击
     document.body.appendChild(link);
     link.click();
-    
+
     // 清理
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
-    message.success('已导出CSV文件');
+
+    message.success("已导出CSV文件");
   } catch (error) {
-    message.error('导出失败');
-    console.error('导出CSV时出错:', error);
+    message.error("导出失败");
+    console.error("导出CSV时出错:", error);
   }
 }
 
 // 辅助函数：获取中文趋势描述
 function getChineseTrend(trend: string): string {
   const trendMap: Record<string, string> = {
-    'UP': '上升',
-    'DOWN': '下降',
-    'NEUTRAL': '平稳'
+    UP: "上升",
+    DOWN: "下降",
+    NEUTRAL: "平稳",
   };
   return trendMap[trend] || trend;
 }
@@ -998,10 +1108,10 @@ function getChineseTrend(trend: string): string {
 // 辅助函数：获取中文信号描述
 function getChineseSignal(signal: string): string {
   const signalMap: Record<string, string> = {
-    'BUY': '买入',
-    'SELL': '卖出',
-    'HOLD': '持有',
-    'NEUTRAL': '中性'
+    BUY: "买入",
+    SELL: "卖出",
+    HOLD: "持有",
+    NEUTRAL: "中性",
   };
   return signalMap[signal] || signal;
 }
@@ -1009,9 +1119,9 @@ function getChineseSignal(signal: string): string {
 // 辅助函数：获取中文成交量状态描述
 function getChineseVolumeStatus(status: string): string {
   const statusMap: Record<string, string> = {
-    'HIGH': '放量',
-    'LOW': '缩量',
-    'NORMAL': '正常'
+    HIGH: "放量",
+    LOW: "缩量",
+    NORMAL: "正常",
   };
   return statusMap[status] || status;
 }
@@ -1020,41 +1130,41 @@ function getChineseVolumeStatus(status: string): string {
 onMounted(async () => {
   try {
     // 添加窗口大小变化监听
-    window.addEventListener('resize', handleResize);
-    
+    window.addEventListener("resize", handleResize);
+
     // 处理路由参数
     handleRouteParams();
-    
+
     // 从API获取配置信息
     const config = await apiService.getConfig();
-    
+
     if (config.default_api_url) {
       defaultApiUrl.value = config.default_api_url;
     }
-    
+
     if (config.default_api_model) {
       defaultApiModel.value = config.default_api_model;
     }
-    
+
     if (config.default_api_timeout) {
       defaultApiTimeout.value = config.default_api_timeout;
     }
-    
+
     if (config.announcement) {
       announcement.value = config.announcement;
       // 使用通知显示公告
       showAnnouncement(config.announcement);
     }
-      // 初始化后恢复本地保存的配置
+    // 初始化后恢复本地保存的配置
     restoreLocalApiConfig();
   } catch (error) {
-    console.error('获取默认配置时出错:', error);
+    console.error("获取默认配置时出错:", error);
   }
 });
 
 // 组件销毁前移除事件监听
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize);
+  window.removeEventListener("resize", handleResize);
 });
 
 // 处理公告关闭事件
@@ -1066,18 +1176,20 @@ function handleAnnouncementClose() {
 function handleRouteParams() {
   const route = router.currentRoute.value;
   const { codes, marketType: routeMarketType, source } = route.query;
-  
-  if (codes && routeMarketType && source === 'watchlist') {
+
+  if (codes && routeMarketType && source === "watchlist") {
     // 从自选股跳转过来的分析请求
-    const codeList = (codes as string).split(',');
-    stockCodes.value = codeList.join(', ');
+    const codeList = (codes as string).split(",");
+    stockCodes.value = codeList.join(", ");
     marketType.value = routeMarketType as string;
-    
+
     // 显示提示信息
-    message.info(`已从自选股导入 ${codeList.length} 只股票，点击"开始分析"进行分析`);
-    
+    message.info(
+      `已从自选股导入 ${codeList.length} 只股票，点击"开始分析"进行分析`,
+    );
+
     // 清除URL参数，避免重复处理
-    router.replace({ path: '/', query: {} });
+    router.replace({ path: "/", query: {} });
   }
 }
 </script>

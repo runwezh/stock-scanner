@@ -2,13 +2,18 @@
   <div class="watchlist-page">
     <!-- 页面头部 -->
     <div class="page-header">
-      <n-button class="back-button" @click="goBack">
+      <NButton
+        class="back-button"
+        @click="goBack"
+      >
         <template #icon>
-          <n-icon><ArrowBackIcon /></n-icon>
+          <NIcon><ArrowBackIcon /></NIcon>
         </template>
         返回首页
-      </n-button>
-      <h1 class="page-title">自选股管理</h1>
+      </NButton>
+      <h1 class="page-title">
+        自选股管理
+      </h1>
     </div>
 
     <!-- 自选股管理组件 -->
@@ -20,31 +25,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { NButton, NIcon } from 'naive-ui';
-import { ArrowBackOutline as ArrowBackIcon } from '@vicons/ionicons5';
+import { ArrowBackOutline as ArrowBackIcon } from "@vicons/ionicons5";
+import { NButton, NIcon } from "naive-ui";
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 
-import WatchlistManagement from './WatchlistManagement.vue';
+import WatchlistManagement from "./WatchlistManagement.vue";
 
 const router = useRouter();
 const watchlistRef = ref();
 
 // 返回首页
 function goBack() {
-  router.push('/');
+  router.push("/");
 }
 
 // 处理自选股分析
 function handleAnalyzeWatchlist(codes: string[], marketType: string) {
   // 跳转到首页并传递分析参数
   router.push({
-    path: '/',
+    path: "/",
     query: {
-      codes: codes.join(','),
+      codes: codes.join(","),
       marketType: marketType,
-      source: 'watchlist'
-    }
+      source: "watchlist",
+    },
   });
 }
 </script>

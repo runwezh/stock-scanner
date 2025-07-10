@@ -1,29 +1,30 @@
 <template>
-  <n-config-provider :theme="theme">
-    <n-message-provider>
-      <n-loading-bar-provider>
-        <n-dialog-provider>
-          <n-notification-provider>
+  <NConfigProvider :theme="theme">
+    <NMessageProvider>
+      <NLoadingBarProvider>
+        <NDialogProvider>
+          <NNotificationProvider>
             <router-view />
-          </n-notification-provider>
-        </n-dialog-provider>
-      </n-loading-bar-provider>
-    </n-message-provider>
-  </n-config-provider>
+          </NNotificationProvider>
+        </NDialogProvider>
+      </NLoadingBarProvider>
+    </NMessageProvider>
+  </NConfigProvider>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { 
-  NConfigProvider, 
-  NMessageProvider, 
-  NLoadingBarProvider, 
-  NDialogProvider, 
-  NNotificationProvider, 
-} from 'naive-ui'
+import {
+  type GlobalTheme,
+  NConfigProvider,
+  NDialogProvider,
+  NLoadingBarProvider,
+  NMessageProvider,
+  NNotificationProvider,
+} from "naive-ui";
+import { ref } from "vue";
 
 // 主题设置 (默认使用亮色主题)
-const theme = ref<any>(null) // 可以切换为 darkTheme 以启用暗色模式
+const theme = ref<GlobalTheme | null>(null); // 可以切换为 darkTheme 以启用暗色模式
 </script>
 
 <style>

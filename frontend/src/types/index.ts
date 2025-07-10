@@ -1,137 +1,137 @@
 // API接口相关类型
 export interface ApiConfig {
-  apiUrl: string;
-  apiKey: string;
-  apiModel: string;
-  apiTimeout: string;
-  saveApiConfig: boolean;
+	apiUrl: string;
+	apiKey: string;
+	apiModel: string;
+	apiTimeout: string;
+	saveApiConfig: boolean;
 }
 
 // 登录相关类型
 export interface LoginRequest {
-  username: string;
-  password: string;
+	username: string;
+	password: string;
 }
 
 export interface LoginResponse {
-  access_token?: string;
-  token_type?: string;
-  success?: boolean;
-  message?: string;
+	access_token?: string;
+	token_type?: string;
+	success?: boolean;
+	message?: string;
 }
 
 export interface StockInfo {
-  code: string;
-  name: string;
-  marketType: string;
-  price?: number;
-  changePercent?: number;
-  marketValue?: number;
-  analysis?: string;
-  analysisStatus: 'waiting' | 'analyzing' | 'completed' | 'error';
-  error?: string;
-  score?: number;
-  recommendation?: string;
-  price_change?: number;
-  rsi?: number;
-  ma_trend?: string;
-  macd_signal?: string;
-  volume_status?: string;
-  analysis_date?: string;
+	code: string;
+	name: string;
+	marketType: string;
+	price?: number;
+	changePercent?: number;
+	marketValue?: number;
+	analysis?: string;
+	analysisStatus: "waiting" | "analyzing" | "completed" | "error";
+	error?: string;
+	score?: number;
+	recommendation?: string;
+	price_change?: number;
+	rsi?: number;
+	ma_trend?: string;
+	macd_signal?: string;
+	volume_status?: string;
+	analysis_date?: string;
 }
 
 export interface SearchResult {
-  symbol: string;
-  name: string;
-  market: string;
-  market_value?: number;
+	symbol: string;
+	name: string;
+	market: string;
+	market_value?: number;
 }
 
 export interface MarketStatus {
-  isOpen: boolean;
-  nextTime: string;
-  progressPercentage?: number;
+	isOpen: boolean;
+	nextTime: string;
+	progressPercentage?: number;
 }
 
 export interface MarketTimeInfo {
-  currentTime: string;
-  cnMarket: MarketStatus;
-  hkMarket: MarketStatus;
-  usMarket: MarketStatus;
+	currentTime: string;
+	cnMarket: MarketStatus;
+	hkMarket: MarketStatus;
+	usMarket: MarketStatus;
 }
 
 // 分析请求和响应
 export interface AnalyzeRequest {
-  stock_codes: string[];
-  market_type: string;
-  api_url?: string;
-  api_key?: string;
-  api_model?: string;
-  api_timeout?: number;
+	stock_codes: string[];
+	market_type: string;
+	api_url?: string;
+	api_key?: string;
+	api_model?: string;
+	api_timeout?: number;
 }
 
 export interface TestApiRequest {
-  api_url: string;
-  api_key: string;
-  api_model?: string;
-  api_timeout: number;
+	api_url: string;
+	api_key: string;
+	api_model?: string;
+	api_timeout: number;
 }
 
 export interface TestApiResponse {
-  success: boolean;
-  message: string;
-  status_code?: number;
+	success: boolean;
+	message: string;
+	status_code?: number;
 }
 
 // 自选股相关类型
 export interface WatchlistItem {
-  id: number;
-  code: string;
-  name?: string;
-  market_type: string;
-  price?: number;
-  price_change?: number;
-  change_percent?: number;
-  market_value?: number;
-  note?: string;
-  created_at: string;
-  updated_at: string;
+	id: number;
+	code: string;
+	name?: string;
+	market_type: string;
+	price?: number;
+	price_change?: number;
+	change_percent?: number;
+	market_value?: number;
+	note?: string;
+	created_at: string;
+	updated_at: string;
 }
 
 export interface AddWatchlistRequest {
-  code: string;
-  market_type: string;
-  note?: string;
+	code: string;
+	market_type: string;
+	note?: string;
 }
 
 export interface UpdateWatchlistRequest {
-  note?: string;
+	note?: string;
 }
 
 // 流式响应类型
 export interface StreamInitMessage {
-  stream_type: 'single' | 'batch';
-  stock_code?: string;
-  stock_codes?: string[];
+	stream_type: "single" | "batch";
+	stock_code?: string;
+	stock_codes?: string[];
 }
 
 export interface StreamAnalysisUpdate {
-  stock_code: string;
-  analysis?: string;
-  status: 'analyzing' | 'completed' | 'error';
-  error?: string;
-  name?: string;
-  price?: number;
-  change_percent?: number;
-  price_change_value?: number;
-  market_value?: number;
-  score?: number;
-  recommendation?: string;
-  price_change?: number;
-  rsi?: number;
-  ma_trend?: string;
-  macd_signal?: string;
-  volume_status?: string;
-  analysis_date?: string;
-  ai_analysis_chunk?: string;
+	stock_code: string;
+	analysis?: string;
+	status: "analyzing" | "completed" | "error";
+	error?: string;
+	name?: string;
+	price?: number;
+	change_percent?: number;
+	price_change_value?: number;
+	market_value?: number;
+	score?: number;
+	recommendation?: string;
+	price_change?: number;
+	rsi?: number;
+	ma_trend?: string;
+	macd_signal?: string;
+	volume_status?: string;
+	analysis_date?: string;
+	ai_analysis_chunk?: string;
 }
